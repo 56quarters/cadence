@@ -10,73 +10,102 @@ use std::net::UdpSocket;
 pub const DEFAULT_PORT: u16 = 8125;
 
 
-pub struct Counter<'a> {
-    pub key: &'a str,
-    pub count: u32,
-    pub sampling: Option<f32>
+struct Counter<'a> {
+    key: &'a str,
+    count: u32,
+    sampling: Option<f32>
 }
 
 
-pub struct Timer<'a> {
-    pub key: &'a str,
-    pub time: u32,
-    pub unit: &'a str,
-    pub sampling: Option<f32>
+struct Timer<'a> {
+    key: &'a str,
+    time: u32,
+    unit: &'a str,
+    sampling: Option<f32>
 }
 
 
-pub struct Gauge<'a> {
-    pub key: &'a str,
-    pub value: i32
+struct Gauge<'a> {
+    key: &'a str,
+    value: i32
+}
+
+
+trait ToBytes {
+    fn to_bytes(&self) -> &[u8];
+}
+
+
+impl<'a> ToBytes for Counter<'a> {
+    fn to_bytes(&self) -> &[u8] {
+        &[]
+    }
+}
+
+
+impl<'a> ToBytes for Timer<'a> {
+    fn to_bytes(&self) -> &[u8] {
+        &[]
+    }
+}
+
+
+impl<'a> ToBytes for Gauge<'a> {
+    fn to_bytes(&self) -> &[u8] {
+        &[]
+    }
 }
 
 
 pub trait Counted {
-    fn count(&self, c: &Counter) -> ();
+    fn count(&self, key: &str, count: u32, sampling: Option<f32>) -> ();
 }
 
 
 pub trait Timed {
-    fn time(&self, t: &Timer) -> ();
+    fn time(&self, key: &str, time: u32, unit: &str, sampling: Option<f32>) -> ();
 }
 
 
 pub trait Gauged {
-    fn gauge(&self, g: &Gauge) -> ();
+    fn gauge(&self, key: &str, value: i32) -> ();
 }
 
 
 pub struct StatsdClientUdp<'a> {
-    socket: &'a mut UdpSocket,
+    host: &'a str,
+    port: u16,
     prefix: &'a str
 }
 
 
 impl<'a> StatsdClientUdp<'a> {
-    pub fn from_socket(socket: &'a mut UdpSocket, prefix: &'a str) -> StatsdClientUdp<'a> {
+    pub fn from_host(host: &'a str, port: u16, prefix: &'a str) -> StatsdClientUdp<'a> {
         StatsdClientUdp{
-            prefix: prefix, socket: socket
+            host: host,
+            port: port,
+            prefix: prefix
         }
     }
 }
 
 
 impl<'a> Counted for StatsdClientUdp<'a> {
-    fn count(&self, c: &Counter) -> () {
+    fn count(&self, key: &str, count: u32, sampling: Option<f32>) -> () {
         println!("counted!")
     }
 }
 
 
 impl<'a> Timed for StatsdClientUdp<'a> {
-    fn time(&self, t: &Timer) -> () {
+    fn time(&self, key: &str, time: u32, unit: &str, sampling: Option<f32>) -> () {
         println!("timed!")
     }
 }
 
 
 impl<'a> Gauged for StatsdClientUdp<'a> {
-    fn gauge(&self, g: &Gauge) -> () {
+    fn gauge(&self, key: &str, value: i32) -> () {
         println!("gauged!")
     }
 }
