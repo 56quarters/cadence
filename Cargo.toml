@@ -1,0 +1,14 @@
+[package]
+name = "statsd"
+version = "0.1.0"
+authors = ["Nick Pillitteri <nick@tshlabs.org>"]
+
+
+[lib]
+name = "statsd"
+path = "src/lib.rs"
+
+[[bin]]
+name = "statsd"
+path = "src/bin.rs"
+
