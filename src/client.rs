@@ -4,7 +4,9 @@
 //
 //
 
-use std::net::UdpSocket;
+use std::ops::Deref;
+use std::io::{Error, Write};
+use std::net::{ToSocketAddrs, UdpSocket};
 
 
 pub const DEFAULT_PORT: u16 = 8125;
@@ -32,27 +34,47 @@ struct Gauge<'a> {
 
 
 trait ToBytes {
-    fn to_bytes(&self) -> &[u8];
+    fn to_bytes(&self) -> Box<[u8]>;
 }
 
 
 impl<'a> ToBytes for Counter<'a> {
-    fn to_bytes(&self) -> &[u8] {
-        &[]
+    fn to_bytes(&self) -> Box<[u8]> {
+        let mut v: Vec<u8> = Vec::new();
+
+        match self.sampling {
+            Some(val) => write!(&mut v, "{}:{}|c|@{}", self.key, self.count, val),
+            None => write!(&mut v, "{}:{}|c", self.key, self.count)
+        };
+
+        debug!("Packed vector of {} bytes", v.len());
+        v.into_boxed_slice()
     }
 }
 
 
 impl<'a> ToBytes for Timer<'a> {
-    fn to_bytes(&self) -> &[u8] {
-        &[]
+    fn to_bytes(&self) -> Box<[u8]> {
+        let mut v: Vec<u8> = Vec::new();
+
+        match self.sampling {
+            Some(val) => write!(&mut v, "{}:{}|{}|@{}", self.key, self.time, self.unit, val),
+            None => write!(&mut v, "{}:{}|{}", self.key, self.time, self.unit)
+        };
+
+        debug!("Packed vector of {} bytes", v.len());
+        v.into_boxed_slice()
     }
 }
 
 
 impl<'a> ToBytes for Gauge<'a> {
-    fn to_bytes(&self) -> &[u8] {
-        &[]
+    fn to_bytes(&self) -> Box<[u8]> {
+        let mut v: Vec<u8> = Vec::new();
+
+        write!(&mut v, "{}:{}|g", self.key, self.value);
+        debug!("Packed vector of {} bytes", v.len());
+        v.into_boxed_slice()
     }
 }
 
@@ -72,41 +94,71 @@ pub trait Gauged {
 }
 
 
-pub struct StatsdClientUdp<'a> {
-    host: &'a str,
-    port: u16,
-    prefix: &'a str
+pub trait ByteSink {
+    fn send_to<A: ToSocketAddrs>(&self, buf: &[u8], addr: A) -> Result<usize, Error>;
 }
 
 
-impl<'a> StatsdClientUdp<'a> {
-    pub fn from_host(host: &'a str, port: u16, prefix: &'a str) -> StatsdClientUdp<'a> {
-        StatsdClientUdp{
+impl ByteSink for UdpSocket {
+    fn send_to<A: ToSocketAddrs>(&self, buf: &[u8], addr: A) -> Result<usize, Error> {
+        self.send_to(buf, addr)
+    }
+}
+
+
+pub struct StatsdClient<'a, T: ByteSink + 'a> {
+    host: &'a str,
+    port: u16,
+    prefix: &'a str,
+    sink: &'a T
+}
+
+
+impl<'a, T: ByteSink> StatsdClient<'a, T> {
+    pub fn from_host(
+        host: &'a str, port: u16,
+        prefix: &'a str, sink: &'a T) -> StatsdClient<'a, T> {
+        StatsdClient{
             host: host,
             port: port,
-            prefix: prefix
+            prefix: prefix,
+            sink: sink
+        }
+    }
+
+    fn send_metric<B: ToBytes>(&self, metric: B) -> () {
+        let bytes = metric.to_bytes();
+        let addr = (self.host, self.port);
+        debug!("Sending to {}:{}", self.host, self.port);
+
+        match self.sink.send_to(bytes.deref(), addr) {
+            Ok(n) => debug!("Wrote {} bytes to socket", n),
+            Err(err) => debug!("Got error writing to socket: {}", err)
         }
     }
 }
 
 
-impl<'a> Counted for StatsdClientUdp<'a> {
+impl<'a, T: ByteSink> Counted for StatsdClient<'a, T> {
     fn count(&self, key: &str, count: u32, sampling: Option<f32>) -> () {
-        println!("counted!")
+        let counter = Counter{key: key, count: count, sampling: sampling};
+        self.send_metric(counter);
     }
 }
 
 
-impl<'a> Timed for StatsdClientUdp<'a> {
+impl<'a, T: ByteSink> Timed for StatsdClient<'a, T> {
     fn time(&self, key: &str, time: u32, unit: &str, sampling: Option<f32>) -> () {
-        println!("timed!")
+        let timer = Timer{key: key, time: time, unit: unit, sampling: sampling};
+        self.send_metric(timer);
     }
 }
 
 
-impl<'a> Gauged for StatsdClientUdp<'a> {
+impl<'a, T: ByteSink> Gauged for StatsdClient<'a, T> {
     fn gauge(&self, key: &str, value: i32) -> () {
-        println!("gauged!")
+        let gauge = Gauge{key: key, value: value};
+        self.send_metric(gauge);
     }
 }
 
