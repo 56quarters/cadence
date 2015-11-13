@@ -116,8 +116,11 @@ pub struct StatsdClient<'a, T: ByteSink + 'a> {
 
 impl<'a, T: ByteSink> StatsdClient<'a, T> {
     pub fn from_host(
-        host: &'a str, port: u16,
-        prefix: &'a str, sink: &'a T) -> StatsdClient<'a, T> {
+        host: &'a str,
+        port: u16,
+        prefix: &'a str,
+        sink: &'a T) -> StatsdClient<'a, T> {
+
         StatsdClient{
             host: host,
             port: port,
@@ -139,9 +142,21 @@ impl<'a, T: ByteSink> StatsdClient<'a, T> {
 }
 
 
+fn make_key(prefix: &str, key: &str) -> String {
+    let trimmed_prefix = if prefix.ends_with('.') {
+        prefix.trim_right_matches('.')
+    } else {
+        prefix
+    };
+
+    format!("{}.{}", trimmed_prefix, key)
+}
+
+
 impl<'a, T: ByteSink> Counted for StatsdClient<'a, T> {
     fn count(&self, key: &str, count: u32, sampling: Option<f32>) -> () {
-        let counter = Counter{key: key, count: count, sampling: sampling};
+        let counter = Counter{
+            key: &make_key(self.prefix, key), count: count, sampling: sampling};
         self.send_metric(counter);
     }
 }
@@ -149,7 +164,8 @@ impl<'a, T: ByteSink> Counted for StatsdClient<'a, T> {
 
 impl<'a, T: ByteSink> Timed for StatsdClient<'a, T> {
     fn time(&self, key: &str, time: u32, unit: &str, sampling: Option<f32>) -> () {
-        let timer = Timer{key: key, time: time, unit: unit, sampling: sampling};
+        let timer = Timer{
+            key: &make_key(self.prefix, key), time: time, unit: unit, sampling: sampling};
         self.send_metric(timer);
     }
 }
@@ -157,7 +173,7 @@ impl<'a, T: ByteSink> Timed for StatsdClient<'a, T> {
 
 impl<'a, T: ByteSink> Gauged for StatsdClient<'a, T> {
     fn gauge(&self, key: &str, value: i32) -> () {
-        let gauge = Gauge{key: key, value: value};
+        let gauge = Gauge{key: &make_key(self.prefix, key), value: value};
         self.send_metric(gauge);
     }
 }
