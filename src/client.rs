@@ -205,7 +205,7 @@ mod tests {
     }
 
     #[test]
-    fn test_gauge_to_metric_string_sampling() {
+    fn test_gauge_to_metric_string() {
         let gauge = Gauge{key: "foo.events", value: 2};
         assert_eq!("foo.events:2|g".to_string(), gauge.to_metric_string());
     }
