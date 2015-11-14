@@ -12,7 +12,3 @@ pub use client::{
     ByteSink,
     StatsdClient
 };
-
-#[test]
-fn it_works() {
-}
