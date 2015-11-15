@@ -114,7 +114,7 @@ impl<'a, T: ByteSink> StatsdClient<'a, T> {
         }
     }
 
-    fn send_metric<B: ToMetricString>(&self, metric: B) -> () {
+    fn send_metric<M: ToMetricString>(&self, metric: M) -> () {
         let metric_string = metric.to_metric_string();
         let bytes = metric_string.as_bytes();
         let addr = (self.host, self.port);
