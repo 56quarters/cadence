@@ -2,7 +2,7 @@ extern crate statsd;
 
 use std::net::UdpSocket;
 
-use statsd::*;
+use statsd::client::*;
 
 
 fn main() {

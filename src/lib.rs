@@ -1,14 +1,6 @@
 #[macro_use]
 extern crate log;
 
-mod client;
-mod server;
+pub mod client;
+pub mod server;
 
-pub use client::{
-    DEFAULT_PORT,
-    Counted,
-    Timed,
-    Gauged,
-    ByteSink,
-    StatsdClient
-};
