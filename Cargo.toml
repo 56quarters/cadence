@@ -1,7 +1,6 @@
 [package]
 name = "statsd"
 version = "0.1.0"
-authors = ["Nick Pillitteri <nick@tshlabs.org>"]
 
 [dependencies]
 log = "0.3"
