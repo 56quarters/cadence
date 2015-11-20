@@ -15,7 +15,6 @@ pub struct Counter<'a> {
 pub struct Timer<'a> {
     key: &'a str,
     time: u32,
-    unit: &'a str,
     sampling: Option<f32>
 }
 
@@ -35,8 +34,8 @@ impl<'a> Counter<'a> {
 
 
 impl<'a> Timer<'a> {
-    pub fn new(key: &'a str, time: u32, unit: &'a str, sampling: Option<f32>) -> Timer<'a> {
-        Timer{key: key, time: time, unit: unit, sampling: sampling}
+    pub fn new(key: &'a str, time: u32, sampling: Option<f32>) -> Timer<'a> {
+        Timer{key: key, time: time, sampling: sampling}
     }
 }
 
@@ -46,6 +45,7 @@ impl<'a> Gauge<'a> {
         Gauge{key: key, value: value}
     }
 }
+
 
 ///
 pub trait ToMetricString {
@@ -66,8 +66,8 @@ impl<'a> ToMetricString for Counter<'a> {
 impl<'a> ToMetricString for Timer<'a> {
     fn to_metric_string(&self) -> String {
         match self.sampling {
-            Some(val) => format!("{}:{}|{}|@{}", self.key, self.time, self.unit, val),
-            None => format!("{}:{}|{}", self.key, self.time, self.unit)
+            Some(val) => format!("{}:{}|ms|@{}", self.key, self.time, val),
+            None => format!("{}:{}|ms", self.key, self.time)
         }
     }
 }
@@ -104,13 +104,13 @@ mod tests {
 
     #[test]
     fn test_timer_to_metric_string_sampling() {
-        let timer = Timer{key: "foo.baz", time: 34, unit: "ms", sampling: Some(0.01)};
+        let timer = Timer{key: "foo.baz", time: 34, sampling: Some(0.01)};
         assert_eq!("foo.baz:34|ms|@0.01".to_string(), timer.to_metric_string());
     }
 
     #[test]
     fn test_timer_to_metric_string_no_sampling() {
-        let timer = Timer{key: "foo.baz", time: 34, unit: "ms", sampling: None};
+        let timer = Timer{key: "foo.baz", time: 34, sampling: None};
         assert_eq!("foo.baz:34|ms".to_string(), timer.to_metric_string());
     }
 

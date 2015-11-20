@@ -2,7 +2,9 @@
 //!
 //!
 
-use client::net::ByteSink;
+use std::net::{ToSocketAddrs, UdpSocket};
+
+use client::net::{MetricSink, UdpMetricSink};
 use client::types::{Counter, Timer, Gauge, ToMetricString};
 
 ///
@@ -13,7 +15,7 @@ pub trait Counted {
 
 ///
 pub trait Timed {
-    fn time(&self, key: &str, time: u32, unit: &str, sampling: Option<f32>) -> ();
+    fn time(&self, key: &str, time: u32, sampling: Option<f32>) -> ();
 }
 
 
@@ -23,40 +25,40 @@ pub trait Gauged {
 }
 
 
-
 ///
-pub struct StatsdClient<'a, T: ByteSink + 'a> {
-    host: &'a str,
-    port: u16,
+pub struct StatsdClient<'a, T: MetricSink + 'a> {
     prefix: &'a str,
     sink: &'a T
 }
 
 
-impl<'a, T: ByteSink> StatsdClient<'a, T> {
+impl<'a, T: MetricSink> StatsdClient<'a, T> {
 
-    ///
-    pub fn from_host(
-        host: &'a str,
-        port: u16,
-        prefix: &'a str,
-        sink: &'a T) -> StatsdClient<'a, T> {
-
-        StatsdClient{
-            host: host,
-            port: port,
-            prefix: prefix,
-            sink: sink
-        }
+    /*
+    pub fn from_host_gen<A: ToSocketAddrs>(
+        prefix: &'a str, host: &'a A)-> StatsdClient<'a, T> {
+        let socket = make_local_udp();
+        let sink = UdpMetricSink::new(host, &socket);
+        StatsdClient{prefix: prefix, sink: &sink}
     }
-
+    
+    pub fn from_host<A: ToSocketAddrs>(
+        prefix: &'a str, host: &'a A) -> StatsdClient<'a, UdpMetricSink<'a, A>> {
+        let socket = UdpSocket::bind("0.0.0.0:0").unwrap();
+        let sink = UdpMetricSink::new(host, &socket);
+        StatsdClient{prefix: prefix, sink: &sink}
+    }
+    */
+    
+    pub fn from_sink(prefix: &'a str, sink: &'a T) -> StatsdClient<'a, T> {
+        StatsdClient{prefix: prefix, sink: sink}
+    }
+    
     fn send_metric<M: ToMetricString>(&self, metric: M) -> () {
         let metric_string = metric.to_metric_string();
         let bytes = metric_string.as_bytes();
-        let addr = (self.host, self.port);
-        debug!("Sending to {}:{}", self.host, self.port);
 
-        match self.sink.send_to(bytes, addr) {
+        match self.sink.send(bytes) {
             Ok(n) => debug!("Wrote {} bytes to socket", n),
             Err(err) => debug!("Got error writing to socket: {}", err)
         };
@@ -75,7 +77,7 @@ fn make_key(prefix: &str, key: &str) -> String {
 }
 
 
-impl<'a, T: ByteSink> Counted for StatsdClient<'a, T> {
+impl<'a, T: MetricSink> Counted for StatsdClient<'a, T> {
     fn count(&self, key: &str, count: u32, sampling: Option<f32>) -> () {
         let key = make_key(self.prefix, key);
         let counter = Counter::new(&key, count, sampling);
@@ -84,16 +86,16 @@ impl<'a, T: ByteSink> Counted for StatsdClient<'a, T> {
 }
 
 
-impl<'a, T: ByteSink> Timed for StatsdClient<'a, T> {
-    fn time(&self, key: &str, time: u32, unit: &str, sampling: Option<f32>) -> () {
+impl<'a, T: MetricSink> Timed for StatsdClient<'a, T> {
+    fn time(&self, key: &str, time: u32, sampling: Option<f32>) -> () {
         let key = make_key(self.prefix, key);
-        let timer = Timer::new(&key, time, unit, sampling);
+        let timer = Timer::new(&key, time, sampling);
         self.send_metric(timer);
     }
 }
 
 
-impl<'a, T: ByteSink> Gauged for StatsdClient<'a, T> {
+impl<'a, T: MetricSink> Gauged for StatsdClient<'a, T> {
     fn gauge(&self, key: &str, value: i32) -> () {
         let key = make_key(self.prefix, key);
         let gauge = Gauge::new(&key, value);

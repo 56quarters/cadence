@@ -13,7 +13,8 @@ pub use client::metrics::{
 };
 
 pub use client::net::{
-    ByteSink
+    MetricSink,
+    UdpMetricSink
 };
 
 mod metrics;
