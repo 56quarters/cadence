@@ -2,10 +2,19 @@
 //!
 //!
 
-use std::net::{ToSocketAddrs, UdpSocket};
-
-use client::net::{MetricSink, UdpMetricSink};
+use client::net::MetricSink;
 use client::types::{Counter, Timer, Gauge, ToMetricString};
+
+
+fn make_key(prefix: &str, key: &str) -> String {
+    let trimmed_prefix = if prefix.ends_with('.') {
+        prefix.trim_right_matches('.')
+    } else {
+        prefix
+    };
+
+    format!("{}.{}", trimmed_prefix, key)
+}
 
 ///
 pub trait Counted {
@@ -34,23 +43,7 @@ pub struct StatsdClient<'a, T: MetricSink + 'a> {
 
 impl<'a, T: MetricSink> StatsdClient<'a, T> {
 
-    /*
-    pub fn from_host_gen<A: ToSocketAddrs>(
-        prefix: &'a str, host: &'a A)-> StatsdClient<'a, T> {
-        let socket = make_local_udp();
-        let sink = UdpMetricSink::new(host, &socket);
-        StatsdClient{prefix: prefix, sink: &sink}
-    }
-    
-    pub fn from_host<A: ToSocketAddrs>(
-        prefix: &'a str, host: &'a A) -> StatsdClient<'a, UdpMetricSink<'a, A>> {
-        let socket = UdpSocket::bind("0.0.0.0:0").unwrap();
-        let sink = UdpMetricSink::new(host, &socket);
-        StatsdClient{prefix: prefix, sink: &sink}
-    }
-    */
-    
-    pub fn from_sink(prefix: &'a str, sink: &'a T) -> StatsdClient<'a, T> {
+    pub fn new(prefix: &'a str, sink: &'a T) -> StatsdClient<'a, T> {
         StatsdClient{prefix: prefix, sink: sink}
     }
     
@@ -63,17 +56,6 @@ impl<'a, T: MetricSink> StatsdClient<'a, T> {
             Err(err) => debug!("Got error writing to socket: {}", err)
         };
     }
-}
-
-
-fn make_key(prefix: &str, key: &str) -> String {
-    let trimmed_prefix = if prefix.ends_with('.') {
-        prefix.trim_right_matches('.')
-    } else {
-        prefix
-    };
-
-    format!("{}.{}", trimmed_prefix, key)
 }
 
 

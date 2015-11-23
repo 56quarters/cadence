@@ -3,7 +3,7 @@
 //!
 
 use std::io::Error;
-use std::net::{ToSocketAddrs, SocketAddr, UdpSocket};
+use std::net::{ToSocketAddrs, UdpSocket};
 
 
 ///
