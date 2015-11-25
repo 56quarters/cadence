@@ -18,19 +18,19 @@ fn make_key(prefix: &str, key: &str) -> String {
 
 ///
 pub trait Counted {
-    fn count(&self, key: &str, count: u32, sampling: Option<f32>) -> ();
+    fn count(&self, key: &str, count: u64, sampling: Option<f32>) -> ();
 }
 
 
 ///
 pub trait Timed {
-    fn time(&self, key: &str, time: u32, sampling: Option<f32>) -> ();
+    fn time(&self, key: &str, time: u64, sampling: Option<f32>) -> ();
 }
 
 
 ///
 pub trait Gauged {
-    fn gauge(&self, key: &str, value: i32) -> ();
+    fn gauge(&self, key: &str, value: i64) -> ();
 }
 
 
@@ -60,7 +60,7 @@ impl<T: MetricSink> StatsdClient<T> {
 
 
 impl<T: MetricSink> Counted for StatsdClient<T> {
-    fn count(&self, key: &str, count: u32, sampling: Option<f32>) -> () {
+    fn count(&self, key: &str, count: u64, sampling: Option<f32>) -> () {
         let key = make_key(&self.prefix, key);
         let counter = Counter::new(&key, count, sampling);
         self.send_metric(counter);
@@ -69,7 +69,7 @@ impl<T: MetricSink> Counted for StatsdClient<T> {
 
 
 impl<T: MetricSink> Timed for StatsdClient<T> {
-    fn time(&self, key: &str, time: u32, sampling: Option<f32>) -> () {
+    fn time(&self, key: &str, time: u64, sampling: Option<f32>) -> () {
         let key = make_key(&self.prefix, key);
         let timer = Timer::new(&key, time, sampling);
         self.send_metric(timer);
@@ -78,7 +78,7 @@ impl<T: MetricSink> Timed for StatsdClient<T> {
 
 
 impl<T: MetricSink> Gauged for StatsdClient<T> {
-    fn gauge(&self, key: &str, value: i32) -> () {
+    fn gauge(&self, key: &str, value: i64) -> () {
         let key = make_key(&self.prefix, key);
         let gauge = Gauge::new(&key, value);
         self.send_metric(gauge);

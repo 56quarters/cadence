@@ -6,7 +6,7 @@
 ///
 pub struct Counter {
     key: String,
-    count: u32,
+    count: u64,
     sampling: Option<f32>
 }
 
@@ -14,7 +14,7 @@ pub struct Counter {
 ///
 pub struct Timer {
     key: String,
-    time: u32,
+    time: u64,
     sampling: Option<f32>
 }
 
@@ -22,26 +22,26 @@ pub struct Timer {
 ///
 pub struct Gauge {
     key: String,
-    value: i32
+    value: i64
 }
 
 
 impl Counter {
-    pub fn new(key: &str, count: u32, sampling: Option<f32>) -> Counter {
+    pub fn new(key: &str, count: u64, sampling: Option<f32>) -> Counter {
         Counter{key: key.to_string(), count: count, sampling: sampling}
     }
 }
 
 
 impl Timer {
-    pub fn new(key: &str, time: u32, sampling: Option<f32>) -> Timer {
+    pub fn new(key: &str, time: u64, sampling: Option<f32>) -> Timer {
         Timer{key: key.to_string(), time: time, sampling: sampling}
     }
 }
 
 
 impl Gauge {
-    pub fn new (key: &str, value: i32) -> Gauge {
+    pub fn new (key: &str, value: i64) -> Gauge {
         Gauge{key: key.to_string(), value: value}
     }
 }
