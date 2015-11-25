@@ -35,16 +35,16 @@ pub trait Gauged {
 
 
 ///
-pub struct StatsdClient<'a, T: MetricSink + 'a> {
-    prefix: &'a str,
-    sink: &'a T
+pub struct StatsdClient<T: MetricSink> {
+    prefix: String,
+    sink: Box<T>
 }
 
 
-impl<'a, T: MetricSink> StatsdClient<'a, T> {
+impl<T: MetricSink> StatsdClient<T> {
 
-    pub fn new(prefix: &'a str, sink: &'a T) -> StatsdClient<'a, T> {
-        StatsdClient{prefix: prefix, sink: sink}
+    pub fn new(prefix: &str, sink: T) -> StatsdClient<T> {
+        StatsdClient{prefix: prefix.to_string(), sink: Box::new(sink)}
     }
     
     fn send_metric<M: ToMetricString>(&self, metric: M) -> () {
@@ -59,27 +59,27 @@ impl<'a, T: MetricSink> StatsdClient<'a, T> {
 }
 
 
-impl<'a, T: MetricSink> Counted for StatsdClient<'a, T> {
+impl<T: MetricSink> Counted for StatsdClient<T> {
     fn count(&self, key: &str, count: u32, sampling: Option<f32>) -> () {
-        let key = make_key(self.prefix, key);
+        let key = make_key(&self.prefix, key);
         let counter = Counter::new(&key, count, sampling);
         self.send_metric(counter);
     }
 }
 
 
-impl<'a, T: MetricSink> Timed for StatsdClient<'a, T> {
+impl<T: MetricSink> Timed for StatsdClient<T> {
     fn time(&self, key: &str, time: u32, sampling: Option<f32>) -> () {
-        let key = make_key(self.prefix, key);
+        let key = make_key(&self.prefix, key);
         let timer = Timer::new(&key, time, sampling);
         self.send_metric(timer);
     }
 }
 
 
-impl<'a, T: MetricSink> Gauged for StatsdClient<'a, T> {
+impl<T: MetricSink> Gauged for StatsdClient<T> {
     fn gauge(&self, key: &str, value: i32) -> () {
-        let key = make_key(self.prefix, key);
+        let key = make_key(&self.prefix, key);
         let gauge = Gauge::new(&key, value);
         self.send_metric(gauge);
     }

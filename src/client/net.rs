@@ -2,9 +2,13 @@
 //!
 //!
 
+use std::boxed::Box;
 use std::io::Error;
 use std::net::{ToSocketAddrs, UdpSocket};
 
+
+// TODO: Should this accept a Metric? Do we need to accept multiple
+// metrics and add '\n' for TCP sockets?
 
 ///
 pub trait MetricSink {
@@ -13,22 +17,24 @@ pub trait MetricSink {
 
 
 ///
-pub struct UdpMetricSink<'a, A: ToSocketAddrs + 'a> {
-    sink_addr: &'a A,
-    socket: &'a UdpSocket
+pub struct UdpMetricSink<A: ToSocketAddrs> {
+    sink_addr: Box<A>,
+    socket: Box<UdpSocket>
 }
 
 
-impl<'a, A: ToSocketAddrs> UdpMetricSink<'a, A> {
-    pub fn new(sink_addr: &'a A, socket: &'a UdpSocket) -> UdpMetricSink<'a, A> {
-        UdpMetricSink{sink_addr: sink_addr, socket: socket}
+impl<A: ToSocketAddrs> UdpMetricSink<A> {
+    pub fn new(sink_addr: A, socket: UdpSocket) -> UdpMetricSink<A> {
+        UdpMetricSink{sink_addr: Box::new(sink_addr), socket: Box::new(socket)}
     }
 }
 
 
-impl<'a, A: ToSocketAddrs> MetricSink for UdpMetricSink<'a, A> {
+impl<A: ToSocketAddrs> MetricSink for UdpMetricSink<A> {
     fn send(&self, buf: &[u8]) -> Result<usize, Error> {
-        self.socket.send_to(buf, self.sink_addr)
+        let addr: &A = &self.sink_addr;
+        let socket: &UdpSocket = &self.socket;
+        socket.send_to(buf, addr)
     }
 }
 

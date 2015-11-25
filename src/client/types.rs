@@ -4,45 +4,45 @@
 
 
 ///
-pub struct Counter<'a> {
-    key: &'a str,
+pub struct Counter {
+    key: String,
     count: u32,
     sampling: Option<f32>
 }
 
 
 ///
-pub struct Timer<'a> {
-    key: &'a str,
+pub struct Timer {
+    key: String,
     time: u32,
     sampling: Option<f32>
 }
 
 
 ///
-pub struct Gauge<'a> {
-    key: &'a str,
+pub struct Gauge {
+    key: String,
     value: i32
 }
 
 
-impl<'a> Counter<'a> {
-    pub fn new(key: &'a str, count: u32, sampling: Option<f32>) -> Counter<'a> {
-        Counter{key: key, count: count, sampling: sampling}
+impl Counter {
+    pub fn new(key: &str, count: u32, sampling: Option<f32>) -> Counter {
+        Counter{key: key.to_string(), count: count, sampling: sampling}
     }
 }
 
 
-impl<'a> Timer<'a> {
-    pub fn new(key: &'a str, time: u32, sampling: Option<f32>) -> Timer<'a> {
-        Timer{key: key, time: time, sampling: sampling}
+impl Timer {
+    pub fn new(key: &str, time: u32, sampling: Option<f32>) -> Timer {
+        Timer{key: key.to_string(), time: time, sampling: sampling}
     }
 }
 
 
-impl<'a> Gauge<'a> {
-    pub fn new (key: &'a str, value: i32) -> Gauge<'a> {
-        Gauge{key: key, value: value}
+impl Gauge {
+    pub fn new (key: &str, value: i32) -> Gauge {
+        Gauge{key: key.to_string(), value: value}
     }
 }
 
@@ -53,7 +53,7 @@ pub trait ToMetricString {
 }
 
 
-impl<'a> ToMetricString for Counter<'a> {
+impl ToMetricString for Counter {
     fn to_metric_string(&self) -> String {
         match self.sampling {
             Some(val) => format!("{}:{}|c|@{}", self.key, self.count, val),
@@ -63,7 +63,7 @@ impl<'a> ToMetricString for Counter<'a> {
 }
 
 
-impl<'a> ToMetricString for Timer<'a> {
+impl ToMetricString for Timer {
     fn to_metric_string(&self) -> String {
         match self.sampling {
             Some(val) => format!("{}:{}|ms|@{}", self.key, self.time, val),
@@ -73,7 +73,7 @@ impl<'a> ToMetricString for Timer<'a> {
 }
 
 
-impl<'a> ToMetricString for Gauge<'a> {
+impl ToMetricString for Gauge {
     fn to_metric_string(&self) -> String {
         format!("{}:{}|g", self.key, self.value)
     }
@@ -92,31 +92,31 @@ mod tests {
 
     #[test]
     fn test_counter_to_metric_string_sampling() {
-        let counter = Counter{key: "foo.bar", count: 4, sampling: Some(0.1)};
+        let counter = Counter::new("foo.bar", 4, Some(0.1));
         assert_eq!("foo.bar:4|c|@0.1".to_string(), counter.to_metric_string());
     }
 
     #[test]
     fn test_counter_to_metric_string_no_sampling() {
-        let counter = Counter{key: "foo.bar", count: 4, sampling: None};
+        let counter = Counter::new("foo.bar", 4, None);
         assert_eq!("foo.bar:4|c".to_string(), counter.to_metric_string());
     }
 
     #[test]
     fn test_timer_to_metric_string_sampling() {
-        let timer = Timer{key: "foo.baz", time: 34, sampling: Some(0.01)};
+        let timer = Timer::new("foo.baz", 34, Some(0.01));
         assert_eq!("foo.baz:34|ms|@0.01".to_string(), timer.to_metric_string());
     }
 
     #[test]
     fn test_timer_to_metric_string_no_sampling() {
-        let timer = Timer{key: "foo.baz", time: 34, sampling: None};
+        let timer = Timer::new("foo.baz",34, None);
         assert_eq!("foo.baz:34|ms".to_string(), timer.to_metric_string());
     }
 
     #[test]
     fn test_gauge_to_metric_string() {
-        let gauge = Gauge{key: "foo.events", value: 2};
+        let gauge = Gauge::new("foo.events", 2);
         assert_eq!("foo.events:2|g".to_string(), gauge.to_metric_string());
     }
 }
