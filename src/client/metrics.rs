@@ -67,11 +67,11 @@ impl<T: MetricSink> StatsdClient<T> {
         match self.sink.send(bytes) {
             Ok(n) => {
                 debug!("Wrote {} bytes to socket", n);
-                return Ok(())
+                Ok(())
             }
             Err(err) => {
                 debug!("Got error writing to socket: {}", err);
-                return Err(MetricError::new())
+                Err(MetricError::new())
             }
         }
     }
