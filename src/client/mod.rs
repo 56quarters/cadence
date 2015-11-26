@@ -17,6 +17,11 @@ pub use client::net::{
     UdpMetricSink
 };
 
+pub use client::types::{
+    MetricResult,
+    MetricError
+};
+
 mod metrics;
 mod net;
 mod types;

@@ -38,3 +38,4 @@ impl<A: ToSocketAddrs> MetricSink for UdpMetricSink<A> {
     }
 }
 
+// impl MetricSink for Box<MetricSink> ?

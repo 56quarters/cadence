@@ -2,6 +2,8 @@
 //!
 //!
 
+use std::fmt;
+
 
 ///
 pub struct Counter {
@@ -78,6 +80,40 @@ impl ToMetricString for Gauge {
         format!("{}:{}|g", self.key, self.value)
     }
 }
+
+
+enum ErrorRepr {
+    UNKNOWN
+}
+
+
+pub struct MetricError {
+    repr: ErrorRepr
+}
+
+
+impl MetricError {
+    pub fn new() -> MetricError {
+        MetricError{repr: ErrorRepr::UNKNOWN}
+    }
+}
+
+
+impl fmt::Display for MetricError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
+        Ok(())
+    }
+}
+
+
+impl fmt::Debug for MetricError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
+        fmt::Display::fmt(self, f)
+    }
+}
+
+
+pub type MetricResult<T> = Result<T, MetricError>;
 
 
 #[cfg(test)]
