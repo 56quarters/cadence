@@ -7,9 +7,6 @@ use std::io;
 use std::net::{ToSocketAddrs, UdpSocket};
 
 
-// TODO: Should this accept a Metric? Do we need to accept multiple
-// metrics and add '\n' for TCP sockets?
-
 ///
 pub trait MetricSink {
     fn send(&self, metric: &str) -> io::Result<usize>;
