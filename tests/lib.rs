@@ -7,22 +7,16 @@
 extern crate test;
 extern crate statsd;
 
-use std::net::{UdpSocket};
-
 use test::Bencher;
 
 use statsd::client::{
-    DEFAULT_PORT,
-    UdpMetricSink,
+    ConsoleMetricSink,
+    NopMetricSink,
     StatsdClient,
     Counted,
     Timed,
     Gauged
 };
-
-
-const METRIC_HOST: &'static str = "127.0.0.1";
-const LOCAL_ADDR: &'static str = "0.0.0.0:0";
 
 
 struct CounterHolder<'a, T: Counted + 'a> {
@@ -40,17 +34,21 @@ struct GaugeHolder<'a, T: Gauged + 'a> {
 }
 
 
-fn new_local_client(prefix: &str) -> StatsdClient<UdpMetricSink<(&str, u16)>> {
-    let metric_host = (METRIC_HOST, DEFAULT_PORT);
-    let socket = UdpSocket::bind(LOCAL_ADDR).unwrap();
-    let sink = UdpMetricSink::new(metric_host, socket);
+fn new_console_client(prefix: &str) -> StatsdClient<ConsoleMetricSink> {
+    let sink = ConsoleMetricSink;
+    StatsdClient::new(prefix, sink)
+}
+
+
+fn new_nop_client(prefix: &str) -> StatsdClient<NopMetricSink> {
+    let sink = NopMetricSink;
     StatsdClient::new(prefix, sink)
 }
 
 
 #[test]
 fn test_statsd_client_as_counter() {
-    let client = new_local_client("counter.test");
+    let client = new_console_client("counter.test");
     let holder = CounterHolder{counter: &client};
 
     holder.counter.count("some.counter.metric", 13, None).unwrap();
@@ -59,14 +57,14 @@ fn test_statsd_client_as_counter() {
 
 #[bench]
 fn test_statsd_client_counter_performance(b: &mut Bencher) {
-    let client = new_local_client("counter.perf");
+    let client = new_nop_client("counter.perf");
     b.iter(|| client.count("some.counter.metric", 26, None).unwrap())
 }
 
 
 #[test]
 fn test_statsd_client_as_timer() {
-    let client = new_local_client("timer.test");
+    let client = new_console_client("timer.test");
     let holder = TimerHolder{timer: &client};
 
     holder.timer.time("some.timer.metric", 25, None).unwrap();
@@ -75,14 +73,14 @@ fn test_statsd_client_as_timer() {
 
 #[bench]
 fn test_statsd_client_timer_performance(b: &mut Bencher) {
-    let client = new_local_client("timer.perf");
+    let client = new_nop_client("timer.perf");
     b.iter(|| client.time("some.timer.metric", 50, None).unwrap())
 }
 
 
 #[test]
 fn test_statsd_client_as_gauge() {
-    let client = new_local_client("gauge.test");
+    let client = new_console_client("gauge.test");
     let holder = GaugeHolder{gauge: &client};
 
     holder.gauge.gauge("some.gauge.metric", 98).unwrap();
@@ -91,6 +89,6 @@ fn test_statsd_client_as_gauge() {
 
 #[bench]
 fn test_statsd_client_gauge_performance(b: &mut Bencher) {
-    let client = new_local_client("gauge.perf");
+    let client = new_nop_client("gauge.perf");
     b.iter(|| client.gauge("some.gauge.metric", 98).unwrap())
 }
