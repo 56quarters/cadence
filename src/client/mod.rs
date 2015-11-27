@@ -14,7 +14,9 @@ pub use client::metrics::{
 
 pub use client::net::{
     MetricSink,
-    UdpMetricSink
+    UdpMetricSink,
+    ConsoleMetricSink,
+    NopMetricSink
 };
 
 pub use client::types::{

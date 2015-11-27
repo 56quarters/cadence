@@ -3,7 +3,7 @@
 //!
 
 use std::boxed::Box;
-use std::io::Error;
+use std::io;
 use std::net::{ToSocketAddrs, UdpSocket};
 
 
@@ -12,7 +12,7 @@ use std::net::{ToSocketAddrs, UdpSocket};
 
 ///
 pub trait MetricSink {
-    fn send(&self, buf: &[u8]) -> Result<usize, Error>;
+    fn send(&self, metric: &str) -> io::Result<usize>;
 }
 
 
@@ -31,11 +31,33 @@ impl<A: ToSocketAddrs> UdpMetricSink<A> {
 
 
 impl<A: ToSocketAddrs> MetricSink for UdpMetricSink<A> {
-    fn send(&self, buf: &[u8]) -> Result<usize, Error> {
+    fn send(&self, metric: &str) -> io::Result<usize> {
         let addr: &A = &self.sink_addr;
         let socket: &UdpSocket = &self.socket;
-        socket.send_to(buf, addr)
+        socket.send_to(metric.as_bytes(), addr)
     }
 }
 
-// impl MetricSink for Box<MetricSink> ?
+
+pub struct ConsoleMetricSink;
+
+
+impl MetricSink for ConsoleMetricSink {
+    fn send(&self, metric: &str) -> io::Result<usize> {
+        println!("{}", metric);
+        Ok(0)
+    }
+}
+
+
+pub struct NopMetricSink;
+
+
+impl MetricSink for NopMetricSink {
+    #[allow(unused_variables)]
+    fn send(&self, metric: &str) -> io::Result<usize> {
+        Ok(0)
+    }
+}
+
+

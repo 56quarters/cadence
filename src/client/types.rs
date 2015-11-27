@@ -2,7 +2,9 @@
 //!
 //!
 
+use std::error;
 use std::fmt;
+use std::io;
 
 
 ///
@@ -81,34 +83,39 @@ impl ToMetricString for Gauge {
     }
 }
 
-
-enum ErrorRepr {
-    UNKNOWN
-}
-
-
-pub struct MetricError {
-    repr: ErrorRepr
-}
-
-
-impl MetricError {
-    pub fn new() -> MetricError {
-        MetricError{repr: ErrorRepr::UNKNOWN}
-    }
+#[derive(Debug)]
+pub enum MetricError {
+    IoError(io::Error)
 }
 
 
 impl fmt::Display for MetricError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
-        Ok(())
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match *self {
+            MetricError::IoError(ref err) => write!(f, "IO error: {}", err)
+        }
     }
 }
 
 
-impl fmt::Debug for MetricError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
-        fmt::Display::fmt(self, f)
+impl error::Error for MetricError {
+    fn description(&self) -> &str {
+        match *self {
+            MetricError::IoError(ref err) => err.description()
+        }
+    }
+
+    fn cause(&self) -> Option<&error::Error> {
+        match *self {
+            MetricError::IoError(ref err) => Some(err)
+        }
+    }
+}
+
+
+impl From<io::Error> for MetricError {
+    fn from(err: io::Error) -> MetricError {
+        MetricError::IoError(err)
     }
 }
 

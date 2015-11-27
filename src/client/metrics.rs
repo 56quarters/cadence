@@ -5,7 +5,6 @@
 use client::net::MetricSink;
 use client::types::{
     MetricResult,
-    MetricError,
     Counter,
     Timer,
     Gauge,
@@ -62,18 +61,9 @@ impl<T: MetricSink> StatsdClient<T> {
     
     fn send_metric<M: ToMetricString>(&self, metric: M) -> MetricResult<()> {
         let metric_string = metric.to_metric_string();
-        let bytes = metric_string.as_bytes();
-
-        match self.sink.send(bytes) {
-            Ok(n) => {
-                debug!("Wrote {} bytes to socket", n);
-                Ok(())
-            }
-            Err(err) => {
-                debug!("Got error writing to socket: {}", err);
-                Err(MetricError::new())
-            }
-        }
+        let written = try!(self.sink.send(&metric_string));
+        debug!("Wrote {} ({} bytes)", metric_string, written);
+        Ok(())
     }
 }
 
