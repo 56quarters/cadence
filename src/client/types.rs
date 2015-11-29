@@ -59,20 +59,18 @@ pub trait ToMetricString {
 
 impl ToMetricString for Counter {
     fn to_metric_string(&self) -> String {
-        match self.sampling {
-            Some(val) => format!("{}:{}|c|@{}", self.key, self.count, val),
-            None => format!("{}:{}|c", self.key, self.count)
-        }
+        self.sampling.map_or_else(
+            || format!("{}:{}|c", self.key, self.count),
+            |rate| format!("{}:{}|c|@{}", self.key, self.count, rate))
     }
 }
 
 
 impl ToMetricString for Timer {
     fn to_metric_string(&self) -> String {
-        match self.sampling {
-            Some(val) => format!("{}:{}|ms|@{}", self.key, self.time, val),
-            None => format!("{}:{}|ms", self.key, self.time)
-        }
+        self.sampling.map_or_else(
+            || format!("{}:{}|ms", self.key, self.time),
+            |rate| format!("{}:{}|ms|@{}", self.key, self.time, rate))
     }
 }
 
