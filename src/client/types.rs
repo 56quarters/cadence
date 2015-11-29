@@ -31,22 +31,22 @@ pub struct Gauge {
 
 
 impl Counter {
-    pub fn new(key: &str, count: u64, sampling: Option<f32>) -> Counter {
-        Counter{key: key.to_string(), count: count, sampling: sampling}
+    pub fn new<S: Into<String>>(key: S, count: u64, sampling: Option<f32>) -> Counter {
+        Counter{key: key.into(), count: count, sampling: sampling}
     }
 }
 
 
 impl Timer {
-    pub fn new(key: &str, time: u64, sampling: Option<f32>) -> Timer {
-        Timer{key: key.to_string(), time: time, sampling: sampling}
+    pub fn new<S: Into<String>>(key: S, time: u64, sampling: Option<f32>) -> Timer {
+        Timer{key: key.into(), time: time, sampling: sampling}
     }
 }
 
 
 impl Gauge {
-    pub fn new (key: &str, value: i64) -> Gauge {
-        Gauge{key: key.to_string(), value: value}
+    pub fn new<S: Into<String>>(key: S, value: i64) -> Gauge {
+        Gauge{key: key.into(), value: value}
     }
 }
 
@@ -80,6 +80,7 @@ impl ToMetricString for Gauge {
         format!("{}:{}|g", self.key, self.value)
     }
 }
+
 
 #[derive(Debug)]
 pub enum MetricError {
