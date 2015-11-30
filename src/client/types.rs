@@ -15,11 +15,26 @@ pub struct Counter {
 }
 
 
+impl Counter {
+    ///
+    pub fn new<S: Into<String>>(key: S, count: u64, sampling: Option<f32>) -> Counter {
+        Counter{key: key.into(), count: count, sampling: sampling}
+    }
+}
+
 ///
 pub struct Timer {
     key: String,
     time: u64,
     sampling: Option<f32>
+}
+
+
+impl Timer {
+    ///
+    pub fn new<S: Into<String>>(key: S, time: u64, sampling: Option<f32>) -> Timer {
+        Timer{key: key.into(), time: time, sampling: sampling}
+    }
 }
 
 
@@ -30,21 +45,8 @@ pub struct Gauge {
 }
 
 
-impl Counter {
-    pub fn new<S: Into<String>>(key: S, count: u64, sampling: Option<f32>) -> Counter {
-        Counter{key: key.into(), count: count, sampling: sampling}
-    }
-}
-
-
-impl Timer {
-    pub fn new<S: Into<String>>(key: S, time: u64, sampling: Option<f32>) -> Timer {
-        Timer{key: key.into(), time: time, sampling: sampling}
-    }
-}
-
-
 impl Gauge {
+    ///
     pub fn new<S: Into<String>>(key: S, value: i64) -> Gauge {
         Gauge{key: key.into(), value: value}
     }
@@ -134,31 +136,31 @@ mod tests {
 
     #[test]
     fn test_counter_to_metric_string_sampling() {
-        let counter = Counter::new("foo.bar", 4, Some(0.1));
-        assert_eq!("foo.bar:4|c|@0.1".to_string(), counter.to_metric_string());
+        let counter = Counter::new("test.counter", 4, Some(0.1));
+        assert_eq!("test.counter:4|c|@0.1".to_string(), counter.to_metric_string());
     }
 
     #[test]
     fn test_counter_to_metric_string_no_sampling() {
-        let counter = Counter::new("foo.bar", 4, None);
-        assert_eq!("foo.bar:4|c".to_string(), counter.to_metric_string());
+        let counter = Counter::new("test.counter", 4, None);
+        assert_eq!("test.counter:4|c".to_string(), counter.to_metric_string());
     }
 
     #[test]
     fn test_timer_to_metric_string_sampling() {
-        let timer = Timer::new("foo.baz", 34, Some(0.01));
-        assert_eq!("foo.baz:34|ms|@0.01".to_string(), timer.to_metric_string());
+        let timer = Timer::new("test.timer", 34, Some(0.01));
+        assert_eq!("test.timer:34|ms|@0.01".to_string(), timer.to_metric_string());
     }
 
     #[test]
     fn test_timer_to_metric_string_no_sampling() {
-        let timer = Timer::new("foo.baz",34, None);
-        assert_eq!("foo.baz:34|ms".to_string(), timer.to_metric_string());
+        let timer = Timer::new("test.timer",34, None);
+        assert_eq!("test.timer:34|ms".to_string(), timer.to_metric_string());
     }
 
     #[test]
     fn test_gauge_to_metric_string() {
-        let gauge = Gauge::new("foo.events", 2);
-        assert_eq!("foo.events:2|g".to_string(), gauge.to_metric_string());
+        let gauge = Gauge::new("test.gauge", 2);
+        assert_eq!("test.gauge:2|g".to_string(), gauge.to_metric_string());
     }
 }
