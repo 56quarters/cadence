@@ -5,21 +5,21 @@
 
 pub const DEFAULT_PORT: u16 = 8125;
 
-pub use client::metrics::{
+pub use self::metrics::{
     Counted,
     Timed,
     Gauged,
     StatsdClient
 };
 
-pub use client::net::{
+pub use self::net::{
     MetricSink,
     UdpMetricSink,
     ConsoleMetricSink,
     NopMetricSink
 };
 
-pub use client::types::{
+pub use self::types::{
     MetricResult,
     MetricError
 };
