@@ -7,11 +7,14 @@
 extern crate test;
 extern crate statsd;
 
+use std::net::UdpSocket;
 use std::thread;
 use std::sync::Arc;
 
 use statsd::client::{
+    DEFAULT_PORT,
     NopMetricSink,
+    UdpMetricSink,
     MetricSink,
     StatsdClient,
     Counted,
@@ -37,6 +40,13 @@ struct GaugeHolder<'a, T: Gauged + 'a> {
 
 fn new_nop_client(prefix: &str) -> StatsdClient<NopMetricSink> {
     let sink = NopMetricSink;
+    StatsdClient::new(prefix, sink)
+}
+
+
+fn new_udp_client(prefix: &str) -> StatsdClient<UdpMetricSink<(&str, u16)>> {
+    let socket = UdpSocket::bind("0.0.0.0:0").unwrap();
+    let sink = UdpMetricSink::new(("127.0.0.1", DEFAULT_PORT), socket);
     StatsdClient::new(prefix, sink)
 }
 
@@ -70,7 +80,7 @@ fn test_statsd_client_as_gauge() {
 
 #[ignore]
 #[test]
-fn test_statsd_client_single_threaded() {
+fn test_statsd_client_nop_sink_single_threaded() {
     let client = new_nop_client("counter.threaded.nop");
     run_threaded_test(client, 1);
 }
@@ -78,9 +88,25 @@ fn test_statsd_client_single_threaded() {
 
 #[ignore]
 #[test]
-fn test_statsd_client_many_threaded() {
-    let client = new_nop_client("counter.threaded.real");
-    run_threaded_test(client, 10000);
+fn test_statsd_client_udp_sink_single_threaded() {
+    let client = new_udp_client("counter.threaded.udp");
+    run_threaded_test(client, 1);
+}
+
+
+#[ignore]
+#[test]
+fn test_statsd_client_nop_sink_many_threaded() {
+    let client = new_nop_client("counter.threaded.nop");
+    run_threaded_test(client, 1000);
+}
+
+
+#[ignore]
+#[test]
+fn test_statsd_client_udp_sink_many_threaded() {
+    let client = new_udp_client("counter.threaded.udp");
+    run_threaded_test(client, 1000);
 }
 
 
