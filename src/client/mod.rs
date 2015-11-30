@@ -12,7 +12,7 @@ pub use self::metrics::{
     StatsdClient
 };
 
-pub use self::net::{
+pub use self::sinks::{
     MetricSink,
     UdpMetricSink,
     NopMetricSink
@@ -24,5 +24,5 @@ pub use self::types::{
 };
 
 mod metrics;
-mod net;
+mod sinks;
 mod types;

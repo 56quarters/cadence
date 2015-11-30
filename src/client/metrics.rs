@@ -2,7 +2,7 @@
 //!
 //!
 
-use client::net::MetricSink;
+use client::sinks::MetricSink;
 use client::types::{
     MetricResult,
     Counter,
