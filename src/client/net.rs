@@ -36,17 +36,6 @@ impl<A: ToSocketAddrs> MetricSink for UdpMetricSink<A> {
 }
 
 
-pub struct ConsoleMetricSink;
-
-
-impl MetricSink for ConsoleMetricSink {
-    fn send(&self, metric: &str) -> io::Result<usize> {
-        println!("{}", metric);
-        Ok(0)
-    }
-}
-
-
 pub struct NopMetricSink;
 
 
@@ -56,5 +45,3 @@ impl MetricSink for NopMetricSink {
         Ok(0)
     }
 }
-
-

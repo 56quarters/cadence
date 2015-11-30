@@ -15,7 +15,6 @@ pub use self::metrics::{
 pub use self::net::{
     MetricSink,
     UdpMetricSink,
-    ConsoleMetricSink,
     NopMetricSink
 };
 
