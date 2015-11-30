@@ -30,8 +30,7 @@ impl<A: ToSocketAddrs> UdpMetricSink<A> {
 impl<A: ToSocketAddrs> MetricSink for UdpMetricSink<A> {
     fn send(&self, metric: &str) -> io::Result<usize> {
         let addr: &A = &self.sink_addr;
-        let socket: &UdpSocket = &self.socket;
-        socket.send_to(metric.as_bytes(), addr)
+        self.socket.send_to(metric.as_bytes(), addr)
     }
 }
 
