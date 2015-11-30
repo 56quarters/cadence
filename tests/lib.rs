@@ -7,11 +7,12 @@
 extern crate test;
 extern crate statsd;
 
-use test::Bencher;
+use std::thread;
+use std::sync::Arc;
 
 use statsd::client::{
-    ConsoleMetricSink,
     NopMetricSink,
+    MetricSink,
     StatsdClient,
     Counted,
     Timed,
@@ -34,12 +35,6 @@ struct GaugeHolder<'a, T: Gauged + 'a> {
 }
 
 
-fn new_console_client(prefix: &str) -> StatsdClient<ConsoleMetricSink> {
-    let sink = ConsoleMetricSink;
-    StatsdClient::new(prefix, sink)
-}
-
-
 fn new_nop_client(prefix: &str) -> StatsdClient<NopMetricSink> {
     let sink = NopMetricSink;
     StatsdClient::new(prefix, sink)
@@ -48,47 +43,56 @@ fn new_nop_client(prefix: &str) -> StatsdClient<NopMetricSink> {
 
 #[test]
 fn test_statsd_client_as_counter() {
-    let client = new_console_client("counter.test");
+    let client = new_nop_client("counter.test");
     let holder = CounterHolder{counter: &client};
 
     holder.counter.count("some.counter.metric", 13, None).unwrap();
 }
 
 
-#[bench]
-fn test_statsd_client_counter_performance(b: &mut Bencher) {
-    let client = new_nop_client("counter.perf");
-    b.iter(|| client.count("some.counter.metric", 26, None).unwrap())
-}
-
-
 #[test]
 fn test_statsd_client_as_timer() {
-    let client = new_console_client("timer.test");
+    let client = new_nop_client("timer.test");
     let holder = TimerHolder{timer: &client};
 
     holder.timer.time("some.timer.metric", 25, None).unwrap();
 }
 
 
-#[bench]
-fn test_statsd_client_timer_performance(b: &mut Bencher) {
-    let client = new_nop_client("timer.perf");
-    b.iter(|| client.time("some.timer.metric", 50, None).unwrap())
-}
-
-
 #[test]
 fn test_statsd_client_as_gauge() {
-    let client = new_console_client("gauge.test");
+    let client = new_nop_client("gauge.test");
     let holder = GaugeHolder{gauge: &client};
 
     holder.gauge.gauge("some.gauge.metric", 98).unwrap();
 }
 
 
-#[bench]
-fn test_statsd_client_gauge_performance(b: &mut Bencher) {
-    let client = new_nop_client("gauge.perf");
-    b.iter(|| client.gauge("some.gauge.metric", 98).unwrap())
+#[ignore]
+#[test]
+fn test_statsd_client_single_threaded() {
+    let client = new_nop_client("counter.threaded.nop");
+    run_threaded_test(client, 1);
+}
+
+
+#[ignore]
+#[test]
+fn test_statsd_client_many_threaded() {
+    let client = new_nop_client("counter.threaded.real");
+    run_threaded_test(client, 10000);
+}
+
+
+fn run_threaded_test<T>(
+    client: StatsdClient<T>, threads: u64) where T: 'static + MetricSink + Sync + Send {
+    let shared_client = Arc::new(client);
+    
+    for i in 0..threads {
+        let local_client = shared_client.clone();
+        
+        thread::spawn(move || {
+            local_client.count("some.metric", i, None).unwrap();
+        });
+    }
 }
