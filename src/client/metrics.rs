@@ -2,47 +2,17 @@
 //!
 //!
 
-use client::sinks::MetricSink;
 use client::types::{
+    MetricSink,
     MetricResult,
     Counter,
     Timer,
     Gauge,
+    Counted,
+    Timed,
+    Gauged,
     ToMetricString
 };
-
-
-
-///
-pub trait Counted {
-    fn count(&self, key: &str, count: u64, sampling: Option<f32>) -> MetricResult<()>;
-}
-
-
-///
-pub trait Timed {
-    fn time(&self, key: &str, time: u64, sampling: Option<f32>) -> MetricResult<()>;
-}
-
-
-///
-pub trait Gauged {
-    fn gauge(&self, key: &str, value: i64) -> MetricResult<()>;
-}
-
-
-fn make_key(prefix: &str, key: &str) -> String {
-    format!("{}.{}", prefix, key)
-}
-
-
-fn trim_prefix(prefix: &str) -> &str {
-    if prefix.ends_with('.') {
-        prefix.trim_right_matches('.')
-    } else {
-        prefix
-    }
-}
 
 
 ///
@@ -55,8 +25,17 @@ pub struct StatsdClient<T: MetricSink> {
 impl<T: MetricSink> StatsdClient<T> {
 
     pub fn new(prefix: &str, sink: T) -> StatsdClient<T> {
-        let trimmed = trim_prefix(prefix);
+        let trimmed = if prefix.ends_with('.') {
+            prefix.trim_right_matches('.')
+        } else {
+            prefix
+        };
+
         StatsdClient{prefix: trimmed.to_string(), sink: Box::new(sink)}
+    }
+    
+    fn make_key(&self, key: &str) -> String {
+        format!("{}.{}", &self.prefix, key)
     }
     
     fn send_metric<M: ToMetricString>(&self, metric: &M) -> MetricResult<()> {
@@ -70,7 +49,7 @@ impl<T: MetricSink> StatsdClient<T> {
 
 impl<T: MetricSink> Counted for StatsdClient<T> {
     fn count(&self, key: &str, count: u64, sampling: Option<f32>) -> MetricResult<()> {
-        let counter = Counter::new(make_key(&self.prefix, key), count, sampling);
+        let counter = Counter::new(self.make_key(key), count, sampling);
         self.send_metric(&counter)
     }
 }
@@ -78,7 +57,7 @@ impl<T: MetricSink> Counted for StatsdClient<T> {
 
 impl<T: MetricSink> Timed for StatsdClient<T> {
     fn time(&self, key: &str, time: u64, sampling: Option<f32>) -> MetricResult<()> {
-        let timer = Timer::new(make_key(&self.prefix, key), time, sampling);
+        let timer = Timer::new(self.make_key(key), time, sampling);
         self.send_metric(&timer)
     }
 }
@@ -86,7 +65,7 @@ impl<T: MetricSink> Timed for StatsdClient<T> {
 
 impl<T: MetricSink> Gauged for StatsdClient<T> {
     fn gauge(&self, key: &str, value: i64) -> MetricResult<()> {
-        let gauge = Gauge::new(make_key(&self.prefix, key), value);
+        let gauge = Gauge::new(self.make_key(key), value);
         self.send_metric(&gauge)
     }
 }
@@ -95,23 +74,20 @@ impl<T: MetricSink> Gauged for StatsdClient<T> {
 #[cfg(test)]
 mod tests {
 
-    use super::{make_key, trim_prefix};
+    use super::StatsdClient;
+    use client::sinks::NopMetricSink;
     
     #[test]
-    fn test_make_key() {
-        let full_key = make_key("myapp.metrics", "foo.thing");
-        assert_eq!("myapp.metrics.foo.thing".to_string(), full_key);
+    fn test_statsd_client_make_key_with_trailing_dot_prefix() {
+        let sink = NopMetricSink;
+        let client = StatsdClient::new("some.prefix.", sink);
+        assert_eq!("some.prefix.a.metric", client.make_key("a.metric"));
     }
 
     #[test]
-    fn test_trim_prefix_with_trailing_dot() {
-        let trimmed = trim_prefix("myapp.metrics.");
-        assert_eq!("myapp.metrics".to_string(), trimmed);
-    }
-
-    #[test]
-    fn test_trim_prefix_no_trailing_dot() {
-        let trimmed = trim_prefix("myapp.metrics");
-        assert_eq!("myapp.metrics".to_string(), trimmed);
+    fn test_statsd_client_make_key_no_trailing_dot_prefix() {
+        let sink = NopMetricSink;
+        let client = StatsdClient::new("some.prefix", sink);
+        assert_eq!("some.prefix.a.metric", client.make_key("a.metric"));
     }
 }

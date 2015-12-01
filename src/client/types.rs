@@ -8,6 +8,30 @@ use std::io;
 
 
 ///
+pub trait MetricSink {
+    fn send(&self, metric: &str) -> io::Result<usize>;
+}
+
+
+///
+pub trait Counted {
+    fn count(&self, key: &str, count: u64, sampling: Option<f32>) -> MetricResult<()>;
+}
+
+
+///
+pub trait Timed {
+    fn time(&self, key: &str, time: u64, sampling: Option<f32>) -> MetricResult<()>;
+}
+
+
+///
+pub trait Gauged {
+    fn gauge(&self, key: &str, value: i64) -> MetricResult<()>;
+}
+
+
+///
 pub struct Counter {
     key: String,
     count: u64,

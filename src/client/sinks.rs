@@ -6,12 +6,7 @@ use std::boxed::Box;
 use std::io;
 use std::net::{ToSocketAddrs, UdpSocket};
 
-
-///
-pub trait MetricSink {
-    fn send(&self, metric: &str) -> io::Result<usize>;
-}
-
+use client::types::MetricSink;
 
 ///
 pub struct UdpMetricSink<A: ToSocketAddrs> {
