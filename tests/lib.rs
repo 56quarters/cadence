@@ -82,7 +82,7 @@ fn test_statsd_client_as_gauge() {
 #[test]
 fn test_statsd_client_nop_sink_single_threaded() {
     let client = new_nop_client("counter.threaded.nop");
-    run_threaded_test(client, 1);
+    run_threaded_test(client, 1, 1);
 }
 
 
@@ -90,15 +90,19 @@ fn test_statsd_client_nop_sink_single_threaded() {
 #[test]
 fn test_statsd_client_udp_sink_single_threaded() {
     let client = new_udp_client("counter.threaded.udp");
-    run_threaded_test(client, 1);
+    run_threaded_test(client, 1, 1);
 }
+
+
+const NUM_THREADS: u64 = 100;
+const NUM_ITERATIONS: u64 = 10_000;
 
 
 #[ignore]
 #[test]
 fn test_statsd_client_nop_sink_many_threaded() {
     let client = new_nop_client("counter.threaded.nop");
-    run_threaded_test(client, 1000);
+    run_threaded_test(client, NUM_THREADS, NUM_ITERATIONS);
 }
 
 
@@ -106,19 +110,25 @@ fn test_statsd_client_nop_sink_many_threaded() {
 #[test]
 fn test_statsd_client_udp_sink_many_threaded() {
     let client = new_udp_client("counter.threaded.udp");
-    run_threaded_test(client, 1000);
+    run_threaded_test(client, NUM_THREADS, NUM_ITERATIONS);
 }
 
 
 fn run_threaded_test<T>(
-    client: StatsdClient<T>, threads: u64) where T: 'static + MetricSink + Sync + Send {
+    client: StatsdClient<T>, num_threads: u64, iterations: u64) where T: 'static + MetricSink + Sync + Send {
     let shared_client = Arc::new(client);
-    
-    for i in 0..threads {
+
+    let threads: Vec<_> = (0..num_threads).map(|i| {
         let local_client = shared_client.clone();
         
         thread::spawn(move || {
-            local_client.count("some.metric", i, None).unwrap();
-        });
+            for _ in 0..iterations {
+                local_client.count("some.metric", i, None).unwrap();
+            }
+        })
+    }).collect();
+
+    for t in threads {
+        t.join().unwrap();
     }
 }
