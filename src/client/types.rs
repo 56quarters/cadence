@@ -107,17 +107,22 @@ impl ToMetricString for Gauge {
     }
 }
 
+#[derive(Debug)]
+pub struct MetricError {
+    repr: ErrorRepr
+}
+
 
 #[derive(Debug)]
-pub enum MetricError {
+enum ErrorRepr {
     IoError(io::Error)
 }
 
 
 impl fmt::Display for MetricError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match *self {
-            MetricError::IoError(ref err) => write!(f, "IO error: {}", err)
+        match self.repr {
+            ErrorRepr::IoError(ref err) => write!(f, "IO error: {}", err)
         }
     }
 }
@@ -125,14 +130,14 @@ impl fmt::Display for MetricError {
 
 impl error::Error for MetricError {
     fn description(&self) -> &str {
-        match *self {
-            MetricError::IoError(ref err) => err.description()
+        match self.repr {
+            ErrorRepr::IoError(ref err) => err.description()
         }
     }
 
     fn cause(&self) -> Option<&error::Error> {
-        match *self {
-            MetricError::IoError(ref err) => Some(err)
+        match self.repr {
+            ErrorRepr::IoError(ref err) => Some(err)
         }
     }
 }
@@ -140,7 +145,7 @@ impl error::Error for MetricError {
 
 impl From<io::Error> for MetricError {
     fn from(err: io::Error) -> MetricError {
-        MetricError::IoError(err)
+        MetricError{repr: ErrorRepr::IoError(err)}
     }
 }
 
