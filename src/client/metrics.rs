@@ -2,20 +2,40 @@
 //!
 //!
 
+use client::sinks::MetricSink;
+
 use client::types::{
-    MetricSink,
     MetricResult,
     Counter,
     Timer,
     Gauge,
-    Counted,
-    Timed,
-    Gauged,
+    Meter,
     ToMetricString
 };
 
 
-// TODO: Make a sink impl that send metrics to a thread?
+///
+pub trait Counted {
+    fn count(&self, key: &str, count: i64, sampling: Option<f32>) -> MetricResult<()>;
+}
+
+
+///
+pub trait Timed {
+    fn time(&self, key: &str, time: u64, sampling: Option<f32>) -> MetricResult<()>;
+}
+
+
+///
+pub trait Gauged {
+    fn gauge(&self, key: &str, value: u64) -> MetricResult<()>;
+}
+
+
+///
+pub trait Metered {
+    fn meter(&self, key: &str, value: u64) -> MetricResult<()>;
+}
 
 
 ///
@@ -65,6 +85,14 @@ impl<T: MetricSink> Gauged for StatsdClient<T> {
     fn gauge(&self, key: &str, value: u64) -> MetricResult<()> {
         let gauge = Gauge::new(self.key_gen.make_key(key), value);
         self.send_metric(&gauge)
+    }
+}
+
+
+impl<T: MetricSink> Metered for StatsdClient<T> {
+    fn meter(&self, key: &str, value: u64) -> MetricResult<()> {
+        let meter = Meter::new(self.key_gen.make_key(key), value);
+        self.send_metric(&meter)
     }
 }
 

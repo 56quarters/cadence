@@ -19,7 +19,8 @@ use statsd::client::{
     StatsdClient,
     Counted,
     Timed,
-    Gauged
+    Gauged,
+    Metered
 };
 
 
@@ -35,6 +36,11 @@ struct TimerHolder<'a, T: Timed + 'a> {
 
 struct GaugeHolder<'a, T: Gauged + 'a> {
     gauge: &'a T
+}
+
+
+struct MeterHolder<'a, T: Metered + 'a> {
+    meter: &'a T
 }
 
 
@@ -75,6 +81,15 @@ fn test_statsd_client_as_gauge() {
     let holder = GaugeHolder{gauge: &client};
 
     holder.gauge.gauge("some.gauge.metric", 98).unwrap();
+}
+
+
+#[test]
+fn test_statsd_client_as_meter() {
+    let client = new_nop_client("meter.test");
+    let holder = MeterHolder{meter: &client};
+
+    holder.meter.meter("some.meter.metric", 5).unwrap();
 }
 
 

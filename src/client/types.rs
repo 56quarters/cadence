@@ -7,29 +7,6 @@ use std::fmt;
 use std::io;
 
 
-///
-pub trait MetricSink {
-    fn send(&self, metric: &str) -> io::Result<usize>;
-}
-
-
-///
-pub trait Counted {
-    fn count(&self, key: &str, count: i64, sampling: Option<f32>) -> MetricResult<()>;
-}
-
-
-///
-pub trait Timed {
-    fn time(&self, key: &str, time: u64, sampling: Option<f32>) -> MetricResult<()>;
-}
-
-
-///
-pub trait Gauged {
-    fn gauge(&self, key: &str, value: u64) -> MetricResult<()>;
-}
-
 
 ///
 pub struct Counter {
@@ -78,6 +55,20 @@ impl Gauge {
 
 
 ///
+pub struct Meter {
+    key: String,
+    value: u64
+}
+
+
+impl Meter {
+    pub fn new<S: Into<String>>(key: S, value: u64) -> Meter {
+        Meter{key: key.into(), value: value}
+    }
+}
+
+
+///
 pub trait ToMetricString {
     fn to_metric_string(&self) -> String;
 }
@@ -106,6 +97,14 @@ impl ToMetricString for Gauge {
         format!("{}:{}|g", self.key, self.value)
     }
 }
+
+
+impl ToMetricString for Meter {
+    fn to_metric_string(&self) -> String {
+        format!("{}:{}|m", self.key, self.value)
+    }
+}
+
 
 #[derive(Debug)]
 pub struct MetricError {
@@ -160,6 +159,7 @@ mod tests {
         Counter,
         Timer,
         Gauge,
+        Meter,
         ToMetricString
     };
 
@@ -191,5 +191,11 @@ mod tests {
     fn test_gauge_to_metric_string() {
         let gauge = Gauge::new("test.gauge", 2);
         assert_eq!("test.gauge:2|g".to_string(), gauge.to_metric_string());
+    }
+
+    #[test]
+    fn test_meter_to_metric_string() {
+        let meter = Meter::new("test.meter", 5);
+        assert_eq!("test.meter:5|m".to_string(), meter.to_metric_string());
     }
 }
