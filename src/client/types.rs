@@ -15,7 +15,7 @@ pub trait MetricSink {
 
 ///
 pub trait Counted {
-    fn count(&self, key: &str, count: u64, sampling: Option<f32>) -> MetricResult<()>;
+    fn count(&self, key: &str, count: i64, sampling: Option<f32>) -> MetricResult<()>;
 }
 
 
@@ -27,21 +27,21 @@ pub trait Timed {
 
 ///
 pub trait Gauged {
-    fn gauge(&self, key: &str, value: i64) -> MetricResult<()>;
+    fn gauge(&self, key: &str, value: u64) -> MetricResult<()>;
 }
 
 
 ///
 pub struct Counter {
     key: String,
-    count: u64,
+    count: i64,
     sampling: Option<f32>
 }
 
 
 impl Counter {
     ///
-    pub fn new<S: Into<String>>(key: S, count: u64, sampling: Option<f32>) -> Counter {
+    pub fn new<S: Into<String>>(key: S, count: i64, sampling: Option<f32>) -> Counter {
         Counter{key: key.into(), count: count, sampling: sampling}
     }
 }
@@ -65,13 +65,13 @@ impl Timer {
 ///
 pub struct Gauge {
     key: String,
-    value: i64
+    value: u64
 }
 
 
 impl Gauge {
     ///
-    pub fn new<S: Into<String>>(key: S, value: i64) -> Gauge {
+    pub fn new<S: Into<String>>(key: S, value: u64) -> Gauge {
         Gauge{key: key.into(), value: value}
     }
 }

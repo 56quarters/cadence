@@ -118,12 +118,12 @@ fn run_threaded_test<T>(
     client: StatsdClient<T>, num_threads: u64, iterations: u64) where T: 'static + MetricSink + Sync + Send {
     let shared_client = Arc::new(client);
 
-    let threads: Vec<_> = (0..num_threads).map(|i| {
+    let threads: Vec<_> = (0..num_threads).map(|_| {
         let local_client = shared_client.clone();
         
         thread::spawn(move || {
-            for _ in 0..iterations {
-                local_client.count("some.metric", i, None).unwrap();
+            for i in 0..iterations {
+                local_client.count("some.metric", i as i64, None).unwrap();
             }
         })
     }).collect();

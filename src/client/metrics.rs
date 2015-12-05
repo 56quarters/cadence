@@ -46,7 +46,7 @@ impl<T: MetricSink> StatsdClient<T> {
 
 
 impl<T: MetricSink> Counted for StatsdClient<T> {
-    fn count(&self, key: &str, count: u64, sampling: Option<f32>) -> MetricResult<()> {
+    fn count(&self, key: &str, count: i64, sampling: Option<f32>) -> MetricResult<()> {
         let counter = Counter::new(self.key_gen.make_key(key), count, sampling);
         self.send_metric(&counter)
     }
@@ -62,7 +62,7 @@ impl<T: MetricSink> Timed for StatsdClient<T> {
 
 
 impl<T: MetricSink> Gauged for StatsdClient<T> {
-    fn gauge(&self, key: &str, value: i64) -> MetricResult<()> {
+    fn gauge(&self, key: &str, value: u64) -> MetricResult<()> {
         let gauge = Gauge::new(self.key_gen.make_key(key), value);
         self.send_metric(&gauge)
     }
