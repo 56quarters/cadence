@@ -40,8 +40,8 @@ pub trait Metered {
 
 ///
 pub struct StatsdClient<T: MetricSink> {
-    key_gen: Box<KeyGenerator>,
-    sink: Box<T>
+    key_gen: KeyGenerator,
+    sink: T
 }
 
 
@@ -50,8 +50,8 @@ impl<T: MetricSink> StatsdClient<T> {
     ///
     pub fn new(prefix: &str, sink: T) -> StatsdClient<T> {
         StatsdClient{
-            key_gen: Box::new(KeyGenerator::new(prefix)),
-            sink: Box::new(sink)
+            key_gen: KeyGenerator::new(prefix),
+            sink: sink
         }
     }
 
