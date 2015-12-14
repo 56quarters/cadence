@@ -2,9 +2,9 @@
 //!
 //!
 
-use client::sinks::MetricSink;
+use sinks::MetricSink;
 
-use client::types::{
+use types::{
     MetricResult,
     Counter,
     Timer,

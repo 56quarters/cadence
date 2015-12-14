@@ -1,5 +1,5 @@
 [package]
-name = "statsd"
+name = "statsd-client"
 version = "0.1.0"
 
 [dependencies]
@@ -11,8 +11,3 @@ env_logger = "0.3"
 [lib]
 name = "statsd"
 path = "src/lib.rs"
-
-[[bin]]
-name = "statsd"
-path = "src/bin.rs"
-

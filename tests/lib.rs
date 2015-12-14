@@ -11,7 +11,7 @@ use std::net::UdpSocket;
 use std::thread;
 use std::sync::Arc;
 
-use statsd::client::{
+use statsd::{
     DEFAULT_PORT,
     NopMetricSink,
     UdpMetricSink,
