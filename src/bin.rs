@@ -11,7 +11,6 @@ fn main() {
     let metric_host = ("127.0.0.1", DEFAULT_PORT);
     let socket = UdpSocket::bind("0.0.0.0:0").unwrap();
     let sink = UdpMetricSink::new(metric_host, socket);
-    //let sink = ConsoleMetricSink;
     let client = StatsdClient::new("foo.prefix", sink);
     client.count("some.key", 4, None).unwrap();
     client.gauge("some.key", 42).unwrap();

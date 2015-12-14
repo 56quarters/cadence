@@ -58,7 +58,7 @@ impl<T: MetricSink> StatsdClient<T> {
     //
     fn send_metric<M: ToMetricString>(&self, metric: &M) -> MetricResult<()> {
         let metric_string = metric.to_metric_string();
-        let written = try!(self.sink.send(&metric_string));
+        let written = try!(self.sink.emit(&metric_string));
         debug!("Wrote {} ({} bytes)", metric_string, written);
         Ok(())
     }

@@ -129,8 +129,8 @@ fn test_statsd_client_udp_sink_many_threaded() {
 }
 
 
-fn run_threaded_test<T>(
-    client: StatsdClient<T>, num_threads: u64, iterations: u64) where T: 'static + MetricSink + Sync + Send {
+fn run_threaded_test<T>(client: StatsdClient<T>, num_threads: u64, iterations: u64) -> ()
+    where T: 'static + MetricSink + Sync + Send {
     let shared_client = Arc::new(client);
 
     let threads: Vec<_> = (0..num_threads).map(|_| {

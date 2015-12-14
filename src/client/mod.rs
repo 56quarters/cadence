@@ -15,9 +15,10 @@ pub use self::metrics::{
 
 pub use self::sinks::{
     MetricSink,
-    UdpMetricSink,
-    NopMetricSink
+    NopMetricSink,
+    UdpMetricSink
 };
+
 
 pub use self::types::{
     MetricResult,

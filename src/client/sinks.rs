@@ -8,7 +8,7 @@ use std::net::{ToSocketAddrs, UdpSocket};
 
 ///
 pub trait MetricSink {
-    fn send(&self, metric: &str) -> io::Result<usize>;
+    fn emit(&self, metric: &str) -> io::Result<usize>;
 }
 
 
@@ -27,7 +27,7 @@ impl<A: ToSocketAddrs> UdpMetricSink<A> {
 
 
 impl<A: ToSocketAddrs> MetricSink for UdpMetricSink<A> {
-    fn send(&self, metric: &str) -> io::Result<usize> {
+    fn emit(&self, metric: &str) -> io::Result<usize> {
         self.socket.send_to(metric.as_bytes(), &self.sink_addr)
     }
 }
@@ -38,7 +38,14 @@ pub struct NopMetricSink;
 
 impl MetricSink for NopMetricSink {
     #[allow(unused_variables)]
-    fn send(&self, metric: &str) -> io::Result<usize> {
+    fn emit(&self, metric: &str) -> io::Result<usize> {
         Ok(0)
     }
+}
+
+
+#[cfg(test)]
+mod tests {
+
+    
 }
