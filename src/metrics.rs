@@ -16,13 +16,16 @@ use types::{
 
 ///
 pub trait Counted {
-    fn count(&self, key: &str, count: i64, sampling: Option<f32>) -> MetricResult<()>;
+    fn incr(&self, key: &str) -> MetricResult<()>;
+    fn decr(&self, key: &str) -> MetricResult<()>;
+    fn count(&self, key: &str, count: i64) -> MetricResult<()>;
+    fn sample(&self, key: &str, count: i64, sampling: Option<f32>) -> MetricResult<()>;
 }
 
 
 ///
 pub trait Timed {
-    fn time(&self, key: &str, time: u64, sampling: Option<f32>) -> MetricResult<()>;
+    fn time(&self, key: &str, time: u64) -> MetricResult<()>;
 }
 
 
@@ -66,7 +69,19 @@ impl<T: MetricSink> StatsdClient<T> {
 
 
 impl<T: MetricSink> Counted for StatsdClient<T> {
-    fn count(&self, key: &str, count: i64, sampling: Option<f32>) -> MetricResult<()> {
+    fn incr(&self, key: &str) -> MetricResult<()> {
+        self.count(key, 1)
+    }
+
+    fn decr(&self, key: &str) -> MetricResult<()> {
+        self.count(key, -1)
+    }
+
+    fn count(&self, key: &str, count: i64) -> MetricResult<()> {
+        self.sample(key, count, None)
+    }
+
+    fn sample(&self, key: &str, count: i64, sampling: Option<f32>) -> MetricResult<()> {
         let counter = Counter::new(self.key_gen.make_key(key), count, sampling);
         self.send_metric(&counter)
     }
@@ -74,8 +89,8 @@ impl<T: MetricSink> Counted for StatsdClient<T> {
 
 
 impl<T: MetricSink> Timed for StatsdClient<T> {
-    fn time(&self, key: &str, time: u64, sampling: Option<f32>) -> MetricResult<()> {
-        let timer = Timer::new(self.key_gen.make_key(key), time, sampling);
+    fn time(&self, key: &str, time: u64) -> MetricResult<()> {
+        let timer = Timer::new(self.key_gen.make_key(key), time);
         self.send_metric(&timer)
     }
 }

@@ -62,7 +62,7 @@ fn test_statsd_client_as_counter() {
     let client = new_nop_client("counter.test");
     let holder = CounterHolder{counter: &client};
 
-    holder.counter.count("some.counter.metric", 13, None).unwrap();
+    holder.counter.sample("some.counter.metric", 13, Some(0.1)).unwrap();
 }
 
 
@@ -71,7 +71,7 @@ fn test_statsd_client_as_timer() {
     let client = new_nop_client("timer.test");
     let holder = TimerHolder{timer: &client};
 
-    holder.timer.time("some.timer.metric", 25, None).unwrap();
+    holder.timer.time("some.timer.metric", 25).unwrap();
 }
 
 
@@ -138,7 +138,7 @@ fn run_threaded_test<T>(client: StatsdClient<T>, num_threads: u64, iterations: u
         
         thread::spawn(move || {
             for i in 0..iterations {
-                local_client.count("some.metric", i as i64, None).unwrap();
+                local_client.count("some.metric", i as i64).unwrap();
             }
         })
     }).collect();

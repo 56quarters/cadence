@@ -26,15 +26,14 @@ impl Counter {
 ///
 pub struct Timer {
     key: String,
-    time: u64,
-    sampling: Option<f32>
+    time: u64
 }
 
 
 impl Timer {
     ///
-    pub fn new<S: Into<String>>(key: S, time: u64, sampling: Option<f32>) -> Timer {
-        Timer{key: key.into(), time: time, sampling: sampling}
+    pub fn new<S: Into<String>>(key: S, time: u64) -> Timer {
+        Timer{key: key.into(), time: time}
     }
 }
 
@@ -85,9 +84,7 @@ impl ToMetricString for Counter {
 
 impl ToMetricString for Timer {
     fn to_metric_string(&self) -> String {
-        self.sampling.map_or_else(
-            || format!("{}:{}|ms", self.key, self.time),
-            |rate| format!("{}:{}|ms|@{}", self.key, self.time, rate))
+        format!("{}:{}|ms", self.key, self.time)
     }
 }
 
@@ -176,14 +173,8 @@ mod tests {
     }
 
     #[test]
-    fn test_timer_to_metric_string_sampling() {
-        let timer = Timer::new("test.timer", 34, Some(0.01));
-        assert_eq!("test.timer:34|ms|@0.01".to_string(), timer.to_metric_string());
-    }
-
-    #[test]
-    fn test_timer_to_metric_string_no_sampling() {
-        let timer = Timer::new("test.timer",34, None);
+    fn test_timer_to_metric_string() {
+        let timer = Timer::new("test.timer", 34);
         assert_eq!("test.timer:34|ms".to_string(), timer.to_metric_string());
     }
 
