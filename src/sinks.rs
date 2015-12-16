@@ -2,6 +2,7 @@
 //!
 //!
 
+use log::LogLevel;
 use std::io;
 use std::net::{ToSocketAddrs, UdpSocket};
 
@@ -55,12 +56,21 @@ impl MetricSink for ConsoleMetricSink {
 }
 
 
-pub struct LoggingMetricSink;
+pub struct LoggingMetricSink {
+    level: LogLevel
+}
+
+
+impl LoggingMetricSink {
+    pub fn new(level: LogLevel) -> LoggingMetricSink {
+        LoggingMetricSink{level: level}
+    }
+}
 
 
 impl MetricSink for LoggingMetricSink {
     fn emit(&self, metric: &str) -> io::Result<usize> {
-        info!("{}", metric);
+        log!(target: "metrics", self.level, "{}", metric);
         Ok(metric.len())
     }
 }
@@ -68,6 +78,8 @@ impl MetricSink for LoggingMetricSink {
 
 #[cfg(test)]
 mod tests {
+
+    use log::LogLevel;
 
     use super::{
         MetricSink,
@@ -93,7 +105,7 @@ mod tests {
 
     #[test]
     fn test_logging_metric_sink() {
-        let sink = LoggingMetricSink;
+        let sink = LoggingMetricSink::new(LogLevel::Info);
         assert_eq!(7, sink.emit("bar:1|g").unwrap());
     }
     
