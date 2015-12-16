@@ -44,8 +44,57 @@ impl MetricSink for NopMetricSink {
 }
 
 
+pub struct ConsoleMetricSink;
+
+
+impl MetricSink for ConsoleMetricSink {
+    fn emit(&self, metric: &str) -> io::Result<usize> {
+        println!("{}", metric);
+        Ok(metric.len())
+    }
+}
+
+
+pub struct LoggingMetricSink;
+
+
+impl MetricSink for LoggingMetricSink {
+    fn emit(&self, metric: &str) -> io::Result<usize> {
+        info!("{}", metric);
+        Ok(metric.len())
+    }
+}
+
+
 #[cfg(test)]
 mod tests {
 
+    use super::{
+        MetricSink,
+        NopMetricSink,
+        ConsoleMetricSink,
+        LoggingMetricSink
+    };
+
+    // Some basic sanity checks for the debug / test metric
+    // sink implementations.
+
+    #[test]
+    fn test_nop_metric_sink() {
+        let sink = NopMetricSink;
+        assert_eq!(0, sink.emit("baz:4|c").unwrap());
+    }
+
+    #[test]
+    fn test_console_metric_sink() {
+        let sink = ConsoleMetricSink;
+        assert_eq!(7, sink.emit("foo:2|t").unwrap());
+    }
+
+    #[test]
+    fn test_logging_metric_sink() {
+        let sink = LoggingMetricSink;
+        assert_eq!(7, sink.emit("bar:1|g").unwrap());
+    }
     
 }
