@@ -10,7 +10,7 @@ use types::{
 };
 
 
-/// Trait for incrementing and decrementing counters
+/// Trait for incrementing and decrementing counters.
 ///
 /// Counters are simple values incremented or decremented by a client. The
 /// rates at which these events occur or average values will be determined
@@ -32,7 +32,7 @@ pub trait Counted {
 }
 
 
-/// Trait for recording timings in milliseconds
+/// Trait for recording timings in milliseconds.
 ///
 /// Timings are a positive number of milliseconds between a start and end
 /// time. Examples include time taken to render a web page or time taken
@@ -79,7 +79,8 @@ pub struct StatsdClient<T: MetricSink> {
 
 impl<T: MetricSink> StatsdClient<T> {
 
-    ///
+    /// Create a new client instance that will use the given prefix for
+    /// all metrics emitted to the given `MetricSink` implementation.
     pub fn new(prefix: &str, sink: T) -> StatsdClient<T> {
         StatsdClient{
             key_gen: KeyGenerator::new(prefix),

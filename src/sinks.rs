@@ -9,7 +9,11 @@ pub trait MetricSink {
 }
 
 
+/// Implementation of a `MetricSink` that emits metrics over UDP.
 ///
+/// This is the `MetricSink` that almost all consumers of this library will
+/// want to use. It accepts a UDP socket instance over which to write metrics
+/// and the address of the Statsd server to send packets to.
 pub struct UdpMetricSink<A: ToSocketAddrs> {
     sink_addr: A,
     socket: UdpSocket
@@ -17,6 +21,11 @@ pub struct UdpMetricSink<A: ToSocketAddrs> {
 
 
 impl<A: ToSocketAddrs> UdpMetricSink<A> {
+    /// Construct a new `UdpMetricSink` instance.
+    ///
+    /// The address should be the address of the remote metric server to
+    /// emit metrics to over UDP. The socket should already be bound to a
+    /// local address.
     pub fn new(sink_addr: A, socket: UdpSocket) -> UdpMetricSink<A> {
         UdpMetricSink{sink_addr: sink_addr, socket: socket}
     }
@@ -30,6 +39,9 @@ impl<A: ToSocketAddrs> MetricSink for UdpMetricSink<A> {
 }
 
 
+/// Implementation of a `MetricSink` that discards all metrics.
+///
+/// Useful for disabling metric collection or unit tests.
 pub struct NopMetricSink;
 
 
@@ -41,6 +53,9 @@ impl MetricSink for NopMetricSink {
 }
 
 
+/// Implementation of a `MetricSink` that emits metrics to the console.
+///
+/// Metrics are emitted with the `println!` macro.
 pub struct ConsoleMetricSink;
 
 
@@ -52,6 +67,11 @@ impl MetricSink for ConsoleMetricSink {
 }
 
 
+/// Implementation of a `MetricSink` that emits metrics using the`log!` macro.
+///
+/// Metrics are emitted using the `LogLevel` provided at construction with a target
+/// of `metrics`. Note that the number of bytes written returned by `emit` does not
+/// reflect if the provided log level is high enought to be active.
 pub struct LoggingMetricSink {
     level: LogLevel
 }
