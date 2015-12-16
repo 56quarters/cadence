@@ -19,7 +19,7 @@ pub trait Counted {
     fn incr(&self, key: &str) -> MetricResult<()>;
     fn decr(&self, key: &str) -> MetricResult<()>;
     fn count(&self, key: &str, count: i64) -> MetricResult<()>;
-    fn sample(&self, key: &str, count: i64, sampling: Option<f32>) -> MetricResult<()>;
+    fn sample(&self, key: &str, count: i64, sampling: f32) -> MetricResult<()>;
 }
 
 
@@ -78,11 +78,12 @@ impl<T: MetricSink> Counted for StatsdClient<T> {
     }
 
     fn count(&self, key: &str, count: i64) -> MetricResult<()> {
-        self.sample(key, count, None)
+        let counter = Counter::new(self.key_gen.make_key(key), count, None);
+        self.send_metric(&counter)
     }
 
-    fn sample(&self, key: &str, count: i64, sampling: Option<f32>) -> MetricResult<()> {
-        let counter = Counter::new(self.key_gen.make_key(key), count, sampling);
+    fn sample(&self, key: &str, count: i64, sampling: f32) -> MetricResult<()> {
+        let counter = Counter::new(self.key_gen.make_key(key), count, Some(sampling));
         self.send_metric(&counter)
     }
 }
