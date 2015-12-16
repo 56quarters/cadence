@@ -1,7 +1,3 @@
-//!
-//!
-//!
-
 use log::LogLevel;
 use std::io;
 use std::net::{ToSocketAddrs, UdpSocket};
