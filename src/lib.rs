@@ -7,7 +7,7 @@ extern crate log;
 
 pub const DEFAULT_PORT: u16 = 8125;
 
-pub use self::metrics::{
+pub use self::client::{
     Counted,
     Timed,
     Gauged,
@@ -17,6 +17,8 @@ pub use self::metrics::{
 
 pub use self::sinks::{
     MetricSink,
+    ConsoleMetricSink,
+    LoggingMetricSink,
     NopMetricSink,
     UdpMetricSink
 };
@@ -27,6 +29,6 @@ pub use self::types::{
     MetricError
 };
 
-mod metrics;
+mod client;
 mod sinks;
 mod types;
