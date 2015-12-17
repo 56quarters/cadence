@@ -1,4 +1,12 @@
-use sinks::MetricSink;
+use std::net::{
+    ToSocketAddrs,
+    UdpSocket
+};
+
+use sinks::{
+    MetricSink,
+    UdpMetricSink
+};
 
 use types::{
     MetricResult,
@@ -16,6 +24,8 @@ use types::{
 /// rates at which these events occur or average values will be determined
 /// by the server recieving them. Examples of counter uses include number
 /// of logins to a system or requests recieved.
+///
+/// See the [Statsd spec](https://github.com/b/statsd_spec) for more information.
 pub trait Counted {
     /// Increment the counter by `1`
     fn incr(&self, key: &str) -> MetricResult<()>;
@@ -37,6 +47,8 @@ pub trait Counted {
 /// Timings are a positive number of milliseconds between a start and end
 /// time. Examples include time taken to render a web page or time taken
 /// for a database call to return.
+///
+/// See the [Statsd spec](https://github.com/b/statsd_spec) for more information.
 pub trait Timed {
     /// Record a timing in milliseconds under the given key
     fn time(&self, key: &str, time: u64) -> MetricResult<()>;
@@ -48,6 +60,8 @@ pub trait Timed {
 /// Gauge values are an instantaneous measurement of a value determined
 /// by the client. They do not change unless changed by the client. Examples
 /// include things like load average or how many connections are active.
+///
+/// See the [Statsd spec](https://github.com/b/statsd_spec) for more information.
 pub trait Gauged {
     /// Record a gauge value under the given key
     fn gauge(&self, key: &str, value: u64) -> MetricResult<()>;
@@ -61,6 +75,8 @@ pub trait Gauged {
 /// Meters can be thought of as increment-only counters. Examples include
 /// things like number of requests handled or number of times something is
 /// flushed to disk.
+///
+/// See the [Statsd spec](https://github.com/b/statsd_spec) for more information.
 pub trait Metered {
     /// Record a single metered event under the given key
     fn mark(&self, key: &str) -> MetricResult<()>;
@@ -70,7 +86,21 @@ pub trait Metered {
 }
 
 
+/// Client for Statsd that implements various traits to record metrics.
 ///
+/// The client is the main entry point for users of this library. It supports
+/// several traits for recording metrics of different types.
+///
+/// * `Counted` for emitting counters.
+/// * `Timed` for emitting timings.
+/// * `Gauged` for emitting gauge values.
+/// * `Metered` for emitting metered values.
+///
+/// For more information about the uses for each type of metric, see the
+/// documentation for each mentioned trait.
+///
+/// The client uses some implementation of a `MetricSink` to emit the metrics.
+/// In most cases, users will want to use the `UdpMetricSink` implementation.
 pub struct StatsdClient<T: MetricSink> {
     key_gen: KeyGenerator,
     sink: T
@@ -81,14 +111,50 @@ impl<T: MetricSink> StatsdClient<T> {
 
     /// Create a new client instance that will use the given prefix for
     /// all metrics emitted to the given `MetricSink` implementation.
-    pub fn new(prefix: &str, sink: T) -> StatsdClient<T> {
-        StatsdClient{
-            key_gen: KeyGenerator::new(prefix),
-            sink: sink
-        }
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use statsd::{StatsdClient, NopMetricSink};
+    /// let prefix = "my.stats";
+    /// let client = StatsdClient::from_sink(prefix, NopMetricSink);
+    /// ```
+    pub fn from_sink(prefix: &str, sink: T) -> StatsdClient<T> {
+        StatsdClient{key_gen: KeyGenerator::new(prefix), sink: sink}
     }
 
-    //
+    /// Create a new client instance that will use the given prefix to send
+    /// metrics to the given host over UDP using an appropriate sink. This is
+    /// the contruction method that most users of this library will use.
+    ///
+    /// **Note** that you must include a type parameter when you call this
+    /// method to help the compiler determine the type of `T`.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use statsd::{StatsdClient, UdpMetricSink};
+    /// let prefix = "my.stats";
+    /// let host = ("metrics.example.com", 8125);
+    ///
+    /// // Note that we include a type parameter for the method call
+    /// let client = StatsdClient::<UdpMetricSink>::from_udp_host(prefix, host);
+    /// ```
+    ///
+    /// # Failures
+    ///
+    /// This method may fail if:
+    ///
+    /// * It is unable to create a local UDP socket.
+    /// * It is unable to resolve the hostname of the metric server.
+    /// * The host address is otherwise unable to be parsed.
+    pub fn from_udp_host<A>(prefix: &str, host: A) -> MetricResult<StatsdClient<UdpMetricSink>>
+        where A: ToSocketAddrs {
+        let socket = try!(UdpSocket::bind("0.0.0.0:0"));
+        let sink = try!(UdpMetricSink::new(host, socket));
+        Ok(StatsdClient::from_sink(prefix, sink))
+    }
+
     fn send_metric<M: ToMetricString>(&self, metric: &M) -> MetricResult<()> {
         let metric_string = metric.to_metric_string();
         let written = try!(self.sink.emit(&metric_string));
@@ -136,7 +202,6 @@ impl<T: MetricSink> Gauged for StatsdClient<T> {
 
 
 impl<T: MetricSink> Metered for StatsdClient<T> {
-
     fn mark(&self, key: &str) -> MetricResult<()> {
         self.meter(key, 1)
     }
@@ -147,14 +212,13 @@ impl<T: MetricSink> Metered for StatsdClient<T> {
     }
 }
 
-///
+
 struct KeyGenerator {
     prefix: String
 }
 
 
 impl KeyGenerator {
-    ///
     fn new(prefix: &str) -> KeyGenerator {
         let trimmed = if prefix.ends_with('.') {
             prefix.trim_right_matches('.')
@@ -165,7 +229,6 @@ impl KeyGenerator {
         KeyGenerator{prefix: trimmed.to_string()}
     }
 
-    ///
     fn make_key(&self, key: &str) -> String {
         format!("{}.{}", &self.prefix, key)
     }

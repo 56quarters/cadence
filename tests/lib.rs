@@ -7,7 +7,6 @@
 extern crate test;
 extern crate statsd;
 
-use std::net::UdpSocket;
 use std::thread;
 use std::sync::Arc;
 
@@ -46,14 +45,14 @@ struct MeterHolder<'a, T: Metered + 'a> {
 
 fn new_nop_client(prefix: &str) -> StatsdClient<NopMetricSink> {
     let sink = NopMetricSink;
-    StatsdClient::new(prefix, sink)
+    StatsdClient::from_sink(prefix, sink)
 }
 
 
-fn new_udp_client(prefix: &str) -> StatsdClient<UdpMetricSink<(&str, u16)>> {
-    let socket = UdpSocket::bind("0.0.0.0:0").unwrap();
-    let sink = UdpMetricSink::new(("127.0.0.1", DEFAULT_PORT), socket);
-    StatsdClient::new(prefix, sink)
+fn new_udp_client(prefix: &str) -> StatsdClient<UdpMetricSink> {
+    let addr = ("127.0.0.1", DEFAULT_PORT);
+    let res = StatsdClient::<UdpMetricSink>::from_udp_host(prefix, addr);
+    res.unwrap()
 }
 
 
