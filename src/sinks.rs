@@ -60,6 +60,7 @@ impl UdpMetricSink {
         // this sink goes.
         let mut addr_iter = try!(sink_addr.to_socket_addrs());
         let addr = try!(addr_iter.next().ok_or(
+            // Tuple that MetricError knows how to be created From
             (ErrorKind::InvalidInput, "No socket addresses yielded")
         ));
 
@@ -132,16 +133,20 @@ impl MetricSink for LoggingMetricSink {
 mod tests {
 
     use log::LogLevel;
+    use std::net::UdpSocket;
 
     use super::{
         MetricSink,
         NopMetricSink,
         ConsoleMetricSink,
-        LoggingMetricSink
+        LoggingMetricSink,
+        UdpMetricSink
     };
 
-    // Some basic sanity checks for the debug / test metric
-    // sink implementations.
+    // Basic smoke / sanity checks to make sure we're getting
+    // some expected results from the various sinks. The UDP
+    // sink test isn't really a unit test but *should* just work
+    // since it's UDP and it's OK if the packets disapear.
 
     #[test]
     fn test_nop_metric_sink() {
@@ -159,6 +164,14 @@ mod tests {
     fn test_logging_metric_sink() {
         let sink = LoggingMetricSink::new(LogLevel::Info);
         assert_eq!(7, sink.emit("bar:1|g").unwrap());
+    }
+
+    #[test]
+    fn test_udp_metric_sink() {
+        let socket = UdpSocket::bind("0.0.0.0:0").unwrap();
+        let host = ("127.0.0.1", 8215);
+        let sink = UdpMetricSink::new(host, socket).unwrap();
+        assert_eq!(7, sink.emit("buz:1|m").unwrap());
     }
     
 }
