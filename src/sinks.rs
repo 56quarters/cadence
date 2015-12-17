@@ -34,6 +34,24 @@ impl UdpMetricSink {
     /// The address should be the address of the remote metric server to
     /// emit metrics to over UDP. The socket should already be bound to a
     /// local address.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use std::net::UdpSocket;
+    /// use statsd::UdpMetricSink;
+    ///
+    /// let host = ("metrics.example.com", 8125);
+    /// let socket = UdpSocket::bind("0.0.0.0:0").unwrap();
+    /// let sink = UdpMetricSink::new(host, socket);
+    /// ```
+    ///
+    /// # Failures
+    ///
+    /// This method may fail if:
+    ///
+    /// * It is unable to resolve the hostname of the metric server.
+    /// * The host address is otherwise unable to be parsed
     pub fn new<A>(sink_addr: A, socket: UdpSocket) -> MetricResult<UdpMetricSink>
         where A: ToSocketAddrs {
         // Allow callers to pass anything that implements ToSocketAddrs for
