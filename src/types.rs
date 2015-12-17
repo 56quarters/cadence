@@ -98,6 +98,14 @@ impl ToMetricString for Meter {
 }
 
 
+
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
+pub enum ErrorKind {
+    InvalidInput,
+    IoError,
+}
+
+
 #[derive(Debug)]
 pub struct MetricError {
     repr: ErrorRepr
@@ -106,14 +114,26 @@ pub struct MetricError {
 
 #[derive(Debug)]
 enum ErrorRepr {
+    WithDescription(ErrorKind, &'static str),
     IoError(io::Error)
+}
+
+
+impl MetricError {
+    pub fn kind(&self) -> ErrorKind {
+        match self.repr {
+            ErrorRepr::IoError(_) => ErrorKind::IoError,
+            ErrorRepr::WithDescription(kind, _) => kind
+        }
+    }
 }
 
 
 impl fmt::Display for MetricError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self.repr {
-            ErrorRepr::IoError(ref err) => write!(f, "IO error: {}", err)
+            ErrorRepr::IoError(ref err) => err.fmt(f),
+            ErrorRepr::WithDescription(_, desc) => desc.fmt(f)
         }
     }
 }
@@ -122,13 +142,15 @@ impl fmt::Display for MetricError {
 impl error::Error for MetricError {
     fn description(&self) -> &str {
         match self.repr {
-            ErrorRepr::IoError(ref err) => err.description()
+            ErrorRepr::IoError(ref err) => err.description(),
+            ErrorRepr::WithDescription(_, desc) => desc
         }
     }
 
     fn cause(&self) -> Option<&error::Error> {
         match self.repr {
-            ErrorRepr::IoError(ref err) => Some(err)
+            ErrorRepr::IoError(ref err) => Some(err),
+            _ => None
         }
     }
 }
@@ -137,6 +159,13 @@ impl error::Error for MetricError {
 impl From<io::Error> for MetricError {
     fn from(err: io::Error) -> MetricError {
         MetricError{repr: ErrorRepr::IoError(err)}
+    }
+}
+
+
+impl From<(ErrorKind, &'static str)> for MetricError {
+    fn from((kind, desc): (ErrorKind, &'static str)) -> MetricError {
+        MetricError{repr: ErrorRepr::WithDescription(kind, desc)}
     }
 }
 

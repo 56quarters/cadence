@@ -1,7 +1,15 @@
 use log::LogLevel;
 use std::io;
-use std::net::{ToSocketAddrs, UdpSocket};
+use std::net::{
+    ToSocketAddrs,
+    SocketAddr,
+    UdpSocket
+};
 
+use types::{
+    MetricResult,
+    ErrorKind
+};
 
 ///
 pub trait MetricSink {
@@ -14,25 +22,35 @@ pub trait MetricSink {
 /// This is the `MetricSink` that almost all consumers of this library will
 /// want to use. It accepts a UDP socket instance over which to write metrics
 /// and the address of the Statsd server to send packets to.
-pub struct UdpMetricSink<A: ToSocketAddrs> {
-    sink_addr: A,
+pub struct UdpMetricSink {
+    sink_addr: SocketAddr,
     socket: UdpSocket
 }
 
 
-impl<A: ToSocketAddrs> UdpMetricSink<A> {
+impl UdpMetricSink {
     /// Construct a new `UdpMetricSink` instance.
     ///
     /// The address should be the address of the remote metric server to
     /// emit metrics to over UDP. The socket should already be bound to a
     /// local address.
-    pub fn new(sink_addr: A, socket: UdpSocket) -> UdpMetricSink<A> {
-        UdpMetricSink{sink_addr: sink_addr, socket: socket}
+    pub fn new<A>(sink_addr: A, socket: UdpSocket) -> MetricResult<UdpMetricSink>
+        where A: ToSocketAddrs {
+        // Allow callers to pass anything that implements ToSocketAddrs for
+        // convenience but convert it to a concrete address here so that we
+        // don't have to pass around the generic parameter everywhere that
+        // this sink goes.
+        let mut addr_iter = try!(sink_addr.to_socket_addrs());
+        let addr = try!(addr_iter.next().ok_or(
+            (ErrorKind::InvalidInput, "No socket addresses yielded")
+        ));
+
+        Ok(UdpMetricSink{sink_addr: addr, socket: socket})
     }
 }
 
 
-impl<A: ToSocketAddrs> MetricSink for UdpMetricSink<A> {
+impl MetricSink for UdpMetricSink {
     fn emit(&self, metric: &str) -> io::Result<usize> {
         self.socket.send_to(metric.as_bytes(), &self.sink_addr)
     }
