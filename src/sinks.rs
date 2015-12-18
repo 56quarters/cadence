@@ -169,8 +169,7 @@ mod tests {
     #[test]
     fn test_udp_metric_sink() {
         let socket = UdpSocket::bind("0.0.0.0:0").unwrap();
-        let host = ("127.0.0.1", 8215);
-        let sink = UdpMetricSink::new(host, socket).unwrap();
+        let sink = UdpMetricSink::new("127.0.0.1:8125", socket).unwrap();
         assert_eq!(7, sink.emit("buz:1|m").unwrap());
     }
     
