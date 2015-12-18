@@ -116,6 +116,7 @@ impl<T: MetricSink> StatsdClient<T> {
     ///
     /// ```
     /// use statsd::{StatsdClient, NopMetricSink};
+    ///
     /// let prefix = "my.stats";
     /// let client = StatsdClient::from_sink(prefix, NopMetricSink);
     /// ```
@@ -134,6 +135,7 @@ impl<T: MetricSink> StatsdClient<T> {
     ///
     /// ```
     /// use statsd::{StatsdClient, UdpMetricSink};
+    ///
     /// let prefix = "my.stats";
     /// let host = ("metrics.example.com", 8125);
     ///
