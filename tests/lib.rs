@@ -61,7 +61,7 @@ fn test_statsd_client_as_counter() {
     let client = new_nop_client("counter.test");
     let holder = CounterHolder{counter: &client};
 
-    holder.counter.sample("some.counter.metric", 13, 0.1).unwrap();
+    holder.counter.count("some.counter.metric", 13).unwrap();
 }
 
 

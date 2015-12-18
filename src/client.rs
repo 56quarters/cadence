@@ -28,17 +28,13 @@ use types::{
 /// See the [Statsd spec](https://github.com/b/statsd_spec) for more information.
 pub trait Counted {
     /// Increment the counter by `1`
-    fn incr(&self, key: &str) -> MetricResult<()>;
+    fn incr(&self, key: &str) -> MetricResult<Counter>;
 
     /// Decrement the counter by `1`
-    fn decr(&self, key: &str) -> MetricResult<()>;
+    fn decr(&self, key: &str) -> MetricResult<Counter>;
 
     /// Increment or decrement the counter by the given amount
-    fn count(&self, key: &str, count: i64) -> MetricResult<()>;
-
-    /// Increment or decrement the counter by the given amount
-    /// at the specified sample rate (between `0.0` and `1.0`)
-    fn sample(&self, key: &str, count: i64, sampling: f32) -> MetricResult<()>;
+    fn count(&self, key: &str, count: i64) -> MetricResult<Counter>;
 }
 
 
@@ -51,7 +47,7 @@ pub trait Counted {
 /// See the [Statsd spec](https://github.com/b/statsd_spec) for more information.
 pub trait Timed {
     /// Record a timing in milliseconds under the given key
-    fn time(&self, key: &str, time: u64) -> MetricResult<()>;
+    fn time(&self, key: &str, time: u64) -> MetricResult<Timer>;
 }
 
 
@@ -64,7 +60,7 @@ pub trait Timed {
 /// See the [Statsd spec](https://github.com/b/statsd_spec) for more information.
 pub trait Gauged {
     /// Record a gauge value under the given key
-    fn gauge(&self, key: &str, value: u64) -> MetricResult<()>;
+    fn gauge(&self, key: &str, value: u64) -> MetricResult<Gauge>;
 }
 
 
@@ -79,10 +75,10 @@ pub trait Gauged {
 /// See the [Statsd spec](https://github.com/b/statsd_spec) for more information.
 pub trait Metered {
     /// Record a single metered event under the given key
-    fn mark(&self, key: &str) -> MetricResult<()>;
+    fn mark(&self, key: &str) -> MetricResult<Meter>;
 
     /// Record a meter value under the given key
-    fn meter(&self, key: &str, value: u64) -> MetricResult<()>;
+    fn meter(&self, key: &str, value: u64) -> MetricResult<Meter>;
 }
 
 
@@ -157,60 +153,55 @@ impl<T: MetricSink> StatsdClient<T> {
         Ok(StatsdClient::from_sink(prefix, sink))
     }
 
-    fn send_metric<M: ToMetricString>(&self, metric: &M) -> MetricResult<()> {
+    fn send_metric<M: ToMetricString>(&self, metric: M) -> MetricResult<M> {
         let metric_string = metric.to_metric_string();
         let written = try!(self.sink.emit(&metric_string));
         debug!("Wrote {} ({} bytes)", metric_string, written);
-        Ok(())
+        Ok(metric)
     }
 }
 
 
 impl<T: MetricSink> Counted for StatsdClient<T> {
-    fn incr(&self, key: &str) -> MetricResult<()> {
+    fn incr(&self, key: &str) -> MetricResult<Counter> {
         self.count(key, 1)
     }
 
-    fn decr(&self, key: &str) -> MetricResult<()> {
+    fn decr(&self, key: &str) -> MetricResult<Counter> {
         self.count(key, -1)
     }
 
-    fn count(&self, key: &str, count: i64) -> MetricResult<()> {
-        let counter = Counter::new(self.key_gen.make_key(key), count, None);
-        self.send_metric(&counter)
-    }
-
-    fn sample(&self, key: &str, count: i64, sampling: f32) -> MetricResult<()> {
-        let counter = Counter::new(self.key_gen.make_key(key), count, Some(sampling));
-        self.send_metric(&counter)
+    fn count(&self, key: &str, count: i64) -> MetricResult<Counter> {
+        let counter = Counter::new(self.key_gen.make_key(key), count);
+        self.send_metric(counter)
     }
 }
 
 
 impl<T: MetricSink> Timed for StatsdClient<T> {
-    fn time(&self, key: &str, time: u64) -> MetricResult<()> {
+    fn time(&self, key: &str, time: u64) -> MetricResult<Timer> {
         let timer = Timer::new(self.key_gen.make_key(key), time);
-        self.send_metric(&timer)
+        self.send_metric(timer)
     }
 }
 
 
 impl<T: MetricSink> Gauged for StatsdClient<T> {
-    fn gauge(&self, key: &str, value: u64) -> MetricResult<()> {
+    fn gauge(&self, key: &str, value: u64) -> MetricResult<Gauge> {
         let gauge = Gauge::new(self.key_gen.make_key(key), value);
-        self.send_metric(&gauge)
+        self.send_metric(gauge)
     }
 }
 
 
 impl<T: MetricSink> Metered for StatsdClient<T> {
-    fn mark(&self, key: &str) -> MetricResult<()> {
+    fn mark(&self, key: &str) -> MetricResult<Meter> {
         self.meter(key, 1)
     }
 
-    fn meter(&self, key: &str, value: u64) -> MetricResult<()> {
+    fn meter(&self, key: &str, value: u64) -> MetricResult<Meter> {
         let meter = Meter::new(self.key_gen.make_key(key), value);
-        self.send_metric(&meter)
+        self.send_metric(meter)
     }
 }
 

@@ -27,7 +27,11 @@ pub use self::sinks::{
 pub use self::types::{
     MetricResult,
     MetricError,
-    ErrorKind
+    ErrorKind,
+    Counter,
+    Timer,
+    Gauge,
+    Meter
 };
 
 mod client;

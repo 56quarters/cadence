@@ -4,21 +4,36 @@ use std::io;
 
 
 ///
+pub trait ToMetricString {
+    fn to_metric_string(&self) -> String;
+}
+
+
+///
+#[derive(PartialEq, Eq)]
 pub struct Counter {
     key: String,
-    count: i64,
-    sampling: Option<f32>
+    count: i64
 }
 
 
 impl Counter {
     ///
-    pub fn new<S: Into<String>>(key: S, count: i64, sampling: Option<f32>) -> Counter {
-        Counter{key: key.into(), count: count, sampling: sampling}
+    pub fn new<S: Into<String>>(key: S, count: i64) -> Counter {
+        Counter{key: key.into(), count: count}
     }
 }
 
+
+impl ToMetricString for Counter {
+    fn to_metric_string(&self) -> String {
+        format!("{}:{}|c", self.key, self.count)
+    }
+}
+
+
 ///
+#[derive(PartialEq, Eq)]
 pub struct Timer {
     key: String,
     time: u64
@@ -33,7 +48,15 @@ impl Timer {
 }
 
 
+impl ToMetricString for Timer {
+    fn to_metric_string(&self) -> String {
+        format!("{}:{}|ms", self.key, self.time)
+    }
+}
+
+
 ///
+#[derive(PartialEq, Eq)]
 pub struct Gauge {
     key: String,
     value: u64
@@ -48,7 +71,15 @@ impl Gauge {
 }
 
 
+impl ToMetricString for Gauge {
+    fn to_metric_string(&self) -> String {
+        format!("{}:{}|g", self.key, self.value)
+    }
+}
+
+
 ///
+#[derive(PartialEq, Eq)]
 pub struct Meter {
     key: String,
     value: u64
@@ -62,41 +93,11 @@ impl Meter {
 }
 
 
-///
-pub trait ToMetricString {
-    fn to_metric_string(&self) -> String;
-}
-
-
-impl ToMetricString for Counter {
-    fn to_metric_string(&self) -> String {
-        self.sampling.map_or_else(
-            || format!("{}:{}|c", self.key, self.count),
-            |rate| format!("{}:{}|c|@{}", self.key, self.count, rate))
-    }
-}
-
-
-impl ToMetricString for Timer {
-    fn to_metric_string(&self) -> String {
-        format!("{}:{}|ms", self.key, self.time)
-    }
-}
-
-
-impl ToMetricString for Gauge {
-    fn to_metric_string(&self) -> String {
-        format!("{}:{}|g", self.key, self.value)
-    }
-}
-
-
 impl ToMetricString for Meter {
     fn to_metric_string(&self) -> String {
         format!("{}:{}|m", self.key, self.value)
     }
 }
-
 
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
@@ -185,14 +186,8 @@ mod tests {
     };
 
     #[test]
-    fn test_counter_to_metric_string_sampling() {
-        let counter = Counter::new("test.counter", 4, Some(0.1));
-        assert_eq!("test.counter:4|c|@0.1".to_string(), counter.to_metric_string());
-    }
-
-    #[test]
-    fn test_counter_to_metric_string_no_sampling() {
-        let counter = Counter::new("test.counter", 4, None);
+    fn test_counter_to_metric_string() {
+        let counter = Counter::new("test.counter", 4);
         assert_eq!("test.counter:4|c".to_string(), counter.to_metric_string());
     }
 
