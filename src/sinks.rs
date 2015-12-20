@@ -11,8 +11,10 @@ use types::{
     ErrorKind
 };
 
-///
+/// Trait for various backends that send Statsd metrics somewhere.
 pub trait MetricSink {
+    /// Send the Statsd metric using this sink and return the number of bytes
+    /// written or an I/O error.
     fn emit(&self, metric: &str) -> io::Result<usize>;
 }
 
@@ -39,9 +41,9 @@ impl UdpMetricSink {
     ///
     /// ```
     /// use std::net::UdpSocket;
-    /// use statsd::UdpMetricSink;
+    /// use statsd::{UdpMetricSink, DEFAULT_PORT};
     ///
-    /// let host = ("metrics.example.com", 8125);
+    /// let host = ("metrics.example.com", DEFAULT_PORT);
     /// let socket = UdpSocket::bind("0.0.0.0:0").unwrap();
     /// let sink = UdpMetricSink::new(host, socket);
     /// ```
