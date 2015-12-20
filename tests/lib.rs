@@ -19,28 +19,12 @@ use statsd::{
     Counted,
     Timed,
     Gauged,
-    Metered
+    Metered,
+    Counter,
+    Timer,
+    Gauge,
+    Meter
 };
-
-
-struct CounterHolder<'a, T: Counted + 'a> {
-    counter: &'a T
-}
-
-
-struct TimerHolder<'a, T: Timed + 'a> {
-    timer: &'a T
-}
-
-
-struct GaugeHolder<'a, T: Gauged + 'a> {
-    gauge: &'a T
-}
-
-
-struct MeterHolder<'a, T: Metered + 'a> {
-    meter: &'a T
-}
 
 
 fn new_nop_client(prefix: &str) -> StatsdClient<NopMetricSink> {
@@ -56,39 +40,60 @@ fn new_udp_client(prefix: &str) -> StatsdClient<UdpMetricSink> {
 }
 
 
-#[test]
-fn test_statsd_client_as_counter() {
-    let client = new_nop_client("counter.test");
-    let holder = CounterHolder{counter: &client};
 
-    holder.counter.count("some.counter.metric", 13).unwrap();
+#[test]
+fn test_statsd_client_incr() {
+    let client = new_nop_client("client.test");
+    let expected = Counter::new("client.test.counter.key", 1);
+    assert_eq!(expected, client.incr("counter.key").unwrap());
 }
 
 
 #[test]
-fn test_statsd_client_as_timer() {
-    let client = new_nop_client("timer.test");
-    let holder = TimerHolder{timer: &client};
-
-    holder.timer.time("some.timer.metric", 25).unwrap();
+fn test_statsd_client_decr() {
+    let client = new_nop_client("client.test");
+    let expected = Counter::new("client.test.counter.key", -1);
+    assert_eq!(expected, client.decr("counter.key").unwrap());
 }
 
 
 #[test]
-fn test_statsd_client_as_gauge() {
-    let client = new_nop_client("gauge.test");
-    let holder = GaugeHolder{gauge: &client};
-
-    holder.gauge.gauge("some.gauge.metric", 98).unwrap();
+fn test_statsd_client_count() {
+    let client = new_nop_client("client.test");
+    let expected = Counter::new("client.test.counter.key", 42);
+    assert_eq!(expected, client.count("counter.key", 42).unwrap());
 }
 
 
 #[test]
-fn test_statsd_client_as_meter() {
-    let client = new_nop_client("meter.test");
-    let holder = MeterHolder{meter: &client};
+fn test_statsd_client_time() {
+    let client = new_nop_client("client.test");
+    let expected = Timer::new("client.test.timer.key", 25);
+    assert_eq!(expected, client.time("timer.key", 25).unwrap());
+}
 
-    holder.meter.meter("some.meter.metric", 5).unwrap();
+
+#[test]
+fn test_statsd_client_gauge() {
+    let client = new_nop_client("client.test");
+    let expected = Gauge::new("client.test.gauge.key", 5);
+    assert_eq!(expected, client.gauge("gauge.key", 5).unwrap());
+}
+
+
+#[test]
+fn test_statsd_client_mark() {
+    let client = new_nop_client("client.test");
+    let expected = Meter::new("client.test.meter.key", 1);
+    assert_eq!(expected, client.mark("meter.key").unwrap());
+}
+
+
+#[test]
+fn test_statsd_client_meter() {
+    let client = new_nop_client("client.test");
+    let expected = Meter::new("client.test.meter.key", 7);
+    assert_eq!(expected, client.meter("meter.key", 7).unwrap());
 }
 
 

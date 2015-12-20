@@ -10,7 +10,7 @@ pub trait ToMetricString {
 
 
 ///
-#[derive(PartialEq, Eq)]
+#[derive(PartialEq, Eq, Debug)]
 pub struct Counter {
     key: String,
     count: i64
@@ -33,7 +33,7 @@ impl ToMetricString for Counter {
 
 
 ///
-#[derive(PartialEq, Eq)]
+#[derive(PartialEq, Eq, Debug)]
 pub struct Timer {
     key: String,
     time: u64
@@ -56,7 +56,7 @@ impl ToMetricString for Timer {
 
 
 ///
-#[derive(PartialEq, Eq)]
+#[derive(PartialEq, Eq, Debug)]
 pub struct Gauge {
     key: String,
     value: u64
@@ -79,7 +79,7 @@ impl ToMetricString for Gauge {
 
 
 ///
-#[derive(PartialEq, Eq)]
+#[derive(PartialEq, Eq, Debug)]
 pub struct Meter {
     key: String,
     value: u64

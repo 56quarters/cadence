@@ -46,7 +46,7 @@ pub trait Counted {
 ///
 /// See the [Statsd spec](https://github.com/b/statsd_spec) for more information.
 pub trait Timed {
-    /// Record a timing in milliseconds under the given key
+    /// Record a timing in milliseconds with the given key
     fn time(&self, key: &str, time: u64) -> MetricResult<Timer>;
 }
 
@@ -59,7 +59,7 @@ pub trait Timed {
 ///
 /// See the [Statsd spec](https://github.com/b/statsd_spec) for more information.
 pub trait Gauged {
-    /// Record a gauge value under the given key
+    /// Record a gauge value with the given key
     fn gauge(&self, key: &str, value: u64) -> MetricResult<Gauge>;
 }
 
@@ -74,10 +74,10 @@ pub trait Gauged {
 ///
 /// See the [Statsd spec](https://github.com/b/statsd_spec) for more information.
 pub trait Metered {
-    /// Record a single metered event under the given key
+    /// Record a single metered event with the given key
     fn mark(&self, key: &str) -> MetricResult<Meter>;
 
-    /// Record a meter value under the given key
+    /// Record a meter value with the given key
     fn meter(&self, key: &str, value: u64) -> MetricResult<Meter>;
 }
 
@@ -230,8 +230,9 @@ impl KeyGenerator {
 
 #[cfg(test)]
 mod tests {
-
-    use super::KeyGenerator;
+    use super::{
+        KeyGenerator
+    };
     
     #[test]
     fn test_key_generator_make_key_with_trailing_dot_prefix() {
