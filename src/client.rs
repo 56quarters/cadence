@@ -153,6 +153,10 @@ impl<T: MetricSink> StatsdClient<T> {
         Ok(StatsdClient::from_sink(prefix, sink))
     }
 
+    // Convert a metric to its Statsd string representation and then send
+    // it as UTF-8 bytes to the metric sink. Convert any I/O errors from the
+    // sink to MetricResults with the metric itself as a payload for success
+    // responses.
     fn send_metric<M: ToMetricString>(&self, metric: M) -> MetricResult<M> {
         let metric_string = metric.to_metric_string();
         let written = try!(self.sink.emit(&metric_string));
