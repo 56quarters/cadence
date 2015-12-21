@@ -28,15 +28,13 @@ use statsd::{
 
 
 fn new_nop_client(prefix: &str) -> StatsdClient<NopMetricSink> {
-    let sink = NopMetricSink;
-    StatsdClient::from_sink(prefix, sink)
+    StatsdClient::from_sink(prefix, NopMetricSink)
 }
 
 
 fn new_udp_client(prefix: &str) -> StatsdClient<UdpMetricSink> {
     let addr = ("127.0.0.1", DEFAULT_PORT);
-    let res = StatsdClient::<UdpMetricSink>::from_udp_host(prefix, addr);
-    res.unwrap()
+    StatsdClient::<UdpMetricSink>::from_udp_host(prefix, addr).unwrap()
 }
 
 
