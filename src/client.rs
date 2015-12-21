@@ -90,7 +90,7 @@ pub trait Metered {
 /// * `Counted` for emitting counters.
 /// * `Timed` for emitting timings.
 /// * `Gauged` for emitting gauge values.
-/// * `Metered` for emitting metered values.
+/// * `Metered` for emitting meter values.
 ///
 /// For more information about the uses for each type of metric, see the
 /// documentation for each mentioned trait.

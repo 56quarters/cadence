@@ -38,7 +38,6 @@ fn new_udp_client(prefix: &str) -> StatsdClient<UdpMetricSink> {
 }
 
 
-
 #[test]
 fn test_statsd_client_incr() {
     let client = new_nop_client("client.test");
@@ -118,7 +117,7 @@ const NUM_ITERATIONS: u64 = 10_000;
 #[ignore]
 #[test]
 fn test_statsd_client_nop_sink_many_threaded() {
-    let client = new_nop_client("counter.threaded.nop");
+    let client = new_nop_client("test.counter.threaded.nop");
     run_threaded_test(client, NUM_THREADS, NUM_ITERATIONS);
 }
 
@@ -126,7 +125,7 @@ fn test_statsd_client_nop_sink_many_threaded() {
 #[ignore]
 #[test]
 fn test_statsd_client_udp_sink_many_threaded() {
-    let client = new_udp_client("counter.threaded.udp");
+    let client = new_udp_client("test.counter.threaded.udp");
     run_threaded_test(client, NUM_THREADS, NUM_ITERATIONS);
 }
 
