@@ -2,9 +2,6 @@
 //!
 //!
 
-#![feature(test)]
-
-extern crate test;
 extern crate cadence;
 
 use std::thread;
