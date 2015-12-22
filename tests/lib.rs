@@ -5,12 +5,12 @@
 #![feature(test)]
 
 extern crate test;
-extern crate statsd;
+extern crate cadence;
 
 use std::thread;
 use std::sync::Arc;
 
-use statsd::{
+use cadence::{
     DEFAULT_PORT,
     NopMetricSink,
     UdpMetricSink,

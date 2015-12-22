@@ -41,7 +41,7 @@ impl UdpMetricSink {
     ///
     /// ```
     /// use std::net::UdpSocket;
-    /// use statsd::{UdpMetricSink, DEFAULT_PORT};
+    /// use cadence::{UdpMetricSink, DEFAULT_PORT};
     ///
     /// let host = ("metrics.example.com", DEFAULT_PORT);
     /// let socket = UdpSocket::bind("0.0.0.0:0").unwrap();

@@ -1,5 +1,5 @@
 [package]
-name = "statsd-client"
+name = "cadence"
 version = "0.1.0"
 
 [dependencies]
@@ -9,5 +9,5 @@ log = "0.3"
 env_logger = "0.3"
 
 [lib]
-name = "statsd"
+name = "cadence"
 path = "src/lib.rs"
