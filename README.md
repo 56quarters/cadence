@@ -1,7 +1,7 @@
 # Cadence
 
 [![Build Status](https://travis-ci.org/tshlabs/cadence.svg?branch=master)](https://travis-ci.org/tshlabs/cadence)
-[![crates.io](http://meritbadge.herokuapp.com/cadence)](https://crates.io/crates/cadence)
+[![crates.io](http://meritbadge.herokuapp.com/cadence)](https://crates.io/crates/cadence/)
 
 An extensible Statsd client for Rust!
 
