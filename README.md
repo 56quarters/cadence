@@ -20,7 +20,7 @@ Typical usage of Cadence is shown below:
 // Import the client
 use cadence::{
     StatsdClient,
-    UdpMetricsink
+    UdpMetricSink
 };
 
 // Create client that will write to the given host over UDP.
