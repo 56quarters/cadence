@@ -23,9 +23,13 @@ use cadence::{
     UdpMetricsink
 };
 
-// Create client that will write to the given host over UDP
+// Create client that will write to the given host over UDP.
+//
+// Note that you'll probably want to actually handle any errors creating the client
+// when you use it for real in your application. Were just using .unwrap() here
+// since this is an example!
 let host = ("metrics.example.com", 8125);
-let client = StatsdClient::<UdpMetricSink>::from_host("my.metrics", host);
+let client = StatsdClient::<UdpMetricSink>::from_host("my.metrics", host).unwrap();
 
 // Emit metrics!
 client.incr("some.counter");
