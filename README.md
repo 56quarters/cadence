@@ -20,6 +20,15 @@ To make use of Cadence in your project, add it as a dependency.
 cadence = "x.y.z"
 ```
 
+Then, link to it in your library or application.
+
+``` rust
+// bin.rs or lib.rs
+extern crate cadence;
+
+// rest of your library or application
+```
+
 ## Usage
 
 Typical usage of Cadence is shown below:
