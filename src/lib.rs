@@ -5,7 +5,9 @@
 #[macro_use]
 extern crate log;
 
+
 pub const DEFAULT_PORT: u16 = 8125;
+
 
 pub use self::client::{
     Counted,
@@ -14,6 +16,7 @@ pub use self::client::{
     Metered,
     StatsdClient
 };
+
 
 pub use self::sinks::{
     MetricSink,
@@ -33,6 +36,7 @@ pub use self::types::{
     Gauge,
     Meter
 };
+
 
 mod client;
 mod sinks;

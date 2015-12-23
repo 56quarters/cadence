@@ -6,11 +6,18 @@ An extensible Statsd client for Rust!
 
 ## Features
 
-TBD
+* Support for emitting counters, timers, gauges, and meters to Statsd over UDP.
+* Support for alternate backends via the `MetricSink` trait.
+* A simple yet flexible API for sending metrics.
 
 ## Install
 
-TBD
+To make use of Cadence in your project, add it as a dependency.
+
+``` toml
+[dependencies]
+cadence = "x.y.z"
+```
 
 ## Usage
 
@@ -26,7 +33,7 @@ use cadence::{
 // Create client that will write to the given host over UDP.
 //
 // Note that you'll probably want to actually handle any errors creating the client
-// when you use it for real in your application. Were just using .unwrap() here
+// when you use it for real in your application. We're just using .unwrap() here
 // since this is an example!
 let host = ("metrics.example.com", 8125);
 let client = StatsdClient::<UdpMetricSink>::from_host("my.metrics", host).unwrap();
@@ -43,7 +50,7 @@ Documentation is available at http://tshlabs.github.io/cadence/
 
 ## Source
 
-The source code is available on GitHub https://github.com/tshlabs/cadence
+The source code is available on GitHub at https://github.com/tshlabs/cadence
 
 ## Changes
 
