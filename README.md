@@ -47,7 +47,7 @@ client.meter("some.value", 5);
 
 ## Documentation
 
-Documentation is available at http://tshlabs.github.io/cadence/
+Comming soon!
 
 ## Source
 
