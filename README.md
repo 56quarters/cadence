@@ -14,17 +14,34 @@ TBD
 
 ## Usage
 
-TBD
+Typical usage of Cadence is shown below:
+
+``` rust
+// Import the client
+use cadence::{
+    StatsdClient,
+    UdpMetricsink
+};
+
+// Create client that will write to the given host over UDP
+let host = ("metrics.example.com", 8125);
+let client = StatsdClient::<UdpMetricsink>::from_host("my.metrics", host);
+
+// Emit metrics!
+client.incr("some.counter");
+client.time("some.methodCall", 42);
+client.meter("some.value", 5);
+```
 
 ## Documentation
 
-TBD
+Documentation is available at http://tshlabs.github.io/cadence/
 
 ## Source
 
-TBD
+The source code is available on GitHub https://github.com/tshlabs/cadence
 
 ## Changes
 
-TBD
+Release notes for Cadence can be found in the [CHANGES.md](CHANGES.md) file.
 
