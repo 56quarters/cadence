@@ -12,9 +12,6 @@ keywords = ["statsd", "metrics"]
 [dependencies]
 log = "0.3"
 
-[dev-dependencies]
-env_logger = "0.3"
-
 [lib]
 name = "cadence"
 path = "src/lib.rs"
