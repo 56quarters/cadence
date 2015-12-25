@@ -51,6 +51,7 @@ let client = StatsdClient::<UdpMetricSink>::from_host("my.metrics", host).unwrap
 // Emit metrics!
 client.incr("some.counter");
 client.time("some.methodCall", 42);
+client.gauge("some.thing", 7);
 client.meter("some.value", 5);
 ```
 
