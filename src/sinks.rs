@@ -110,7 +110,7 @@ impl MetricSink for ConsoleMetricSink {
 ///
 /// Metrics are emitted using the `LogLevel` provided at construction with a target
 /// of `metrics`. Note that the number of bytes written returned by `emit` does not
-/// reflect if the provided log level is high enought to be active.
+/// reflect if the provided log level is high enough to be active.
 pub struct LoggingMetricSink {
     level: LogLevel
 }
