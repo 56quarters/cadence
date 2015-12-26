@@ -1,3 +1,11 @@
+// Cadence - An extensible Statsd client for Rust!
+//
+// Copyright 2015 TSH Labs
+//
+// Available under the MIT license. See LICENSE for details.
+//
+
+
 use log::LogLevel;
 use std::io;
 use std::net::{

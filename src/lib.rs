@@ -1,6 +1,41 @@
+// Cadence - An extensible Statsd client for Rust!
+//
+// Copyright 2015 TSH Labs
+//
+// Available under the MIT license. See LICENSE for details.
+//
+
+
+//! # Cadence
+//!
+//! An extensible Statsd client for Rust!
+//!
+//! ## Features
 //!
 //!
 //!
+//! ## Install
+//!
+//!
+//!
+//! ## Usage
+//!
+//!
+//!
+//! ### Simple Use
+//!
+//!
+//!
+//! ### Counted, Timed, Gauged, and Metered Traits
+//!
+//!
+//!
+//! ### Custom Metric Sinks
+//!
+//!
+//!
+//!
+
 
 #[macro_use]
 extern crate log;

@@ -1,3 +1,10 @@
+// Cadence - An extensible Statsd client for Rust!
+//
+// Copyright 2015 TSH Labs
+//
+// Available under the MIT license. See LICENSE for details.
+//
+
 use std::net::{
     ToSocketAddrs,
     UdpSocket
