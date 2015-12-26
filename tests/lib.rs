@@ -1,7 +1,3 @@
-//!
-//!
-//!
-
 extern crate cadence;
 
 use std::thread;
