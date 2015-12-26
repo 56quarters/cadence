@@ -21,7 +21,7 @@ pub trait ToMetricString {
 /// Counters are simple values incremented or decremented by a client.
 ///
 /// See the `Counted` trait for more information.
-#[derive(PartialEq, Eq, Debug)]
+#[derive(PartialEq, Eq, Debug, Hash)]
 pub struct Counter {
     key: String,
     count: i64
@@ -45,7 +45,7 @@ impl ToMetricString for Counter {
 /// Timers are a positive number of milliseconds between a start and end point.
 ///
 /// See the `Timed` trait for more information.
-#[derive(PartialEq, Eq, Debug)]
+#[derive(PartialEq, Eq, Debug, Hash)]
 pub struct Timer {
     key: String,
     time: u64
@@ -69,7 +69,7 @@ impl ToMetricString for Timer {
 /// Gauges are an instantaneous value determined by the client.
 ///
 /// See the `Gauged` trait for more information.
-#[derive(PartialEq, Eq, Debug)]
+#[derive(PartialEq, Eq, Debug, Hash)]
 pub struct Gauge {
     key: String,
     value: u64
@@ -93,7 +93,7 @@ impl ToMetricString for Gauge {
 /// Meters measure the rate at which events occur as determined by the server.
 ///
 /// See the `Metered` trait for more information.
-#[derive(PartialEq, Eq, Debug)]
+#[derive(PartialEq, Eq, Debug, Hash)]
 pub struct Meter {
     key: String,
     value: u64
