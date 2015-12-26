@@ -39,7 +39,7 @@ impl UdpMetricSink {
     ///
     /// # Example
     ///
-    /// ```
+    /// ```no_run
     /// use std::net::UdpSocket;
     /// use cadence::{UdpMetricSink, DEFAULT_PORT};
     ///

@@ -129,7 +129,7 @@ impl<T: MetricSink> StatsdClient<T> {
     ///
     /// # Example
     ///
-    /// ```
+    /// ```no_run
     /// use cadence::{StatsdClient, UdpMetricSink};
     ///
     /// let prefix = "my.stats";
