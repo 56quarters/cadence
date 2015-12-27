@@ -1,6 +1,6 @@
 # Changelog
 
-## [v0.2.1](https://github.com/tshlabs/cadence/tree/master) - ????-??-??
+## [v0.2.1](https://github.com/tshlabs/cadence/tree/master) - 2015-12-27
 * Change Cadence from MIT license to Apache-2.0 for better compatibility with
   BSD and GPLv3 licensed code.
 
