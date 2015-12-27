@@ -1,0 +1,7 @@
+cargo clean
+git tag -l
+git tag 0.1.0
+cargo package
+cargo publish
+git push --tags origin
+git push --tags github
