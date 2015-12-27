@@ -36,7 +36,6 @@
 cargo clean
 cargo doc --no-deps
 
-rm -rf target/uploads
 mkdir target/uploads
 cd target/uploads
 git init
