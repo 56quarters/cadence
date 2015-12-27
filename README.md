@@ -172,7 +172,7 @@ fn main() {
 
 ## Documentation
 
-Comming soon!
+The documentation is available at https://tshlabs.github.io/cadence/
 
 ## Source
 
