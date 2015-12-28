@@ -25,7 +25,8 @@
 //!
 //! ## Install
 //!
-//! To make use of Cadence in your project, add it as a dependency.
+//! To make use of Cadence in your project, add it as a dependency in your `Cargo.toml`
+//! file.
 //!
 //! ``` toml
 //! [dependencies]
