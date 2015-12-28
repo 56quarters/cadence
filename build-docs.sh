@@ -11,8 +11,7 @@ mkdir target/uploads
 cd target/uploads
 git init
 
-# Add a CNAME, generated docs, and a redirect page to our new repo
-echo 'cadence.tshlabs.org' > CNAME
+# Add generated docs and a redirect page to our new repo
 cp -R ../doc/* .
 cat <<EOF > index.html
 <!doctype html>
