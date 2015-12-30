@@ -199,10 +199,16 @@ To run tests:
 $ cargo test
 ```
 
-or
+or:
 
 ```
 $ cargo test -- --ignored
+```
+
+To run benchmarks:
+
+```
+$ cargo bench
 ```
 
 To build documentation:
