@@ -182,3 +182,31 @@ The source code is available on GitHub at https://github.com/tshlabs/cadence
 ## Changes
 
 Release notes for Cadence can be found in the [CHANGES.md](CHANGES.md) file.
+
+## Development
+
+Cadence uses Cargo for performing various development tasks.
+
+To build Cadence:
+
+``` bash
+cargo build
+```
+
+To run tests:
+
+``` bash
+cargo test
+```
+
+or
+
+``` bash
+cargo test -- --ignored
+```
+
+To build documentation:
+
+``` bash
+cargo doc
+```
