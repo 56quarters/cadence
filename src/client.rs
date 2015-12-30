@@ -251,19 +251,8 @@ impl KeyGenerator {
 
 #[cfg(test)]
 mod tests {
-    use test::Bencher;
-
     use super::{
-        KeyGenerator,
-        StatsdClient,
-        Counted,
-        Timed,
-        Gauged,
-        Metered
-    };
-
-    use sinks::{
-        NopMetricSink
+        KeyGenerator
     };
 
     #[test]
@@ -276,31 +265,5 @@ mod tests {
     fn test_key_generator_make_key_no_trailing_dot_prefix() {
         let key_gen = KeyGenerator::new("some.prefix");
         assert_eq!("some.prefix.a.metric", key_gen.make_key("a.metric"));
-    }
-
-    // Benchmarks!
-
-    #[bench]
-    fn test_benchmark_statsdclient_counter(b: &mut Bencher) {
-        let client = StatsdClient::from_sink("test.bench", NopMetricSink);
-        b.iter(|| client.count("some.counter", 4));
-    }
-
-    #[bench]
-    fn test_benchmark_statsdclient_timer(b: &mut Bencher) {
-        let client = StatsdClient::from_sink("test.bench", NopMetricSink);
-        b.iter(|| client.time("some.timer", 4));
-    }
-
-    #[bench]
-    fn test_benchmark_statsdclient_gauge(b: &mut Bencher) {
-        let client = StatsdClient::from_sink("test.bench", NopMetricSink);
-        b.iter(|| client.gauge("some.gauge", 4));
-    }
-
-    #[bench]
-    fn test_benchmark_statsdclient_meter(b: &mut Bencher) {
-        let client = StatsdClient::from_sink("test.bench", NopMetricSink);
-        b.iter(|| client.meter("some.meter", 4));
     }
 }
