@@ -189,24 +189,24 @@ Cadence uses Cargo for performing various development tasks.
 
 To build Cadence:
 
-``` bash
-cargo build
+```
+$ cargo build
 ```
 
 To run tests:
 
-``` bash
-cargo test
+```
+$ cargo test
 ```
 
 or
 
-``` bash
-cargo test -- --ignored
+```
+$ cargo test -- --ignored
 ```
 
 To build documentation:
 
-``` bash
-cargo doc
+```
+$ cargo doc
 ```
