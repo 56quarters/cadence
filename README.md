@@ -105,7 +105,7 @@ impl<T: Counted> MyUserDao<T> {
     }
 
     /// Get a new user by their ID
-    pub fn getUserById(&self, id: u64) -> Option<User> {
+    pub fn get_user_by_id(&self, id: u64) -> Option<User> {
         self.counter.incr("getUserById");
         None
     }
@@ -121,7 +121,7 @@ fn main() {
     let dao = MyUserDao::new(counter);
 
     // Try to lookup a user by ID!
-    match dao.getUserById(123) {
+    match dao.get_user_by_id(123) {
         Some(u) => println!("Found a user!"),
         None => println!("No user!")
     };
