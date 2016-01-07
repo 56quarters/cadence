@@ -67,19 +67,22 @@
 //!     DEFAULT_PORT
 //! };
 //!
-//! // Create client that will write to the given host over UDP.
-//! //
-//! // Note that you'll probably want to actually handle any errors creating the client
-//! // when you use it for real in your application. We're just using .unwrap() here
-//! // since this is an example!
-//! let host = ("metrics.example.com", DEFAULT_PORT);
-//! let client = StatsdClient::<UdpMetricSink>::from_udp_host("my.metrics", host).unwrap();
+//! fn main() {
+//!     // Create client that will write to the given host over UDP.
+//!     //
+//!     // Note that you'll probably want to actually handle any errors creating the client
+//!     // when you use it for real in your application. We're just using .unwrap() here
+//!     // since this is an example!
+//!     let host = ("metrics.example.com", DEFAULT_PORT);
+//!     let client = StatsdClient::<UdpMetricSink>::from_udp_host(
+//!         "my.metrics", host).unwrap();
 //!
-//! // Emit metrics!
-//! client.incr("some.counter");
-//! client.time("some.methodCall", 42);
-//! client.gauge("some.thing", 7);
-//! client.meter("some.value", 5);
+//!     // Emit metrics!
+//!     client.incr("some.counter");
+//!     client.time("some.methodCall", 42);
+//!     client.gauge("some.thing", 7);
+//!     client.meter("some.value", 5);
+//! }
 //! ```
 //!
 //! ### Counted, Timed, Gauged, and Metered Traits
@@ -110,6 +113,7 @@
 //!     counter: T
 //! }
 //!
+//!
 //! impl<T: Counted> MyUserDao<T> {
 //!     // Create a new instance that will use the counter / client
 //!     pub fn new(counter: T) -> MyUserDao<T> {
@@ -122,6 +126,7 @@
 //!         None
 //!     }
 //! }
+//!
 //!
 //! fn main() {
 //!     // Create a new Statsd client that writes to "metrics.example.com"
@@ -166,12 +171,14 @@
 //!
 //! pub struct MyMetricSink;
 //!
+//!
 //! impl MetricSink for MyMetricSink {
 //!     fn emit(&self, metric: &str) -> io::Result<usize> {
 //!         // Your custom metric sink implementation goes here!
 //!         Ok(0)
 //!     }
 //! }
+//!
 //!
 //! fn main() {
 //!     let sink = MyMetricSink;
