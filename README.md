@@ -55,6 +55,7 @@ use cadence::{
     DEFAULT_PORT
 };
 
+
 fn main() {
     // Create client that will write to the given host over UDP.
     //
@@ -88,11 +89,13 @@ use cadence::{
     DEFAULT_PORT
 };
 
+
 pub struct User {
     id: u64,
     username: String,
     email: String
 }
+
 
 // Here's a simple DAO (Data Access Object) that doesn't do anything but
 // uses a counter to keep track of the number of times the 'getUserById'
@@ -100,6 +103,7 @@ pub struct User {
 pub struct MyUserDao<T: Counted> {
     counter: T
 }
+
 
 impl<T: Counted> MyUserDao<T> {
     // Create a new instance that will use the counter / client
@@ -113,6 +117,7 @@ impl<T: Counted> MyUserDao<T> {
         None
     }
 }
+
 
 fn main() {
     // Create a new Statsd client that writes to "metrics.example.com"
@@ -129,7 +134,6 @@ fn main() {
         None => println!("No user!")
     };
 }
-
 ```
 
 ### Custom Metric Sinks
@@ -157,12 +161,14 @@ use cadence::{
 
 pub struct MyMetricSink;
 
+
 impl MetricSink for MyMetricSink {
     fn emit(&self, metric: &str) -> io::Result<usize> {
         // Your custom metric sink implementation goes here!
         Ok(0)
     }
 }
+
 
 fn main() {
     let sink = MyMetricSink;

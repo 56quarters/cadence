@@ -67,6 +67,7 @@
 //!     DEFAULT_PORT
 //! };
 //!
+//!
 //! fn main() {
 //!     // Create client that will write to the given host over UDP.
 //!     //
@@ -100,11 +101,13 @@
 //!     DEFAULT_PORT
 //! };
 //!
+//!
 //! pub struct User {
 //!     id: u64,
 //!     username: String,
 //!     email: String
 //! }
+//!
 //!
 //! // Here's a simple DAO (Data Access Object) that doesn't do anything but
 //! // uses a counter to keep track of the number of times the 'getUserById'
@@ -143,7 +146,6 @@
 //!         None => println!("No user!")
 //!     };
 //! }
-//!
 //! ```
 //!
 //! ### Custom Metric Sinks
