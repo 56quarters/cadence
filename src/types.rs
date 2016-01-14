@@ -125,7 +125,7 @@ impl ToMetricString for Meter {
 
 
 /// Potential categories an error from this library falls into.
-#[derive(Debug, PartialEq, Eq, Clone, Copy)]
+#[derive(PartialEq, Eq, Debug, Hash, Clone, Copy)]
 pub enum ErrorKind {
     InvalidInput,
     IoError,
