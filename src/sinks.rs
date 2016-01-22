@@ -126,8 +126,8 @@ impl MetricSink for ConsoleMetricSink {
 /// Implementation of a `MetricSink` that emits metrics using the`log!` macro.
 ///
 /// Metrics are emitted using the `LogLevel` provided at construction with a target
-/// of `metrics`. Note that the number of bytes written returned by `emit` does not
-/// reflect if the provided log level is high enough to be active.
+/// of `cadence::metrics`. Note that the number of bytes written returned by `emit`
+/// does not reflect if the provided log level is high enough to be active.
 pub struct LoggingMetricSink {
     level: LogLevel
 }
@@ -142,7 +142,7 @@ impl LoggingMetricSink {
 
 impl MetricSink for LoggingMetricSink {
     fn emit(&self, metric: &str) -> io::Result<usize> {
-        log!(target: "metrics", self.level, "{}", metric);
+        log!(target: "cadence::metrics", self.level, "{}", metric);
         Ok(metric.len())
     }
 }

@@ -1,6 +1,7 @@
 # Changelog
 
-## [v0.2.2](https://github.com/tshlabs/cadence/tree/master) - ????-??-??
+## [v0.3.0](https://github.com/tshlabs/cadence/tree/master) - ????-??-??
+* Change `LoggingMetricSink` log target to `cadence::metrics`.
 * Minor documentation improvements.
 * Add benchmarks to test suite.
 
