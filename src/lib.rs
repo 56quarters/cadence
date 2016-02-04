@@ -17,6 +17,23 @@
 
 //! An extensible Statsd client for Rust!
 //!
+//! [Statsd](https://github.com/etsy/statsd) is a network server that listens for
+//! metrics (things like counters and timers) sent over UDP and sends aggregates of
+//! these metrics to a backend service of some kind (often
+//! [Graphite](http://graphite.readthedocs.org/)).
+//!
+//! Cadence is a client written in Rust for interacting with a Statsd server. You
+//! might want to emit metrics (using Cadence, sending them to a Statsd server) in
+//! your Rust server application.
+//!
+//! For example, if you are running a Rust web service you might want to record:
+//!
+//! * Number of succesful requests
+//! * Number of error requests
+//! * Time taken for each request
+//!
+//! Cadence is a flexible and easy way to do this!
+//!
 //! ## Features
 //!
 //! * Support for emitting counters, timers, gauges, and meters to Statsd over UDP.
