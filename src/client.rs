@@ -142,7 +142,7 @@ impl<T: MetricSink> StatsdClient<T> {
     /// the contruction method that most users of this library will use.
     ///
     /// **Note** that you must include a type parameter when you call this
-    /// method to help the compiler determine the type of `T`.
+    /// method to help the compiler determine the type of `T` (the sink).
     ///
     /// # Example
     ///
