@@ -4,6 +4,7 @@
 * Change `LoggingMetricSink` log target to `cadence::metrics`.
 * Minor documentation improvements. Fixes [#1](https://github.com/tshlabs/cadence/issues/1).
 * Add benchmarks to test suite.
+* Reduce heap allocations when emitting metrics. Fixes [#3](https://github.com/tshlabs/cadence/issues/3).
 
 ## [v0.2.1](https://github.com/tshlabs/cadence/tree/0.2.1) - 2015-12-27
 * Change Cadence from MIT license to Apache-2.0 for better compatibility with

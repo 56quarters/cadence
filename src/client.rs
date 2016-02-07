@@ -115,7 +115,7 @@ pub trait Metered {
 /// The client uses some implementation of a `MetricSink` to emit the metrics.
 /// In most cases, users will want to use the `UdpMetricSink` implementation.
 pub struct StatsdClient<T: MetricSink> {
-    key_gen: KeyGenerator,
+    prefix: String,
     sink: T
 }
 
@@ -134,7 +134,7 @@ impl<T: MetricSink> StatsdClient<T> {
     /// let client = StatsdClient::from_sink(prefix, NopMetricSink);
     /// ```
     pub fn from_sink(prefix: &str, sink: T) -> StatsdClient<T> {
-        StatsdClient{key_gen: KeyGenerator::new(prefix), sink: sink}
+        StatsdClient{prefix: trim_key(prefix).to_string(), sink: sink}
     }
 
     /// Create a new client instance that will use the given prefix to send
@@ -174,11 +174,11 @@ impl<T: MetricSink> StatsdClient<T> {
     // it as UTF-8 bytes to the metric sink. Convert any I/O errors from the
     // sink to MetricResults with the metric itself as a payload for success
     // responses.
-    fn send_metric<M: ToMetricString>(&self, metric: M) -> MetricResult<M> {
+    fn send_metric<M: ToMetricString>(&self, metric: &M) -> MetricResult<()> {
         let metric_string = metric.to_metric_string();
-        let written = try!(self.sink.emit(&metric_string));
+        let written = try!(self.sink.emit(metric_string));
         debug!("Wrote {} ({} bytes)", metric_string, written);
-        Ok(metric)
+        Ok(())
     }
 }
 
@@ -193,24 +193,27 @@ impl<T: MetricSink> Counted for StatsdClient<T> {
     }
 
     fn count(&self, key: &str, count: i64) -> MetricResult<Counter> {
-        let counter = Counter::new(self.key_gen.make_key(key), count);
-        self.send_metric(counter)
+        let counter = Counter::new(&self.prefix, key, count);
+        try!(self.send_metric(&counter));
+        Ok(counter)
     }
 }
 
 
 impl<T: MetricSink> Timed for StatsdClient<T> {
     fn time(&self, key: &str, time: u64) -> MetricResult<Timer> {
-        let timer = Timer::new(self.key_gen.make_key(key), time);
-        self.send_metric(timer)
+        let timer = Timer::new(&self.prefix, key, time);
+        try!(self.send_metric(&timer));
+        Ok(timer)
     }
 }
 
 
 impl<T: MetricSink> Gauged for StatsdClient<T> {
     fn gauge(&self, key: &str, value: u64) -> MetricResult<Gauge> {
-        let gauge = Gauge::new(self.key_gen.make_key(key), value);
-        self.send_metric(gauge)
+        let gauge = Gauge::new(&self.prefix, key, value);
+        try!(self.send_metric(&gauge));
+        Ok(gauge)
     }
 }
 
@@ -221,49 +224,33 @@ impl<T: MetricSink> Metered for StatsdClient<T> {
     }
 
     fn meter(&self, key: &str, value: u64) -> MetricResult<Meter> {
-        let meter = Meter::new(self.key_gen.make_key(key), value);
-        self.send_metric(meter)
+        let meter = Meter::new(&self.prefix, key, value);
+        try!(self.send_metric(&meter));
+        Ok(meter)
     }
 }
 
 
-struct KeyGenerator {
-    prefix: String
-}
-
-
-impl KeyGenerator {
-    fn new(prefix: &str) -> KeyGenerator {
-        let trimmed = if prefix.ends_with('.') {
-            prefix.trim_right_matches('.')
-        } else {
-            prefix
-        };
-
-        KeyGenerator{prefix: trimmed.to_string()}
-    }
-
-    fn make_key(&self, key: &str) -> String {
-        format!("{}.{}", &self.prefix, key)
+fn trim_key(val: &str) -> &str {
+    if val.ends_with('.') {
+        val.trim_right_matches('.')
+    } else {
+        val
     }
 }
 
 
 #[cfg(test)]
 mod tests {
-    use super::{
-        KeyGenerator
-    };
+    use super::trim_key;
 
     #[test]
-    fn test_key_generator_make_key_with_trailing_dot_prefix() {
-        let key_gen = KeyGenerator::new("some.prefix.");
-        assert_eq!("some.prefix.a.metric", key_gen.make_key("a.metric"));
+    fn test_trim_key_with_trailing_dot() {
+        assert_eq!("some.prefix", trim_key("some.prefix."));
     }
 
     #[test]
-    fn test_key_generator_make_key_no_trailing_dot_prefix() {
-        let key_gen = KeyGenerator::new("some.prefix");
-        assert_eq!("some.prefix.a.metric", key_gen.make_key("a.metric"));
+    fn test_trim_key_no_trailing_dot() {
+        assert_eq!("some.prefix", trim_key("some.prefix"));
     }
 }

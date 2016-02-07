@@ -25,7 +25,7 @@ use std::io;
 /// Implementing metrics know how to turn themselves into one of the supported
 /// types of metrics as defined in the [Statsd spec](https://github.com/b/statsd_spec).
 pub trait ToMetricString {
-    fn to_metric_string(&self) -> String;
+    fn to_metric_string(&self) -> &str;
 }
 
 /// Counters are simple values incremented or decremented by a client.
@@ -33,21 +33,20 @@ pub trait ToMetricString {
 /// See the `Counted` trait for more information.
 #[derive(PartialEq, Eq, Debug, Hash)]
 pub struct Counter {
-    key: String,
-    count: i64
+    repr: String
 }
 
 
 impl Counter {
-    pub fn new<S: Into<String>>(key: S, count: i64) -> Counter {
-        Counter{key: key.into(), count: count}
+    pub fn new(prefix: &str, key: &str, count: i64) -> Counter {
+        Counter{repr: format!("{}.{}:{}|c", prefix, key, count)}
     }
 }
 
 
 impl ToMetricString for Counter {
-    fn to_metric_string(&self) -> String {
-        format!("{}:{}|c", self.key, self.count)
+    fn to_metric_string(&self) -> &str {
+        &self.repr
     }
 }
 
@@ -57,21 +56,20 @@ impl ToMetricString for Counter {
 /// See the `Timed` trait for more information.
 #[derive(PartialEq, Eq, Debug, Hash)]
 pub struct Timer {
-    key: String,
-    time: u64
+    repr: String
 }
 
 
 impl Timer {
-    pub fn new<S: Into<String>>(key: S, time: u64) -> Timer {
-        Timer{key: key.into(), time: time}
+    pub fn new(prefix: &str, key: &str, time: u64) -> Timer {
+        Timer{repr: format!("{}.{}:{}|ms", prefix, key, time)}
     }
 }
 
 
 impl ToMetricString for Timer {
-    fn to_metric_string(&self) -> String {
-        format!("{}:{}|ms", self.key, self.time)
+    fn to_metric_string(&self) -> &str {
+        &self.repr
     }
 }
 
@@ -81,21 +79,20 @@ impl ToMetricString for Timer {
 /// See the `Gauged` trait for more information.
 #[derive(PartialEq, Eq, Debug, Hash)]
 pub struct Gauge {
-    key: String,
-    value: u64
+    repr: String
 }
 
 
 impl Gauge {
-    pub fn new<S: Into<String>>(key: S, value: u64) -> Gauge {
-        Gauge{key: key.into(), value: value}
+    pub fn new(prefix: &str, key: &str, value: u64) -> Gauge {
+        Gauge{repr: format!("{}.{}:{}|g", prefix, key, value)}
     }
 }
 
 
 impl ToMetricString for Gauge {
-    fn to_metric_string(&self) -> String {
-        format!("{}:{}|g", self.key, self.value)
+    fn to_metric_string(&self) -> &str {
+        &self.repr
     }
 }
 
@@ -105,21 +102,20 @@ impl ToMetricString for Gauge {
 /// See the `Metered` trait for more information.
 #[derive(PartialEq, Eq, Debug, Hash)]
 pub struct Meter {
-    key: String,
-    value: u64
+    repr: String
 }
 
 
 impl Meter {
-    pub fn new<S: Into<String>>(key: S, value: u64) -> Meter {
-        Meter{key: key.into(), value: value}
+    pub fn new(prefix: &str, key: &str, value: u64) -> Meter {
+        Meter{repr: format!("{}.{}:{}|m", prefix, key, value)}
     }
 }
 
 
 impl ToMetricString for Meter {
-    fn to_metric_string(&self) -> String {
-        format!("{}:{}|m", self.key, self.value)
+    fn to_metric_string(&self) -> &str {
+        &self.repr
     }
 }
 
@@ -215,25 +211,25 @@ mod tests {
 
     #[test]
     fn test_counter_to_metric_string() {
-        let counter = Counter::new("test.counter", 4);
-        assert_eq!("test.counter:4|c".to_string(), counter.to_metric_string());
+        let counter = Counter::new("my.app", "test.counter", 4);
+        assert_eq!("my.app.test.counter:4|c", counter.to_metric_string());
     }
 
     #[test]
     fn test_timer_to_metric_string() {
-        let timer = Timer::new("test.timer", 34);
-        assert_eq!("test.timer:34|ms".to_string(), timer.to_metric_string());
+        let timer = Timer::new("my.app", "test.timer", 34);
+        assert_eq!("my.app.test.timer:34|ms", timer.to_metric_string());
     }
 
     #[test]
     fn test_gauge_to_metric_string() {
-        let gauge = Gauge::new("test.gauge", 2);
-        assert_eq!("test.gauge:2|g".to_string(), gauge.to_metric_string());
+        let gauge = Gauge::new("my.app", "test.gauge", 2);
+        assert_eq!("my.app.test.gauge:2|g", gauge.to_metric_string());
     }
 
     #[test]
     fn test_meter_to_metric_string() {
-        let meter = Meter::new("test.meter", 5);
-        assert_eq!("test.meter:5|m".to_string(), meter.to_metric_string());
+        let meter = Meter::new("my.app", "test.meter", 5);
+        assert_eq!("my.app.test.meter:5|m", meter.to_metric_string());
     }
 }

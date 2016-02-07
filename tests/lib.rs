@@ -34,7 +34,7 @@ fn new_udp_client(prefix: &str) -> StatsdClient<UdpMetricSink> {
 #[test]
 fn test_statsd_client_incr() {
     let client = new_nop_client("client.test");
-    let expected = Counter::new("client.test.counter.key", 1);
+    let expected = Counter::new("client.test", "counter.key", 1);
     assert_eq!(expected, client.incr("counter.key").unwrap());
 }
 
@@ -42,7 +42,7 @@ fn test_statsd_client_incr() {
 #[test]
 fn test_statsd_client_decr() {
     let client = new_nop_client("client.test");
-    let expected = Counter::new("client.test.counter.key", -1);
+    let expected = Counter::new("client.test", "counter.key", -1);
     assert_eq!(expected, client.decr("counter.key").unwrap());
 }
 
@@ -50,7 +50,7 @@ fn test_statsd_client_decr() {
 #[test]
 fn test_statsd_client_count() {
     let client = new_nop_client("client.test");
-    let expected = Counter::new("client.test.counter.key", 42);
+    let expected = Counter::new("client.test", "counter.key", 42);
     assert_eq!(expected, client.count("counter.key", 42).unwrap());
 }
 
@@ -58,7 +58,7 @@ fn test_statsd_client_count() {
 #[test]
 fn test_statsd_client_time() {
     let client = new_nop_client("client.test");
-    let expected = Timer::new("client.test.timer.key", 25);
+    let expected = Timer::new("client.test", "timer.key", 25);
     assert_eq!(expected, client.time("timer.key", 25).unwrap());
 }
 
@@ -66,7 +66,7 @@ fn test_statsd_client_time() {
 #[test]
 fn test_statsd_client_gauge() {
     let client = new_nop_client("client.test");
-    let expected = Gauge::new("client.test.gauge.key", 5);
+    let expected = Gauge::new("client.test", "gauge.key", 5);
     assert_eq!(expected, client.gauge("gauge.key", 5).unwrap());
 }
 
@@ -74,7 +74,7 @@ fn test_statsd_client_gauge() {
 #[test]
 fn test_statsd_client_mark() {
     let client = new_nop_client("client.test");
-    let expected = Meter::new("client.test.meter.key", 1);
+    let expected = Meter::new("client.test", "meter.key", 1);
     assert_eq!(expected, client.mark("meter.key").unwrap());
 }
 
@@ -82,7 +82,7 @@ fn test_statsd_client_mark() {
 #[test]
 fn test_statsd_client_meter() {
     let client = new_nop_client("client.test");
-    let expected = Meter::new("client.test.meter.key", 7);
+    let expected = Meter::new("client.test", "meter.key", 7);
     assert_eq!(expected, client.meter("meter.key", 7).unwrap());
 }
 
