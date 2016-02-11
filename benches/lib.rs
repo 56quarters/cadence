@@ -10,6 +10,10 @@ use cadence::{
     Timed,
     Gauged,
     Metered,
+    Counter,
+    Timer,
+    Gauge,
+    Meter,
     NopMetricSink
 };
 
@@ -65,4 +69,37 @@ fn test_benchmark_statsdclient_meter(b: &mut Bencher) {
 fn test_benchmark_statsdclient_mark(b: &mut Bencher) {
     let client = new_nop_client();
     b.iter(|| client.mark("some.meter.mark"));
+}
+
+#[bench]
+fn test_benchmark_new_counter_obj(b: &mut Bencher) {
+    b.iter(|| {
+        Counter::new("prefix", "some.counter", 5);
+    });
+}
+
+#[bench]
+fn test_benchmark_new_timer_obj(b: &mut Bencher) {
+    b.iter(|| {
+        Timer::new("prefix", "some.timer", 5);
+    });
+
+}
+
+
+#[bench]
+fn test_benchmark_new_gauge_obj(b: &mut Bencher) {
+    b.iter(|| {
+        Gauge::new("prefix", "some.gauge", 5);
+    });
+
+}
+
+
+#[bench]
+fn test_benchmark_new_meter_obj(b: &mut Bencher) {
+    b.iter(|| {
+        Meter::new("prefix", "some.meter", 5);
+    });
+
 }
