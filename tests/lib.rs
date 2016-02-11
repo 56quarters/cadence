@@ -104,7 +104,7 @@ fn test_statsd_client_udp_sink_single_threaded() {
 
 
 const NUM_THREADS: u64 = 100;
-const NUM_ITERATIONS: u64 = 10_000;
+const NUM_ITERATIONS: u64 = 1_000;
 
 
 #[ignore]
@@ -133,6 +133,8 @@ fn run_threaded_test<T>(client: StatsdClient<T>, num_threads: u64, iterations: u
         thread::spawn(move || {
             for i in 0..iterations {
                 local_client.count("some.metric", i as i64).unwrap();
+                local_client.time("some.method.call", i).unwrap();
+                local_client.gauge("some.gauge", i).unwrap();
             }
         })
     }).collect();
