@@ -31,7 +31,7 @@ use types::{
     Timer,
     Gauge,
     Meter,
-    ToMetricString
+    AsMetricStr
 };
 
 
@@ -174,8 +174,8 @@ impl<T: MetricSink> StatsdClient<T> {
     // it as UTF-8 bytes to the metric sink. Convert any I/O errors from the
     // sink to MetricResults with the metric itself as a payload for success
     // responses.
-    fn send_metric<M: ToMetricString>(&self, metric: &M) -> MetricResult<()> {
-        let metric_string = metric.to_metric_string();
+    fn send_metric<M: AsMetricStr>(&self, metric: &M) -> MetricResult<()> {
+        let metric_string = metric.as_metric_str();
         let written = try!(self.sink.emit(metric_string));
         debug!("Wrote {} ({} bytes)", metric_string, written);
         Ok(())

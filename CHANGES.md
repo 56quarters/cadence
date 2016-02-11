@@ -1,5 +1,9 @@
 # Changelog
 
+## [v0.4.0](https://github.com/tshlabs/cadence/tree/master) - ????-??-??
+* Change name of method for getting metric `&str` representation. The old name
+  implied that the instance was consumed which it was not.
+
 ## [v0.3.0](https://github.com/tshlabs/cadence/tree/0.3.0) - 2016-02-07
 * Change `LoggingMetricSink` log target to `cadence::metrics`.
 * Minor documentation improvements. Fixes [#1](https://github.com/tshlabs/cadence/issues/1).
