@@ -17,16 +17,9 @@
 
 use log::LogLevel;
 use std::io;
-use std::net::{
-    ToSocketAddrs,
-    SocketAddr,
-    UdpSocket
-};
+use std::net::{ToSocketAddrs, SocketAddr, UdpSocket};
 
-use types::{
-    MetricResult,
-    ErrorKind
-};
+use types::{MetricResult, ErrorKind};
 
 /// Trait for various backends that send Statsd metrics somewhere.
 pub trait MetricSink {
@@ -43,7 +36,7 @@ pub trait MetricSink {
 /// and the address of the Statsd server to send packets to.
 pub struct UdpMetricSink {
     sink_addr: SocketAddr,
-    socket: UdpSocket
+    socket: UdpSocket,
 }
 
 
@@ -72,18 +65,20 @@ impl UdpMetricSink {
     /// * It is unable to resolve the hostname of the metric server.
     /// * The host address is otherwise unable to be parsed
     pub fn new<A>(sink_addr: A, socket: UdpSocket) -> MetricResult<UdpMetricSink>
-        where A: ToSocketAddrs {
+        where A: ToSocketAddrs
+    {
         // Allow callers to pass anything that implements ToSocketAddrs for
         // convenience but convert it to a concrete address here so that we
         // don't have to pass around the generic parameter everywhere that
         // this sink goes.
         let mut addr_iter = try!(sink_addr.to_socket_addrs());
         let addr = try!(addr_iter.next().ok_or(
-            // Tuple that MetricError knows how to be created From
-            (ErrorKind::InvalidInput, "No socket addresses yielded")
-        ));
+            (ErrorKind::InvalidInput, "No socket addresses yielded")));
 
-        Ok(UdpMetricSink{sink_addr: addr, socket: socket})
+        Ok(UdpMetricSink {
+            sink_addr: addr,
+            socket: socket,
+        })
     }
 }
 
@@ -129,13 +124,13 @@ impl MetricSink for ConsoleMetricSink {
 /// of `cadence::metrics`. Note that the number of bytes written returned by `emit`
 /// does not reflect if the provided log level is high enough to be active.
 pub struct LoggingMetricSink {
-    level: LogLevel
+    level: LogLevel,
 }
 
 
 impl LoggingMetricSink {
     pub fn new(level: LogLevel) -> LoggingMetricSink {
-        LoggingMetricSink{level: level}
+        LoggingMetricSink { level: level }
     }
 }
 
@@ -154,13 +149,7 @@ mod tests {
     use log::LogLevel;
     use std::net::UdpSocket;
 
-    use super::{
-        MetricSink,
-        NopMetricSink,
-        ConsoleMetricSink,
-        LoggingMetricSink,
-        UdpMetricSink
-    };
+    use super::{MetricSink, NopMetricSink, ConsoleMetricSink, LoggingMetricSink, UdpMetricSink};
 
     // Basic smoke / sanity checks to make sure we're getting
     // some expected results from the various sinks. The UDP

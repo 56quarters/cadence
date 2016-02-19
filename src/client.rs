@@ -15,24 +15,11 @@
 // limitations under the License.
 
 
-use std::net::{
-    ToSocketAddrs,
-    UdpSocket
-};
+use std::net::{ToSocketAddrs, UdpSocket};
 
-use sinks::{
-    MetricSink,
-    UdpMetricSink
-};
+use sinks::{MetricSink, UdpMetricSink};
 
-use types::{
-    MetricResult,
-    Counter,
-    Timer,
-    Gauge,
-    Meter,
-    AsMetricStr
-};
+use types::{MetricResult, Counter, Timer, Gauge, Meter, AsMetricStr};
 
 
 /// Trait for incrementing and decrementing counters.
@@ -116,12 +103,11 @@ pub trait Metered {
 /// In most cases, users will want to use the `UdpMetricSink` implementation.
 pub struct StatsdClient<T: MetricSink> {
     prefix: String,
-    sink: T
+    sink: T,
 }
 
 
 impl<T: MetricSink> StatsdClient<T> {
-
     /// Create a new client instance that will use the given prefix for
     /// all metrics emitted to the given `MetricSink` implementation.
     ///
@@ -134,7 +120,10 @@ impl<T: MetricSink> StatsdClient<T> {
     /// let client = StatsdClient::from_sink(prefix, NopMetricSink);
     /// ```
     pub fn from_sink(prefix: &str, sink: T) -> StatsdClient<T> {
-        StatsdClient{prefix: trim_key(prefix).to_string(), sink: sink}
+        StatsdClient {
+            prefix: trim_key(prefix).to_string(),
+            sink: sink,
+        }
     }
 
     /// Create a new client instance that will use the given prefix to send
@@ -164,7 +153,8 @@ impl<T: MetricSink> StatsdClient<T> {
     /// * It is unable to resolve the hostname of the metric server.
     /// * The host address is otherwise unable to be parsed.
     pub fn from_udp_host<A>(prefix: &str, host: A) -> MetricResult<StatsdClient<UdpMetricSink>>
-        where A: ToSocketAddrs {
+        where A: ToSocketAddrs
+    {
         let socket = try!(UdpSocket::bind("0.0.0.0:0"));
         let sink = try!(UdpMetricSink::new(host, socket));
         Ok(StatsdClient::from_sink(prefix, sink))

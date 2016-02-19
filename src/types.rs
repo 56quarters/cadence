@@ -33,13 +33,13 @@ pub trait AsMetricStr {
 /// See the `Counted` trait for more information.
 #[derive(PartialEq, Eq, Debug, Hash)]
 pub struct Counter {
-    repr: String
+    repr: String,
 }
 
 
 impl Counter {
     pub fn new(prefix: &str, key: &str, count: i64) -> Counter {
-        Counter{repr: format!("{}.{}:{}|c", prefix, key, count)}
+        Counter { repr: format!("{}.{}:{}|c", prefix, key, count) }
     }
 }
 
@@ -56,13 +56,13 @@ impl AsMetricStr for Counter {
 /// See the `Timed` trait for more information.
 #[derive(PartialEq, Eq, Debug, Hash)]
 pub struct Timer {
-    repr: String
+    repr: String,
 }
 
 
 impl Timer {
     pub fn new(prefix: &str, key: &str, time: u64) -> Timer {
-        Timer{repr: format!("{}.{}:{}|ms", prefix, key, time)}
+        Timer { repr: format!("{}.{}:{}|ms", prefix, key, time) }
     }
 }
 
@@ -79,13 +79,13 @@ impl AsMetricStr for Timer {
 /// See the `Gauged` trait for more information.
 #[derive(PartialEq, Eq, Debug, Hash)]
 pub struct Gauge {
-    repr: String
+    repr: String,
 }
 
 
 impl Gauge {
     pub fn new(prefix: &str, key: &str, value: u64) -> Gauge {
-        Gauge{repr: format!("{}.{}:{}|g", prefix, key, value)}
+        Gauge { repr: format!("{}.{}:{}|g", prefix, key, value) }
     }
 }
 
@@ -102,13 +102,13 @@ impl AsMetricStr for Gauge {
 /// See the `Metered` trait for more information.
 #[derive(PartialEq, Eq, Debug, Hash)]
 pub struct Meter {
-    repr: String
+    repr: String,
 }
 
 
 impl Meter {
     pub fn new(prefix: &str, key: &str, value: u64) -> Meter {
-        Meter{repr: format!("{}.{}:{}|m", prefix, key, value)}
+        Meter { repr: format!("{}.{}:{}|m", prefix, key, value) }
     }
 }
 
@@ -132,14 +132,14 @@ pub enum ErrorKind {
 /// type of error (exposed via the `Error` trait).
 #[derive(Debug)]
 pub struct MetricError {
-    repr: ErrorRepr
+    repr: ErrorRepr,
 }
 
 
 #[derive(Debug)]
 enum ErrorRepr {
     WithDescription(ErrorKind, &'static str),
-    IoError(io::Error)
+    IoError(io::Error),
 }
 
 
@@ -148,7 +148,7 @@ impl MetricError {
     pub fn kind(&self) -> ErrorKind {
         match self.repr {
             ErrorRepr::IoError(_) => ErrorKind::IoError,
-            ErrorRepr::WithDescription(kind, _) => kind
+            ErrorRepr::WithDescription(kind, _) => kind,
         }
     }
 }
@@ -158,7 +158,7 @@ impl fmt::Display for MetricError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self.repr {
             ErrorRepr::IoError(ref err) => err.fmt(f),
-            ErrorRepr::WithDescription(_, desc) => desc.fmt(f)
+            ErrorRepr::WithDescription(_, desc) => desc.fmt(f),
         }
     }
 }
@@ -168,14 +168,14 @@ impl error::Error for MetricError {
     fn description(&self) -> &str {
         match self.repr {
             ErrorRepr::IoError(ref err) => err.description(),
-            ErrorRepr::WithDescription(_, desc) => desc
+            ErrorRepr::WithDescription(_, desc) => desc,
         }
     }
 
     fn cause(&self) -> Option<&error::Error> {
         match self.repr {
             ErrorRepr::IoError(ref err) => Some(err),
-            _ => None
+            _ => None,
         }
     }
 }
@@ -183,14 +183,14 @@ impl error::Error for MetricError {
 
 impl From<io::Error> for MetricError {
     fn from(err: io::Error) -> MetricError {
-        MetricError{repr: ErrorRepr::IoError(err)}
+        MetricError { repr: ErrorRepr::IoError(err) }
     }
 }
 
 
 impl From<(ErrorKind, &'static str)> for MetricError {
     fn from((kind, desc): (ErrorKind, &'static str)) -> MetricError {
-        MetricError{repr: ErrorRepr::WithDescription(kind, desc)}
+        MetricError { repr: ErrorRepr::WithDescription(kind, desc) }
     }
 }
 
@@ -201,13 +201,7 @@ pub type MetricResult<T> = Result<T, MetricError>;
 #[cfg(test)]
 mod tests {
 
-    use super::{
-        Counter,
-        Timer,
-        Gauge,
-        Meter,
-        AsMetricStr
-    };
+    use super::{Counter, Timer, Gauge, Meter, AsMetricStr};
 
     #[test]
     fn test_counter_to_metric_string() {
