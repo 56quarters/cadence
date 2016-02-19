@@ -57,21 +57,10 @@ Simple usage of Cadence is shown below. In this example, we just import the clie
 create an instance that will write to some imaginary metrics server, and send a few
 metrics.
 
-``` rust
+``` rust,no_run
 // Import the client.
-//
-// Note that we're also importing each of the traits that the client uses to emit
-// metircs (Counted, Timed, Gauged, and Metered).
-use cadence::{
-    Counted,
-    Timed,
-    Gauged,
-    Metered,
-    StatsdClient,
-    UdpMetricSink,
-    DEFAULT_PORT
-};
-
+use cadence::prelude::*;
+use cadence::{StatsdClient, UdpMetricSink, DEFAULT_PORT};
 
 fn main() {
     // Create client that will write to the given host over UDP.
@@ -98,13 +87,12 @@ implemented as a trait. If we want, we can just use the trait type to refer to t
 client instance. This might be useful to you if you'd like to swap out the actual
 Cadence client with a dummy version when you are unit testing your code.
 
-``` rust
-use cadence::{
-    Counted,
-    StatsdClient,
-    UdpMetricSink,
-    DEFAULT_PORT
-};
+Each of these traits are exported in the prelude module. They are also available
+in the main module but aren't typically used like that.
+
+``` rust,no_run
+use cadence::prelude::*;
+use cadence::{StatsdClient, UdpMetricSink, DEFAULT_PORT};
 
 
 pub struct User {
@@ -164,17 +152,10 @@ However, maybe you'd like to do something custom: use a thread pool, send multip
 metrics at the same time, or something else. An example of creating a custom sink
 is below.
 
-``` rust
+``` rust,no_run
 use std::io;
-use cadence::{
-    Counted,
-    Timed,
-    Gauged,
-    Metered,
-    StatsdClient,
-    MetricSink,
-    DEFAULT_PORT
-};
+use cadence::prelude::*;
+use cadence::{StatsdClient, MetricSink, DEFAULT_PORT};
 
 pub struct MyMetricSink;
 
@@ -196,6 +177,7 @@ fn main() {
     client.incr("some.other.counter");
 }
 ```
+
 
 ## Documentation
 

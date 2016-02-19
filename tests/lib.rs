@@ -3,21 +3,9 @@ extern crate cadence;
 use std::thread;
 use std::sync::Arc;
 
-use cadence::{
-    DEFAULT_PORT,
-    NopMetricSink,
-    UdpMetricSink,
-    MetricSink,
-    StatsdClient,
-    Counted,
-    Timed,
-    Gauged,
-    Metered,
-    Counter,
-    Timer,
-    Gauge,
-    Meter
-};
+use cadence::prelude::*;
+use cadence::{DEFAULT_PORT, NopMetricSink, UdpMetricSink, MetricSink, StatsdClient, Counter,
+              Timer, Gauge, Meter};
 
 
 fn new_nop_client(prefix: &str) -> StatsdClient<NopMetricSink> {
@@ -124,7 +112,8 @@ fn test_statsd_client_udp_sink_many_threaded() {
 
 
 fn run_threaded_test<T>(client: StatsdClient<T>, num_threads: u64, iterations: u64) -> ()
-    where T: 'static + MetricSink + Sync + Send {
+    where T: 'static + MetricSink + Sync + Send
+{
     let shared_client = Arc::new(client);
 
     let threads: Vec<_> = (0..num_threads).map(|_| {
