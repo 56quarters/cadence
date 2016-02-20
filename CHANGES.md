@@ -1,6 +1,6 @@
 # Changelog
 
-## [v0.4.0](https://github.com/tshlabs/cadence/tree/master) - 2016-02-18
+## [v0.4.0](https://github.com/tshlabs/cadence/tree/0.4.0) - 2016-02-18
 * Change name of method for getting metric `&str` representation. The old name
   implied that the instance was consumed which it was not.
 * Create `cadence::prelude` module for easy import of `Counted`, `Timed`,
