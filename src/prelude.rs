@@ -19,7 +19,7 @@
 //!
 //! # Example
 //!
-//! ```
+//! ```no_run
 //! use cadence::prelude::*;
 //! use cadence::{DEFAULT_PORT, StatsdClient, UdpMetricSink};
 //!
