@@ -1,6 +1,22 @@
 language: rust
 
 rust:
-    - stable
-    - beta
-    - nightly
+  - stable
+  - beta
+  - nightly
+
+addons:
+  apt:
+    packages:
+      - libcurl4-openssl-dev
+      - libelf-dev
+      - libdw-dev
+
+before_script:
+  - pip install --user 'travis-cargo' && export PATH="${HOME}/.local/bin:${PATH}"
+
+script:
+  - (cd cadence && travis-cargo build) && (cd cadence && travis-cargo test)
+
+after_success:
+  - (cd cadence && travis-cargo coveralls --no-sudo)
