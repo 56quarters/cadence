@@ -16,7 +16,7 @@ before_script:
   - pip install --user 'travis-cargo' && export PATH="${HOME}/.local/bin:${PATH}"
 
 script:
-  - (cd cadence && travis-cargo build) && (cd cadence && travis-cargo test)
+  - travis-cargo build && travis-cargo test
 
 after_success:
-  - (cd cadence && travis-cargo coveralls --no-sudo)
+  - travis-cargo coveralls --no-sudo
