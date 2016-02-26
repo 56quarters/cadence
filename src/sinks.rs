@@ -19,7 +19,7 @@ use log::LogLevel;
 use std::io;
 use std::net::{ToSocketAddrs, SocketAddr, UdpSocket};
 
-use types::{MetricResult, ErrorKind};
+use ::types::{MetricResult, ErrorKind};
 
 /// Trait for various backends that send Statsd metrics somewhere.
 pub trait MetricSink {

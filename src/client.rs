@@ -17,9 +17,9 @@
 
 use std::net::{ToSocketAddrs, UdpSocket};
 
-use sinks::{MetricSink, UdpMetricSink};
+use ::sinks::{MetricSink, UdpMetricSink};
 
-use types::{MetricResult, Counter, Timer, Gauge, Meter, AsMetricStr};
+use ::types::{MetricResult, Counter, Timer, Gauge, Meter, AsMetricStr};
 
 
 /// Trait for incrementing and decrementing counters.
