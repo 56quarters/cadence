@@ -19,7 +19,7 @@ use std::net::{ToSocketAddrs, UdpSocket};
 
 use ::sinks::{MetricSink, UdpMetricSink};
 
-use ::types::{MetricResult, Counter, Timer, Gauge, Meter, AsMetricStr};
+use ::types::{MetricResult, Counter, Timer, Gauge, Meter, Metric};
 
 
 /// Trait for incrementing and decrementing counters.
@@ -164,7 +164,7 @@ impl<T: MetricSink> StatsdClient<T> {
     // it as UTF-8 bytes to the metric sink. Convert any I/O errors from the
     // sink to MetricResults with the metric itself as a payload for success
     // responses.
-    fn send_metric<M: AsMetricStr>(&self, metric: &M) -> MetricResult<()> {
+    fn send_metric<M: Metric>(&self, metric: &M) -> MetricResult<()> {
         let metric_string = metric.as_metric_str();
         let written = try!(self.sink.emit(metric_string));
         debug!("Wrote {} ({} bytes)", metric_string, written);

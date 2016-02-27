@@ -24,7 +24,7 @@ use std::io;
 ///
 /// Implementing metrics know how to turn themselves into one of the supported
 /// types of metrics as defined in the [Statsd spec](https://github.com/b/statsd_spec).
-pub trait AsMetricStr {
+pub trait Metric {
     fn as_metric_str(&self) -> &str;
 }
 
@@ -44,7 +44,7 @@ impl Counter {
 }
 
 
-impl AsMetricStr for Counter {
+impl Metric for Counter {
     fn as_metric_str(&self) -> &str {
         &self.repr
     }
@@ -67,7 +67,7 @@ impl Timer {
 }
 
 
-impl AsMetricStr for Timer {
+impl Metric for Timer {
     fn as_metric_str(&self) -> &str {
         &self.repr
     }
@@ -90,7 +90,7 @@ impl Gauge {
 }
 
 
-impl AsMetricStr for Gauge {
+impl Metric for Gauge {
     fn as_metric_str(&self) -> &str {
         &self.repr
     }
@@ -113,7 +113,7 @@ impl Meter {
 }
 
 
-impl AsMetricStr for Meter {
+impl Metric for Meter {
     fn as_metric_str(&self) -> &str {
         &self.repr
     }
@@ -201,7 +201,7 @@ pub type MetricResult<T> = Result<T, MetricError>;
 #[cfg(test)]
 mod tests {
 
-    use super::{Counter, Timer, Gauge, Meter, AsMetricStr};
+    use super::{Counter, Timer, Gauge, Meter, Metric};
 
     #[test]
     fn test_counter_to_metric_string() {
