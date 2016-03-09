@@ -156,7 +156,7 @@ impl<T: MetricSink> StatsdClient<T> {
         where A: ToSocketAddrs
     {
         let socket = try!(UdpSocket::bind("0.0.0.0:0"));
-        let sink = try!(UdpMetricSink::new(host, socket));
+        let sink = try!(UdpMetricSink::from(host, socket));
         Ok(StatsdClient::from_sink(prefix, sink))
     }
 

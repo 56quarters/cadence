@@ -1,5 +1,9 @@
 # Changelog
 
+## [v0.5.0](https://github.com/tshlabs/cadence/tree/master) - ????-??-??
+* **Breaking change** - Rename the constructor of `UdpMetricSink` from `new`
+  to `from` to better match Rust naming conventions for conversion constructors.
+
 ## [v0.4.0](https://github.com/tshlabs/cadence/tree/0.4.0) - 2016-02-18
 * Change name of method for getting metric `&str` representation. The old name
   implied that the instance was consumed which it was not.

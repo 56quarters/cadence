@@ -55,7 +55,7 @@ impl UdpMetricSink {
     ///
     /// let host = ("metrics.example.com", DEFAULT_PORT);
     /// let socket = UdpSocket::bind("0.0.0.0:0").unwrap();
-    /// let sink = UdpMetricSink::new(host, socket);
+    /// let sink = UdpMetricSink::from(host, socket);
     /// ```
     ///
     /// # Failures
@@ -64,7 +64,7 @@ impl UdpMetricSink {
     ///
     /// * It is unable to resolve the hostname of the metric server.
     /// * The host address is otherwise unable to be parsed
-    pub fn new<A>(sink_addr: A, socket: UdpSocket) -> MetricResult<UdpMetricSink>
+    pub fn from<A>(sink_addr: A, socket: UdpSocket) -> MetricResult<UdpMetricSink>
         where A: ToSocketAddrs
     {
         // Allow callers to pass anything that implements ToSocketAddrs for
@@ -177,7 +177,7 @@ mod tests {
     #[test]
     fn test_udp_metric_sink() {
         let socket = UdpSocket::bind("0.0.0.0:0").unwrap();
-        let sink = UdpMetricSink::new("127.0.0.1:8125", socket).unwrap();
+        let sink = UdpMetricSink::from("127.0.0.1:8125", socket).unwrap();
         assert_eq!(7, sink.emit("buz:1|m").unwrap());
     }
 }
