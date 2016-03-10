@@ -1,3 +1,7 @@
+# update Cargo.toml
+# update changelog
+# update changelog date
+# update changelog link
 cargo clean
 git tag -l
 git tag 0.1.0
