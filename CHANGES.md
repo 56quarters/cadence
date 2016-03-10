@@ -1,6 +1,6 @@
 # Changelog
 
-## [v0.5.0](https://github.com/tshlabs/cadence/tree/master) - 2016-03-10
+## [v0.5.0](https://github.com/tshlabs/cadence/tree/0.5.0) - 2016-03-10
 * **Breaking change** - Rename the constructor of `UdpMetricSink` from `new`
   to `from` to better match Rust naming conventions for conversion constructors.
 
