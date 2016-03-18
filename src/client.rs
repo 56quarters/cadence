@@ -26,8 +26,8 @@ use ::types::{MetricResult, Counter, Timer, Gauge, Meter, Metric};
 ///
 /// Counters are simple values incremented or decremented by a client. The
 /// rates at which these events occur or average values will be determined
-/// by the server recieving them. Examples of counter uses include number
-/// of logins to a system or requests recieved.
+/// by the server receiving them. Examples of counter uses include number
+/// of logins to a system or requests received.
 ///
 /// See the [Statsd spec](https://github.com/b/statsd_spec) for more information.
 pub trait Counted {
@@ -128,7 +128,7 @@ impl<T: MetricSink> StatsdClient<T> {
 
     /// Create a new client instance that will use the given prefix to send
     /// metrics to the given host over UDP using an appropriate sink. This is
-    /// the contruction method that most users of this library will use.
+    /// the construction method that most users of this library will use.
     ///
     /// **Note** that you must include a type parameter when you call this
     /// method to help the compiler determine the type of `T` (the sink).
