@@ -166,8 +166,7 @@ impl<T: MetricSink> StatsdClient<T> {
     // responses.
     fn send_metric<M: Metric>(&self, metric: &M) -> MetricResult<()> {
         let metric_string = metric.as_metric_str();
-        let written = try!(self.sink.emit(metric_string));
-        debug!("Wrote {} ({} bytes)", metric_string, written);
+        try!(self.sink.emit(metric_string));
         Ok(())
     }
 }
