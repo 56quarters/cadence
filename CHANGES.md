@@ -1,5 +1,9 @@
 # Changelog
 
+## [v0.5.1]((https://github.com/tshlabs/cadence/tree/0.5.1) - 2016-06-07
+* Remove `debug!` call in internal StatsdClient call to cut down on log
+  noise per [#7](https://github.com/tshlabs/cadence/pull/7).
+
 ## [v0.5.0](https://github.com/tshlabs/cadence/tree/0.5.0) - 2016-03-10
 * **Breaking change** - Rename the constructor of `UdpMetricSink` from `new`
   to `from` to better match Rust naming conventions for conversion constructors.
