@@ -1,6 +1,6 @@
 # Changelog
 
-## [v0.5.1]((https://github.com/tshlabs/cadence/tree/0.5.1) - 2016-06-07
+## [v0.5.1](https://github.com/tshlabs/cadence/tree/0.5.1) - 2016-06-07
 * Remove `debug!` call in internal StatsdClient call to cut down on log
   noise per [#7](https://github.com/tshlabs/cadence/pull/7).
 
