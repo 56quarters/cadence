@@ -5,8 +5,8 @@ extern crate cadence;
 use test::Bencher;
 
 use cadence::prelude::*;
-use cadence::{DEFAULT_PORT, StatsdClient, Counter, Timer, Gauge, Meter, NopMetricSink,
-              UdpMetricSink};
+use cadence::{DEFAULT_PORT, StatsdClient, Counter, Timer, Gauge, Meter,
+              NopMetricSink, UdpMetricSink};
 
 
 fn new_nop_client() -> StatsdClient<NopMetricSink> {
