@@ -1,6 +1,7 @@
 extern crate cadence;
 
 use std::thread;
+use std::time::Duration;
 use std::sync::Arc;
 
 use cadence::prelude::*;
@@ -86,7 +87,7 @@ fn test_statsd_client_nop_sink_single_threaded() {
 #[ignore]
 #[test]
 fn test_statsd_client_udp_sink_single_threaded() {
-    let client = new_udp_client("counter.threaded.udp");
+    let client = new_udp_client("cadence");
     run_threaded_test(client, 1, 1);
 }
 
@@ -98,7 +99,7 @@ const NUM_ITERATIONS: u64 = 1_000;
 #[ignore]
 #[test]
 fn test_statsd_client_nop_sink_many_threaded() {
-    let client = new_nop_client("test.counter.threaded.nop");
+    let client = new_nop_client("cadence");
     run_threaded_test(client, NUM_THREADS, NUM_ITERATIONS);
 }
 
@@ -106,7 +107,7 @@ fn test_statsd_client_nop_sink_many_threaded() {
 #[ignore]
 #[test]
 fn test_statsd_client_udp_sink_many_threaded() {
-    let client = new_udp_client("test.counter.threaded.udp");
+    let client = new_udp_client("cadence");
     run_threaded_test(client, NUM_THREADS, NUM_ITERATIONS);
 }
 
@@ -118,12 +119,13 @@ fn run_threaded_test<T>(client: StatsdClient<T>, num_threads: u64, iterations: u
 
     let threads: Vec<_> = (0..num_threads).map(|_| {
         let local_client = shared_client.clone();
-        
+
         thread::spawn(move || {
             for i in 0..iterations {
-                local_client.count("some.metric", i as i64).unwrap();
-                local_client.time("some.method.call", i).unwrap();
-                local_client.gauge("some.gauge", i).unwrap();
+                local_client.count("some_counter", i as i64).unwrap();
+                local_client.time("some_timer", i).unwrap();
+                local_client.gauge("some_gauge", i).unwrap();
+                thread::sleep(Duration::from_millis(1));
             }
         })
     }).collect();
