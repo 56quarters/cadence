@@ -111,13 +111,29 @@ impl<T: MetricSink> StatsdClient<T> {
     /// Create a new client instance that will use the given prefix for
     /// all metrics emitted to the given `MetricSink` implementation.
     ///
-    /// # Example
+    /// # No-op Example
     ///
     /// ```
     /// use cadence::{StatsdClient, NopMetricSink};
     ///
     /// let prefix = "my.stats";
     /// let client = StatsdClient::from_sink(prefix, NopMetricSink);
+    /// ```
+    ///
+    /// # Non-blocking UDP Example
+    ///
+    /// ```
+    /// use std::net::UdpSocket;
+    /// use cadence::{StatsdClient, UdpMetricSink, DEFAULT_PORT};
+    ///
+    /// let prefix = "my.stats";
+    /// let host = ("127.0.0.1", DEFAULT_PORT);
+    ///
+    /// let socket = UdpSocket::bind("0.0.0.0:0").unwrap();
+    /// socket.set_nonblocking(true).unwrap();
+    ///
+    /// let sink = UdpMetricSink::from(host, socket).unwrap();
+    /// let client = StatsdClient::from_sink(prefix, sink);
     /// ```
     pub fn from_sink(prefix: &str, sink: T) -> StatsdClient<T> {
         StatsdClient {
@@ -129,6 +145,10 @@ impl<T: MetricSink> StatsdClient<T> {
     /// Create a new client instance that will use the given prefix to send
     /// metrics to the given host over UDP using an appropriate sink. This is
     /// the construction method that most users of this library will use.
+    ///
+    /// The UDP socket will not be put into non-blocking mode. Callers that
+    /// wish to use a non-blocking socket should use the `from_sink` method
+    /// with a custom instance of `UdpMetricSink`.
     ///
     /// **Note** that you must include a type parameter when you call this
     /// method to help the compiler determine the type of `T` (the sink).
