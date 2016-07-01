@@ -53,8 +53,23 @@ impl UdpMetricSink {
     /// use std::net::UdpSocket;
     /// use cadence::{UdpMetricSink, DEFAULT_PORT};
     ///
-    /// let host = ("metrics.example.com", DEFAULT_PORT);
     /// let socket = UdpSocket::bind("0.0.0.0:0").unwrap();
+    /// let host = ("metrics.example.com", DEFAULT_PORT);
+    /// let sink = UdpMetricSink::from(host, socket);
+    /// ```
+    ///
+    /// To send metrics over a non-blocking socket, simply put the socket
+    /// in non-blocking mode before creating the UDP metric sink.
+    ///
+    /// # Non-blocking Example
+    ///
+    /// ```no_run
+    /// use std::net::UdpSocket;
+    /// use cadence::{UdpMetricSink, DEFAULT_PORT};
+    ///
+    /// let socket = UdpSocket::bind("0.0.0.0:0").unwrap();
+    /// socket.set_nonblocking(true).unwrap();
+    /// let host = ("metrics.example.com", DEFAULT_PORT);
     /// let sink = UdpMetricSink::from(host, socket);
     /// ```
     ///
@@ -180,4 +195,13 @@ mod tests {
         let sink = UdpMetricSink::from("127.0.0.1:8125", socket).unwrap();
         assert_eq!(7, sink.emit("buz:1|m").unwrap());
     }
+
+    #[test]
+    fn test_non_blocking_udp_metric_sink() {
+        let socket = UdpSocket::bind("0.0.0.0:0").unwrap();
+        socket.set_nonblocking(true).unwrap();
+        let sink = UdpMetricSink::from("127.0.0.1:8125", socket).unwrap();
+        assert_eq!(7, sink.emit("baz:1|m").unwrap());
+    }
+
 }

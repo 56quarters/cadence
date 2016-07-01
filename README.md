@@ -3,6 +3,9 @@
 [![Build Status](https://travis-ci.org/tshlabs/cadence.svg?branch=master)](https://travis-ci.org/tshlabs/cadence)
 [![crates.io](https://img.shields.io/crates/v/cadence.svg)](https://crates.io/crates/cadence/)
 
+
+
+
 An extensible Statsd client for Rust!
 
 [Statsd](https://github.com/etsy/statsd) is a network server that listens for
@@ -40,7 +43,7 @@ cadence = "x.y.z"
 
 Then, link to it in your library or application.
 
-``` rust
+``` rust,no_run
 // bin.rs or lib.rs
 extern crate cadence;
 
@@ -62,22 +65,20 @@ metrics.
 use cadence::prelude::*;
 use cadence::{StatsdClient, UdpMetricSink, DEFAULT_PORT};
 
-fn main() {
-    // Create client that will write to the given host over UDP.
-    //
-    // Note that you'll probably want to actually handle any errors creating the client
-    // when you use it for real in your application. We're just using .unwrap() here
-    // since this is an example!
-    let host = ("metrics.example.com", DEFAULT_PORT);
-    let client = StatsdClient::<UdpMetricSink>::from_udp_host(
-        "my.metrics", host).unwrap();
+// Create client that will write to the given host over UDP.
+//
+// Note that you'll probably want to actually handle any errors creating the client
+// when you use it for real in your application. We're just using .unwrap() here
+// since this is an example!
+let host = ("metrics.example.com", DEFAULT_PORT);
+let client = StatsdClient::<UdpMetricSink>::from_udp_host(
+    "my.metrics", host).unwrap();
 
-    // Emit metrics!
-    client.incr("some.counter");
-    client.time("some.methodCall", 42);
-    client.gauge("some.thing", 7);
-    client.meter("some.value", 5);
-}
+// Emit metrics!
+client.incr("some.counter");
+client.time("some.methodCall", 42);
+client.gauge("some.thing", 7);
+client.meter("some.value", 5);
 ```
 
 ### Counted, Timed, Gauged, and Metered Traits
@@ -124,21 +125,19 @@ impl<T: Counted> MyUserDao<T> {
 }
 
 
-fn main() {
-    // Create a new Statsd client that writes to "metrics.example.com"
-    let host = ("metrics.example.com", DEFAULT_PORT);
-    let counter = StatsdClient::<UdpMetricSink>::from_udp_host(
-        "counter.example", host).unwrap();
+// Create a new Statsd client that writes to "metrics.example.com"
+let host = ("metrics.example.com", DEFAULT_PORT);
+let counter = StatsdClient::<UdpMetricSink>::from_udp_host(
+    "counter.example", host).unwrap();
 
-    // Create a new instance of the DAO that will use the client
-    let dao = MyUserDao::new(counter);
+// Create a new instance of the DAO that will use the client
+let dao = MyUserDao::new(counter);
 
-    // Try to lookup a user by ID!
-    match dao.get_user_by_id(123) {
-        Some(u) => println!("Found a user!"),
-        None => println!("No user!")
-    };
-}
+// Try to lookup a user by ID!
+match dao.get_user_by_id(123) {
+    Some(u) => println!("Found a user!"),
+    None => println!("No user!")
+};
 ```
 
 ### Custom Metric Sinks
@@ -168,16 +167,36 @@ impl MetricSink for MyMetricSink {
 }
 
 
-fn main() {
-    let sink = MyMetricSink;
-    let client = StatsdClient::from_sink("my.prefix", sink);
+let sink = MyMetricSink;
+let client = StatsdClient::from_sink("my.prefix", sink);
 
-    client.count("my.counter.thing", 42);
-    client.time("my.method.time", 25);
-    client.incr("some.other.counter");
-}
+client.count("my.counter.thing", 42);
+client.time("my.method.time", 25);
+client.incr("some.other.counter");
 ```
 
+### Custom UDP Socket
+
+Most users of the Cadence `StatsdClient` will be using it to send metrics over
+a UDP socket. If you need to customize the socket, for example you want to make
+sure it won't block, you can do that as demonstrated below.
+
+``` rust,no_run
+use std::net::UdpSocket;
+use cadence::prelude::*;
+use cadence::{StatsdClient, UdpMetricSink, DEFAULT_PORT};
+
+let socket = UdpSocket::bind("0.0.0.0:0").unwrap();
+socket.set_nonblocking(true).unwrap();
+
+let host = ("metrics.example.com", DEFAULT_PORT);
+let sink = UdpMetricSink::from(host, socket).unwrap();
+let client = StatsdClient::from_sink("my.prefix", sink);
+
+client.count("my.counter.thing", 29);
+client.time("my.service.call", 214);
+client.incr("some.event");
+```
 
 ## Documentation
 
