@@ -201,7 +201,9 @@ pub type MetricResult<T> = Result<T, MetricError>;
 #[cfg(test)]
 mod tests {
 
-    use super::{Counter, Timer, Gauge, Meter, Metric};
+    use std::io;
+    use std::error::Error;
+    use super::{Counter, Timer, Gauge, Meter, Metric, MetricError, ErrorKind};
 
     #[test]
     fn test_counter_to_metric_string() {
@@ -225,5 +227,44 @@ mod tests {
     fn test_meter_to_metric_string() {
         let meter = Meter::new("my.app", "test.meter", 5);
         assert_eq!("my.app.test.meter:5|m", meter.as_metric_str());
+    }
+
+    #[test]
+    fn test_metric_error_kind_io_error() {
+        let io_err = io::Error::new(io::ErrorKind::BrokenPipe, "Broken pipe");
+        let our_err = MetricError::from(io_err);
+        assert_eq!(ErrorKind::IoError, our_err.kind());
+    }
+
+    #[test]
+    fn test_metric_error_kind_invalid_input() {
+        let our_err = MetricError::from((ErrorKind::InvalidInput, "Nope"));
+        assert_eq!(ErrorKind::InvalidInput, our_err.kind());
+    }
+
+    #[test]
+    fn test_metric_error_description_io_error() {
+        let io_err = io::Error::new(io::ErrorKind::PermissionDenied, "Permission!");
+        let our_err = MetricError::from(io_err);
+        assert_eq!("Permission!", our_err.description());
+    }
+
+    #[test]
+    fn test_metric_error_description_other() {
+        let our_err = MetricError::from((ErrorKind::InvalidInput, "Something!"));
+        assert_eq!("Something!", our_err.description());
+    }
+
+    #[test]
+    fn test_metric_error_cause_io_error() {
+        let io_err = io::Error::new(io::ErrorKind::TimedOut, "Timeout!");
+        let our_err = MetricError::from(io_err);
+        assert_eq!("Timeout!", our_err.cause().unwrap().description());
+    }
+
+    #[test]
+    fn test_metric_error_cause_other() {
+        let our_err = MetricError::from((ErrorKind::InvalidInput, "Nope!"));
+        assert!(our_err.cause().is_none());
     }
 }
