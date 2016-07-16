@@ -1,5 +1,9 @@
 # Changelog
 
+## [v0.6.0](https://github.com/tshlabs/cadence/tree/master) - ????-??-??
+* Change Cadence to be dual licensed under Apache and MIT licenses per
+  [#12](https://github.com/tshlabs/cadence/issues/12).
+
 ## [v0.5.2](https://github.com/tshlabs/cadence/tree/0.5.2) - 2016-07-02
 * Increase test coverage per [#10](https://github.com/tshlabs/cadence/issues/10).
 * Add documentation for setting up a UDP socket in non-blocking mode per
