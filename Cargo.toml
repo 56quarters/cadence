@@ -7,7 +7,7 @@ homepage = "https://github.com/tshlabs/cadence"
 documentation = "https://tshlabs.github.io/cadence/"
 repository = "https://github.com/tshlabs/cadence.git"
 readme = "README.md"
-license = "Apache-2.0"
+license = "Apache-2.0/MIT"
 keywords = ["statsd", "metrics"]
 
 [dependencies]
