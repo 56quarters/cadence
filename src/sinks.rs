@@ -16,6 +16,36 @@ use std::net::{ToSocketAddrs, SocketAddr, UdpSocket};
 use ::types::{MetricResult, ErrorKind};
 
 /// Trait for various backends that send Statsd metrics somewhere.
+///
+/// The metric string will be in the canonical format to be sent to a
+/// Statsd server. The metric string will not include a trailing newline.
+/// Examples of each supported metric type are given below.
+///
+/// ## Counter
+///
+/// ``` text
+/// some.counter:123|c
+/// ```
+///
+/// ## Timer
+///
+/// ``` text
+/// some.timer:456|ms
+/// ```
+///
+/// ## Gauge
+///
+/// ``` text
+/// some.gauge:5|g
+/// ```
+///
+/// ## Meter
+///
+/// ``` text
+/// some.meter:8|m
+/// ```
+///
+/// See the [Statsd spec](https://github.com/b/statsd_spec) for more information.
 pub trait MetricSink {
     /// Send the Statsd metric using this sink and return the number of bytes
     /// written or an I/O error.
