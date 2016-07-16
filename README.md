@@ -243,3 +243,8 @@ To build documentation:
 ```
 $ cargo doc
 ```
+
+## License
+
+Cadence is available under the terms of the [Apache License](LICENSE-APACHE)
+(version 2.0) or [MIT license](LICENSE-MIT), at your option.
