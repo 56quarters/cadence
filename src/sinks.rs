@@ -13,7 +13,7 @@ use log::LogLevel;
 use std::io;
 use std::net::{ToSocketAddrs, SocketAddr, UdpSocket};
 
-use ::types::{MetricResult, ErrorKind};
+use ::types::{MetricResult, MetricError, ErrorKind};
 
 /// Trait for various backends that send Statsd metrics somewhere.
 ///
@@ -106,18 +106,15 @@ impl UdpMetricSink {
     pub fn from<A>(sink_addr: A, socket: UdpSocket) -> MetricResult<UdpMetricSink>
         where A: ToSocketAddrs
     {
-        // Allow callers to pass anything that implements ToSocketAddrs for
-        // convenience but convert it to a concrete address here so that we
-        // don't have to pass around the generic parameter everywhere that
-        // this sink goes.
-        let mut addr_iter = try!(sink_addr.to_socket_addrs());
-        let addr = try!(addr_iter.next().ok_or(
-            (ErrorKind::InvalidInput, "No socket addresses yielded")));
-
-        Ok(UdpMetricSink {
-            sink_addr: addr,
-            socket: socket,
-        })
+        match try!(sink_addr.to_socket_addrs()).next() {
+            Some(addr) => Ok(UdpMetricSink {
+                sink_addr: addr,
+                socket: socket,
+            }),
+            None => Err(MetricError::from(
+                (ErrorKind::InvalidInput, "No socket addresses yielded")
+            )),
+        }
     }
 }
 
