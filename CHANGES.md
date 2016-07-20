@@ -5,6 +5,15 @@
   [#12](https://github.com/tshlabs/cadence/issues/12).
 * Improve documentation around `MetricSink` trait per
   [#13](https://github.com/tshlabs/cadence/issues/13).
+* **Behavior change** - Change UDP sockets created by
+  `StatsdClient::from_udp_host` to be created in non-blocking mode by default
+  per [#14](https://github.com/tshlabs/cadence/issues/14). While this does
+  change previous behavior, users of the library shouldn't notice much of
+  a change. In instances where the caller would have blocked before, they
+  will get a `MetricError` wrapping an `io::Error` (with an `ErrorKind` of
+  `WouldBlock`). Users wishing to restore the old behavior can do so by
+  creating a custom instance of `UdpMetricSink`. Thanks to the
+  [Tikv](https://github.com/pingcap/tikv) team for the inspiration.
 
 ## [v0.5.2](https://github.com/tshlabs/cadence/tree/0.5.2) - 2016-07-02
 * Increase test coverage per [#10](https://github.com/tshlabs/cadence/issues/10).
