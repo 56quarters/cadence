@@ -69,7 +69,8 @@ impl UdpMetricSink {
     ///
     /// The address should be the address of the remote metric server to
     /// emit metrics to over UDP. The socket should already be bound to a
-    /// local address.
+    /// local address with any desired configuration applied (blocking vs
+    /// non-blocking, timeouts, etc.).
     ///
     /// # Example
     ///
@@ -86,6 +87,10 @@ impl UdpMetricSink {
     /// in non-blocking mode before creating the UDP metric sink.
     ///
     /// # Non-blocking Example
+    ///
+    /// Note that putting the UDP socket into non-blocking mode is the
+    /// default when sink and socket are automatically created with the
+    /// `StatsdClient::from_udp_host` method.
     ///
     /// ```no_run
     /// use std::net::UdpSocket;

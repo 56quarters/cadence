@@ -114,7 +114,7 @@ impl<T: MetricSink> StatsdClient<T> {
     /// let client = StatsdClient::from_sink(prefix, NopMetricSink);
     /// ```
     ///
-    /// # Non-blocking UDP Example
+    /// # UDP Socket Example
     ///
     /// ```
     /// use std::net::UdpSocket;
@@ -140,9 +140,7 @@ impl<T: MetricSink> StatsdClient<T> {
     /// metrics to the given host over UDP using an appropriate sink. This is
     /// the construction method that most users of this library will use.
     ///
-    /// The UDP socket will not be put into non-blocking mode. Callers that
-    /// wish to use a non-blocking socket should use the `from_sink` method
-    /// with a custom instance of `UdpMetricSink`.
+    /// The created UDP socket will be put into non-blocking mode.
     ///
     /// **Note** that you must include a type parameter when you call this
     /// method to help the compiler determine the type of `T` (the sink).
@@ -164,12 +162,14 @@ impl<T: MetricSink> StatsdClient<T> {
     /// This method may fail if:
     ///
     /// * It is unable to create a local UDP socket.
+    /// * It is unable to put the UDP socket into non-blocking mode.
     /// * It is unable to resolve the hostname of the metric server.
     /// * The host address is otherwise unable to be parsed.
     pub fn from_udp_host<A>(prefix: &str, host: A) -> MetricResult<StatsdClient<UdpMetricSink>>
         where A: ToSocketAddrs
     {
         let socket = try!(UdpSocket::bind("0.0.0.0:0"));
+        try!(socket.set_nonblocking(true));
         let sink = try!(UdpMetricSink::from(host, socket));
         Ok(StatsdClient::from_sink(prefix, sink))
     }

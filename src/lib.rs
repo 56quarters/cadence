@@ -59,9 +59,9 @@
 //!
 //! ### Simple Use
 //!
-//! Simple usage of Cadence is shown below. In this example, we just import the client,
-//! create an instance that will write to some imaginary metrics server, and send a few
-//! metrics.
+//! Simple usage of Cadence is shown below. In this example, we just import
+//! the client, create an instance that will write to some imaginary metrics
+//! server, and send a few metrics.
 //!
 //! ``` rust,no_run
 //! // Import the client.
@@ -70,9 +70,9 @@
 //!
 //! // Create client that will write to the given host over UDP.
 //! //
-//! // Note that you'll probably want to actually handle any errors creating the client
-//! // when you use it for real in your application. We're just using .unwrap() here
-//! // since this is an example!
+//! // Note that you'll probably want to actually handle any errors creating
+//! // the client when you use it for real in your application. We're just
+//! // using .unwrap() here since this is an example!
 //! let host = ("metrics.example.com", DEFAULT_PORT);
 //! let client = StatsdClient::<UdpMetricSink>::from_udp_host(
 //!     "my.metrics", host).unwrap();
@@ -86,13 +86,14 @@
 //!
 //! ### Counted, Timed, Gauged, and Metered Traits
 //!
-//! Each of the methods that the Cadence `StatsdClient` struct uses to send metrics are
-//! implemented as a trait. If we want, we can just use the trait type to refer to the
-//! client instance. This might be useful to you if you'd like to swap out the actual
-//! Cadence client with a dummy version when you are unit testing your code.
+//! Each of the methods that the Cadence `StatsdClient` struct uses to send
+//! metrics are implemented as a trait. If we want, we can just use the trait
+//! type to refer to the client instance. This might be useful to you if you'd
+//! like to swap out the actual Cadence client with a dummy version when you
+//! are unit testing your code.
 //!
-//! Each of these traits are exported in the prelude module. They are also available
-//! in the main module but aren't typically used like that.
+//! Each of these traits are exported in the prelude module. They are also
+//! available in the main module but aren't typically used like that.
 //!
 //! ``` rust,no_run
 //! use cadence::prelude::*;
@@ -145,14 +146,14 @@
 //!
 //! ### Custom Metric Sinks
 //!
-//! The Cadence `StatsdClient` uses implementations of the `MetricSink` trait to
-//! send metrics to a metric server. Most users of the Candence library probably
-//! want to use the `UdpMetricSink` implementation. This is the way people typically
-//! interact with a Statsd server, sending packets over UDP.
+//! The Cadence `StatsdClient` uses implementations of the `MetricSink` trait
+//! to send metrics to a metric server. Most users of the Candence library
+//! probably want to use the `UdpMetricSink` implementation. This is the way
+//! people typically interact with a Statsd server, sending packets over UDP.
 //!
-//! However, maybe you'd like to do something custom: use a thread pool, send multiple
-//! metrics at the same time, or something else. An example of creating a custom sink
-//! is below.
+//! However, maybe you'd like to do something custom: use a thread pool,
+//! send multiple metrics at the same time, or something else. An example
+//! of creating a custom sink is below.
 //!
 //! ``` rust,no_run
 //! use std::io;
@@ -180,17 +181,19 @@
 //!
 //! ### Custom UDP Socket
 //!
-//! Most users of the Cadence `StatsdClient` will be using it to send metrics over
-//! a UDP socket. If you need to customize the socket, for example you want to make
-//! sure it won't block, you can do that as demonstrated below.
+//! Most users of the Cadence `StatsdClient` will be using it to send metrics
+//! over a UDP socket. If you need to customize the socket, for example you
+//! want to use the socket in blocking mode but set a write timeout, you can
+//! do that as demonstrated below.
 //!
 //! ``` rust,no_run
 //! use std::net::UdpSocket;
+//! use std::time::Duration;
 //! use cadence::prelude::*;
 //! use cadence::{StatsdClient, UdpMetricSink, DEFAULT_PORT};
 //!
 //! let socket = UdpSocket::bind("0.0.0.0:0").unwrap();
-//! socket.set_nonblocking(true).unwrap();
+//! socket.set_write_timeout(Some(Duration::from_millis(1))).unwrap();
 //!
 //! let host = ("metrics.example.com", DEFAULT_PORT);
 //! let sink = UdpMetricSink::from(host, socket).unwrap();

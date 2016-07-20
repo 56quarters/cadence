@@ -1,6 +1,5 @@
 extern crate cadence;
 
-use std::net::UdpSocket;
 use std::thread;
 use std::time::Duration;
 use std::sync::Arc;
@@ -18,15 +17,6 @@ fn new_nop_client(prefix: &str) -> StatsdClient<NopMetricSink> {
 fn new_udp_client(prefix: &str) -> StatsdClient<UdpMetricSink> {
     let addr = ("127.0.0.1", DEFAULT_PORT);
     StatsdClient::<UdpMetricSink>::from_udp_host(prefix, addr).unwrap()
-}
-
-
-fn new_non_blocking_udp_client(prefix: &str) -> StatsdClient<UdpMetricSink> {
-    let addr = ("127.0.0.1", DEFAULT_PORT);
-    let socket = UdpSocket::bind("0.0.0.0:0").unwrap();
-    socket.set_nonblocking(true).unwrap();
-    let sink = UdpMetricSink::from(addr, socket).unwrap();
-    StatsdClient::from_sink(prefix, sink)
 }
 
 
@@ -102,14 +92,6 @@ fn test_statsd_client_udp_sink_single_threaded() {
 }
 
 
-#[ignore]
-#[test]
-fn test_statsd_client_non_blocking_udp_sink_single_threaded() {
-    let client = new_non_blocking_udp_client("cadence");
-    run_threaded_test(client, 1, 1);
-}
-
-
 const NUM_THREADS: u64 = 100;
 const NUM_ITERATIONS: u64 = 1_000;
 
@@ -126,14 +108,6 @@ fn test_statsd_client_nop_sink_many_threaded() {
 #[test]
 fn test_statsd_client_udp_sink_many_threaded() {
     let client = new_udp_client("cadence");
-    run_threaded_test(client, NUM_THREADS, NUM_ITERATIONS);
-}
-
-
-#[ignore]
-#[test]
-fn test_statsd_client_non_blocking_udp_sink_many_threaded() {
-    let client = new_non_blocking_udp_client("cadence");
     run_threaded_test(client, NUM_THREADS, NUM_ITERATIONS);
 }
 
