@@ -1,6 +1,6 @@
 # Changelog
 
-## [v0.6.0](https://github.com/tshlabs/cadence/tree/master) - ????-??-??
+## [v0.6.0](https://github.com/tshlabs/cadence/tree/0.6.0) - 2016-07-20
 * Change Cadence to be dual licensed under Apache and MIT licenses per
   [#12](https://github.com/tshlabs/cadence/issues/12).
 * Improve documentation around `MetricSink` trait per
