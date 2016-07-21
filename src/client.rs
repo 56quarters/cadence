@@ -82,10 +82,10 @@ pub trait Metered {
 
 /// Trait that encompasses all other traits for metrics.
 ///
-/// If you wish to place a StatsdClient instance behind a pointer (such as
-/// a `Box`) this will allow you to reference all the implemented methods for
-/// recording metrics, while using a single type. An example of this is shown
-/// below.
+/// If you wish to use StatsdClient with a generic type or place a
+/// StatsdClient instance behind a pointer (such as a `Box`) this will allow
+/// you to reference all the implemented methods for recording metrics, while
+/// using a single trait. An example of this is shown below.
 ///
 /// ```
 /// use cadence::{MetricClient, StatsdClient, NopMetricSink};
