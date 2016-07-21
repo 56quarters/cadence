@@ -78,13 +78,17 @@ client.gauge("some.thing", 7);
 client.meter("some.value", 5);
 ```
 
-### Counted, Timed, Gauged, and Metered Traits
+
+### Counted, Timed, Gauged, Metered, and MetricClient Traits
 
 Each of the methods that the Cadence `StatsdClient` struct uses to send
-metrics are implemented as a trait. If we want, we can just use the trait
-type to refer to the client instance. This might be useful to you if you'd
-like to swap out the actual Cadence client with a dummy version when you
-are unit testing your code.
+metrics are implemented as a trait. There is also a trait that combines
+all of these other traits. If we want, we can just use one of the trait
+types to refer to the client instance. This might be useful to you if
+you'd like to swap out the actual Cadence client with a dummy version
+when you are unit testing your code or want to abstract away all the
+implementation details of the client being used behind a trait and
+pointer.
 
 Each of these traits are exported in the prelude module. They are also
 available in the main module but aren't typically used like that.
@@ -102,22 +106,22 @@ pub struct User {
 
 
 // Here's a simple DAO (Data Access Object) that doesn't do anything but
-// uses a counter to keep track of the number of times the 'getUserById'
-// method gets called.
-pub struct MyUserDao<T: Counted> {
-    counter: T
+// uses a metric client to keep track of the number of times the
+// 'getUserById' method gets called.
+pub struct MyUserDao {
+    metrics: Box<MetricClient>
 }
 
 
-impl<T: Counted> MyUserDao<T> {
-    // Create a new instance that will use the counter / client
-    pub fn new(counter: T) -> MyUserDao<T> {
-        MyUserDao{counter: counter}
+impl MyUserDao {
+    // Create a new instance that will use the StatsdClient
+    pub fn new<T: MetricClient + 'static>(metrics: T) -> MyUserDao {
+        MyUserDao { metrics: Box::new(metrics) }
     }
 
     /// Get a new user by their ID
     pub fn get_user_by_id(&self, id: u64) -> Option<User> {
-        self.counter.incr("getUserById");
+        self.metrics.incr("getUserById");
         None
     }
 }
@@ -125,11 +129,11 @@ impl<T: Counted> MyUserDao<T> {
 
 // Create a new Statsd client that writes to "metrics.example.com"
 let host = ("metrics.example.com", DEFAULT_PORT);
-let counter = StatsdClient::<UdpMetricSink>::from_udp_host(
+let metrics = StatsdClient::<UdpMetricSink>::from_udp_host(
     "counter.example", host).unwrap();
 
 // Create a new instance of the DAO that will use the client
-let dao = MyUserDao::new(counter);
+let dao = MyUserDao::new(metrics);
 
 // Try to lookup a user by ID!
 match dao.get_user_by_id(123) {
@@ -137,6 +141,7 @@ match dao.get_user_by_id(123) {
     None => println!("No user!")
 };
 ```
+
 
 ### Custom Metric Sinks
 

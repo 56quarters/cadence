@@ -1,5 +1,11 @@
 # Changelog
 
+## [v0.7.0](https://github.com/tshlabs/cadence/tree/master) - ????-??-??
+* Add new `MetricClient` trait implemented by `StatsdClient` that encompasses
+  all of the other traits for emitting metrics (`Counted`, `Timed`, `Gauged`,
+  and `Metered`) so that users can refer to a single type when used with
+  generics or behind a pointer.
+
 ## [v0.6.0](https://github.com/tshlabs/cadence/tree/0.6.0) - 2016-07-20
 * Change Cadence to be dual licensed under Apache and MIT licenses per
   [#12](https://github.com/tshlabs/cadence/issues/12).
