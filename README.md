@@ -3,9 +3,6 @@
 [![Build Status](https://travis-ci.org/tshlabs/cadence.svg?branch=master)](https://travis-ci.org/tshlabs/cadence)
 [![crates.io](https://img.shields.io/crates/v/cadence.svg)](https://crates.io/crates/cadence/)
 
-
-
-
 An extensible Statsd client for Rust!
 
 [Statsd](https://github.com/etsy/statsd) is a network server that listens for
