@@ -80,6 +80,27 @@ pub trait Metered {
 }
 
 
+/// Trait that encompasses all other traits for metrics.
+///
+/// If you wish to place a StatsdClient instance behind a pointer (such as
+/// a `Box`) this will allow you to reference all the implemented methods for
+/// recording metrics, while using a single type. An example of this is shown
+/// below.
+///
+/// ```
+/// use cadence::{MetricClient, StatsdClient, NopMetricSink};
+///
+/// let client: Box<MetricClient> = Box::new(StatsdClient::from_sink(
+///     "prefix", NopMetricSink));
+///
+/// client.count("some.counter", 1).unwrap();
+/// client.time("some.timer", 42).unwrap();
+/// client.gauge("some.gauge", 8).unwrap();
+/// client.meter("some.meter", 13).unwrap();
+/// ```
+pub trait MetricClient: Counted + Timed + Gauged + Metered {}
+
+
 /// Client for Statsd that implements various traits to record metrics.
 ///
 /// The client is the main entry point for users of this library. It supports
@@ -89,6 +110,7 @@ pub trait Metered {
 /// * `Timed` for emitting timings.
 /// * `Gauged` for emitting gauge values.
 /// * `Metered` for emitting meter values.
+/// * `MetricClient` for a combination of all of the above.
 ///
 /// For more information about the uses for each type of metric, see the
 /// documentation for each mentioned trait.
@@ -234,6 +256,9 @@ impl<T: MetricSink> Metered for StatsdClient<T> {
 }
 
 
+impl<T: MetricSink> MetricClient for StatsdClient<T> {}
+
+
 fn trim_key(val: &str) -> &str {
     if val.ends_with('.') {
         val.trim_right_matches('.')
@@ -245,7 +270,9 @@ fn trim_key(val: &str) -> &str {
 
 #[cfg(test)]
 mod tests {
-    use super::trim_key;
+    use super::{trim_key, Counted, Timed, Gauged, Metered, MetricClient,
+                StatsdClient};
+    use ::sinks::NopMetricSink;
 
     #[test]
     fn test_trim_key_with_trailing_dot() {
@@ -255,5 +282,52 @@ mod tests {
     #[test]
     fn test_trim_key_no_trailing_dot() {
         assert_eq!("some.prefix", trim_key("some.prefix"));
+    }
+
+    // The following tests really just ensure that we've actually
+    // implemented all the traits we're supposed to correctly. If
+    // we hadn't, this wouldn't compile.
+
+    #[test]
+    fn test_statsd_client_as_counted() {
+        let client: Box<Counted> = Box::new(StatsdClient::from_sink(
+            "prefix", NopMetricSink));
+
+        client.count("some.counter", 5).unwrap();
+    }
+
+    #[test]
+    fn test_statsd_client_as_timed() {
+        let client: Box<Timed> = Box::new(StatsdClient::from_sink(
+            "prefix", NopMetricSink));
+
+        client.time("some.timer", 20).unwrap();
+    }
+
+    #[test]
+    fn test_statsd_client_as_gauged() {
+        let client: Box<Gauged> = Box::new(StatsdClient::from_sink(
+            "prefix", NopMetricSink));
+
+        client.gauge("some.gauge", 32).unwrap();
+    }
+
+    #[test]
+    fn test_statsd_client_as_metered() {
+        let client: Box<Metered> = Box::new(StatsdClient::from_sink(
+            "prefix", NopMetricSink));
+
+        client.meter("some.meter", 9).unwrap();
+    }
+
+    #[test]
+    fn test_statsd_client_as_metric_client() {
+        let client: Box<MetricClient> = Box::new(StatsdClient::from_sink(
+            "prefix", NopMetricSink));
+
+        client.count("some.counter", 3).unwrap();
+        client.time("some.timer", 198).unwrap();
+        client.gauge("some.gauge", 4).unwrap();
+        client.meter("some.meter", 29).unwrap();
     }
 }

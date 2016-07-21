@@ -21,4 +21,4 @@
 //! let client = StatsdClient::<UdpMetricSink>::from_udp_host("some.prefix", host);
 //! ```
 
-pub use ::client::{Counted, Timed, Gauged, Metered};
+pub use ::client::{Counted, Timed, Gauged, Metered, MetricClient};
