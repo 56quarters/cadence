@@ -1,11 +1,13 @@
 extern crate cadence;
 
+use std::net::UdpSocket;
 use std::thread;
 use std::time::Duration;
 use std::sync::Arc;
 
 use cadence::prelude::*;
-use cadence::{DEFAULT_PORT, NopMetricSink, UdpMetricSink, MetricSink, StatsdClient, Counter,
+use cadence::{DEFAULT_PORT, NopMetricSink, UdpMetricSink,
+              BufferedUdpMetricSink, MetricSink, StatsdClient, Counter,
               Timer, Gauge, Meter};
 
 
@@ -18,6 +20,16 @@ fn new_udp_client(prefix: &str) -> StatsdClient<UdpMetricSink> {
     let addr = ("127.0.0.1", DEFAULT_PORT);
     StatsdClient::<UdpMetricSink>::from_udp_host(prefix, addr).unwrap()
 }
+
+
+fn new_buffered_udp_client(prefix: &str)
+                           -> StatsdClient<BufferedUdpMetricSink> {
+    let host = ("127.0.0.1", DEFAULT_PORT);
+    let socket = UdpSocket::bind("0.0.0.0:0").unwrap();
+    let sink = BufferedUdpMetricSink::from(host, socket).unwrap();
+    StatsdClient::from_sink(prefix, sink)
+}
+
 
 
 #[test]
@@ -76,7 +88,6 @@ fn test_statsd_client_meter() {
 }
 
 
-#[ignore]
 #[test]
 fn test_statsd_client_nop_sink_single_threaded() {
     let client = new_nop_client("counter.threaded.nop");
@@ -84,10 +95,16 @@ fn test_statsd_client_nop_sink_single_threaded() {
 }
 
 
-#[ignore]
 #[test]
 fn test_statsd_client_udp_sink_single_threaded() {
     let client = new_udp_client("cadence");
+    run_threaded_test(client, 1, 1);
+}
+
+
+#[test]
+fn test_statsd_client_buffered_udp_sink_single_threaded() {
+    let client = new_buffered_udp_client("cadence");
     run_threaded_test(client, 1, 1);
 }
 
@@ -112,7 +129,16 @@ fn test_statsd_client_udp_sink_many_threaded() {
 }
 
 
-fn run_threaded_test<T>(client: StatsdClient<T>, num_threads: u64, iterations: u64) -> ()
+#[ignore]
+#[test]
+fn test_statsd_client_buffered_udp_sink_many_threaded() {
+    let client = new_buffered_udp_client("cadence");
+    run_threaded_test(client, NUM_THREADS, NUM_ITERATIONS);
+}
+
+
+fn run_threaded_test<T>(
+    client: StatsdClient<T>, num_threads: u64, iterations: u64) -> ()
     where T: 'static + MetricSink + Sync + Send
 {
     let shared_client = Arc::new(client);

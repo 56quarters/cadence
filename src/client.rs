@@ -23,7 +23,8 @@ use ::types::{MetricResult, Counter, Timer, Gauge, Meter, Metric};
 /// by the server receiving them. Examples of counter uses include number
 /// of logins to a system or requests received.
 ///
-/// See the [Statsd spec](https://github.com/b/statsd_spec) for more information.
+/// See the [Statsd spec](https://github.com/b/statsd_spec) for more
+/// information.
 pub trait Counted {
     /// Increment the counter by `1`
     fn incr(&self, key: &str) -> MetricResult<Counter>;
@@ -42,7 +43,8 @@ pub trait Counted {
 /// time. Examples include time taken to render a web page or time taken
 /// for a database call to return.
 ///
-/// See the [Statsd spec](https://github.com/b/statsd_spec) for more information.
+/// See the [Statsd spec](https://github.com/b/statsd_spec) for more
+/// information.
 pub trait Timed {
     /// Record a timing in milliseconds with the given key
     fn time(&self, key: &str, time: u64) -> MetricResult<Timer>;
@@ -55,7 +57,8 @@ pub trait Timed {
 /// by the client. They do not change unless changed by the client. Examples
 /// include things like load average or how many connections are active.
 ///
-/// See the [Statsd spec](https://github.com/b/statsd_spec) for more information.
+/// See the [Statsd spec](https://github.com/b/statsd_spec) for more
+/// information.
 pub trait Gauged {
     /// Record a gauge value with the given key
     fn gauge(&self, key: &str, value: u64) -> MetricResult<Gauge>;
@@ -70,7 +73,8 @@ pub trait Gauged {
 /// things like number of requests handled or number of times something is
 /// flushed to disk.
 ///
-/// See the [Statsd spec](https://github.com/b/statsd_spec) for more information.
+/// See the [Statsd spec](https://github.com/b/statsd_spec) for more
+/// information.
 pub trait Metered {
     /// Record a single metered event with the given key
     fn mark(&self, key: &str) -> MetricResult<Meter>;
@@ -117,6 +121,7 @@ pub trait MetricClient: Counted + Timed + Gauged + Metered {}
 ///
 /// The client uses some implementation of a `MetricSink` to emit the metrics.
 /// In most cases, users will want to use the `UdpMetricSink` implementation.
+#[derive(Debug)]
 pub struct StatsdClient<T: MetricSink> {
     prefix: String,
     sink: T,
@@ -149,6 +154,21 @@ impl<T: MetricSink> StatsdClient<T> {
     /// socket.set_nonblocking(true).unwrap();
     ///
     /// let sink = UdpMetricSink::from(host, socket).unwrap();
+    /// let client = StatsdClient::from_sink(prefix, sink);
+    /// ```
+    ///
+    /// # Buffered UDP Socket Example
+    ///
+    /// ```
+    /// use std::net::UdpSocket;
+    /// use cadence::{StatsdClient, BufferedUdpMetricSink, DEFAULT_PORT};
+    ///
+    /// let prefix = "my.stats";
+    /// let host = ("127.0.0.1", DEFAULT_PORT);
+    ///
+    /// let socket = UdpSocket::bind("0.0.0.0:0").unwrap();
+    ///
+    /// let sink = BufferedUdpMetricSink::from(host, socket).unwrap();
     /// let client = StatsdClient::from_sink(prefix, sink);
     /// ```
     pub fn from_sink(prefix: &str, sink: T) -> StatsdClient<T> {
