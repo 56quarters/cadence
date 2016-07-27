@@ -7,5 +7,6 @@ git tag -l
 git tag 0.1.0
 cargo package
 cargo publish
+build docs
 git push --tags origin
 git push --tags github
