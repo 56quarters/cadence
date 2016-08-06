@@ -203,6 +203,45 @@ client.time("my.service.call", 214);
 client.incr("some.event");
 ```
 
+### Buffered UDP Sink
+
+While sending a metric over UDP is very fast, the overhead of frequent
+network calls can start to add up. This is especially true if you are
+writing a high performance application that emits a lot of metrics.
+
+To make sure that metrics aren't interfering with the performance of
+your application, you may want to use a `MetricSink` implentation that
+buffers multiple metrics before sending them in a single network
+operation. For this, there's `BufferedUdpMetricSink`. An example of
+using this sink is given below.
+
+``` rust,no_run
+use std::net::UdpSocket;
+use cadence::prelude::*;
+use cadence::{StatsdClient, BufferedUdpMetricSink, DEFAULT_PORT};
+
+let socket = UdpSocket::bind("0.0.0.0:0").unwrap();
+socket.set_nonblocking(true).unwrap();
+
+let host = ("metrics.example.com", DEFAULT_PORT);
+let sink = BufferedUdpMetricSink::from(host, socket).unwrap();
+let client = StatsdClient::from_sink("my.prefix", sink);
+
+client.count("my.counter.thing", 29);
+client.time("my.service.call", 214);
+client.incr("some.event");
+```
+
+As you can see, using this buffered UDP sink is no more complicated
+than using the regular, non-buffered, UDP sink.
+
+The only downside to this sink is that metrics aren't written to the
+Statsd server until the buffer is full. If you have a busy application
+that is constantly emitting metrics, this shouldn't be a problem.
+However, if your application only occasionally emits metrics, this sink
+might result in the metrics being delayed for a little while until the
+buffer fills.
+
 ## Documentation
 
 The documentation is available at https://tshlabs.github.io/cadence/
