@@ -46,6 +46,7 @@ impl<T: Write> MultiLineWriter<T> {
         }
     }
 
+    #[allow(dead_code)]
     fn get_ref(&self) -> &T {
         self.inner.get_ref()
     }
@@ -84,36 +85,6 @@ impl<T: Write> Write for MultiLineWriter<T> {
         try!(self.inner.flush());
         self.written = 0;
         Ok(())
-    }
-}
-
-
-impl<T> Clone for MultiLineWriter<T> where T: Write + Clone {
-    fn clone(&self) -> Self {
-        // We know this is safe since we did the conversion from &str to
-        // bytes originally. Just go back to a &str here so that we can
-        // use the constructor and not duplicate code.
-        let ending = unsafe {
-            str::from_utf8_unchecked(&self.line_ending)
-        };
-
-        MultiLineWriter::with_ending(
-            self.capacity,
-            self.get_ref().clone(),
-            ending
-        )
-    }
-
-    fn clone_from(&mut self, source: &Self) {
-        self.capacity = source.capacity;
-        // We're creating a new BufWriter to wrap the underlying Write
-        // implementation so we don't care what the source object has
-        // already written, we're buffering in a new instance so we start
-        // from 0 bytes written.
-        self.written = 0;
-        self.inner = BufWriter::with_capacity(
-            self.capacity, source.get_ref().clone());
-        self.line_ending = source.line_ending.clone();
     }
 }
 

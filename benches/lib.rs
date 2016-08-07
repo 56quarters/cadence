@@ -8,7 +8,8 @@ use std::net::UdpSocket;
 
 use cadence::prelude::*;
 use cadence::{DEFAULT_PORT, StatsdClient, Counter, Timer, Gauge, Meter,
-              NopMetricSink, UdpMetricSink, BufferedUdpMetricSink};
+              NopMetricSink, UdpMetricSink, BufferedUdpMetricSink,
+              AsyncMetricSink};
 
 
 fn new_nop_client() -> StatsdClient<NopMetricSink> {
@@ -28,6 +29,15 @@ fn new_buffered_udp_client() -> StatsdClient<BufferedUdpMetricSink> {
     let socket = UdpSocket::bind("0.0.0.0:0").unwrap();
     let sink = BufferedUdpMetricSink::from(host, socket).unwrap();
     StatsdClient::from_sink("test.bench.buffered", sink)
+}
+
+
+fn new_async_buffered_udp_client() -> StatsdClient<AsyncMetricSink<BufferedUdpMetricSink>> {
+    let host = ("127.0.0.1", DEFAULT_PORT);
+    let socket = UdpSocket::bind("0.0.0.0:0").unwrap();
+    let sink = BufferedUdpMetricSink::from(host, socket).unwrap();
+    let async = AsyncMetricSink::from(sink);
+    StatsdClient::from_sink("test.bench.buffered", async)
 }
 
 
@@ -174,6 +184,55 @@ fn test_benchmark_statsdclient_meter_buffered_udp(b: &mut Bencher) {
 #[bench]
 fn test_benchmark_statsdclient_mark_buffered_udp(b: &mut Bencher) {
     let client = new_buffered_udp_client();
+    b.iter(|| client.mark("some.meter.mark"));
+}
+
+
+#[bench]
+fn test_benchmark_statsdclient_count_async_buffered_udp(b: &mut Bencher) {
+    let client = new_async_buffered_udp_client();
+    b.iter(|| client.count("some.counter", 4));
+}
+
+
+#[bench]
+fn test_benchmark_statsdclient_incr_async_buffered_udp(b: &mut Bencher) {
+    let client = new_async_buffered_udp_client();
+    b.iter(|| client.incr("some.counter.incr"));
+}
+
+
+#[bench]
+fn test_benchmark_statsdclient_decr_async_buffered_udp(b: &mut Bencher) {
+    let client = new_async_buffered_udp_client();
+    b.iter(|| client.decr("some.counter.decr"));
+}
+
+
+#[bench]
+fn test_benchmark_statsdclient_time_async_buffered_udp(b: &mut Bencher) {
+    let client = new_async_buffered_udp_client();
+    b.iter(|| client.time("some.timer", 4));
+}
+
+
+#[bench]
+fn test_benchmark_statsdclient_gauge_async_buffered_udp(b: &mut Bencher) {
+    let client = new_async_buffered_udp_client();
+    b.iter(|| client.gauge("some.gauge", 4));
+}
+
+
+#[bench]
+fn test_benchmark_statsdclient_meter_async_buffered_udp(b: &mut Bencher) {
+    let client = new_async_buffered_udp_client();
+    b.iter(|| client.meter("some.meter", 4));
+}
+
+
+#[bench]
+fn test_benchmark_statsdclient_mark_async_buffered_udp(b: &mut Bencher) {
+    let client = new_async_buffered_udp_client();
     b.iter(|| client.mark("some.meter.mark"));
 }
 

@@ -10,21 +10,31 @@
 
 
 use log::LogLevel;
+use threadpool::ThreadPool;
+
 use std::io;
 use std::io::Write;
 use std::net::{ToSocketAddrs, SocketAddr, UdpSocket};
-use std::sync::Mutex;
+use std::sync::{Arc, Mutex};
 
 use ::io::{MultiLineWriter, UdpWriteAdapter};
 use ::types::{MetricResult, MetricError, ErrorKind};
 
 
-/// Default size of the buffer for buffered metric sinks. This
-/// is a rather conservative value, picked to make sure the entire
-/// buffer fits in a small UDP packet. Users may want to use a
-/// different value based on the configuration of the network
-/// their application runs in.
-pub const DEFAULT_BUFFER_SIZE: usize = 512;
+// Default size of the buffer for buffered metric sinks. This
+// is a rather conservative value, picked to make sure the entire
+// buffer fits in a small UDP packet. Users may want to use a
+// different value based on the configuration of the network
+// their application runs in.
+const DEFAULT_BUFFER_SIZE: usize = 512;
+
+
+// Default size (number of threads) for the thread pool used by
+// the `AsyncMetricSink` for sending metrics. This value is rather
+// arbitrary but should be fine for most use cases. Users that
+// need further customization can use the alternate constructor
+// for the `AsyncMetricSink`.
+const DEFAULT_THREAD_POOL_SIZE: usize = 4;
 
 
 /// Trait for various backends that send Statsd metrics somewhere.
@@ -81,13 +91,21 @@ fn get_addr<A: ToSocketAddrs>(addr: A) -> MetricResult<SocketAddr> {
 
 /// Implementation of a `MetricSink` that emits metrics over UDP.
 ///
-/// This is the `MetricSink` that almost all consumers of this library will
-/// want to use. It accepts a UDP socket instance over which to write metrics
-/// and the address of the Statsd server to send packets to.
-#[derive(Debug)]
+/// This is the most basic version of `MetricSink` that sends metrics over
+/// UDP. It accepts a UDP socket instance over which to write metrics and
+/// the address of the Statsd server to send packets to.
+///
+/// Each metric is sent to the Statsd server when the `.emit()` method is
+/// called, in the thread of the caller.
+#[derive(Debug, Clone)]
 pub struct UdpMetricSink {
     sink_addr: SocketAddr,
-    socket: UdpSocket,
+    // Wrap our socket in an Arc so that this sink can implement `Clone`.
+    // This allows cheap and easy copies of this sink. This is important
+    // when used as part of another data structure that can't be shared
+    // between threads (for example, when wrapped by `AsyncMetricSink`)
+    // and thus needs a copy for each thread.
+    socket: Arc<UdpSocket>,
 }
 
 
@@ -142,7 +160,7 @@ impl UdpMetricSink {
         let addr = try!(get_addr(sink_addr));
         Ok(UdpMetricSink {
             sink_addr: addr,
-            socket: socket,
+            socket: Arc::new(socket),
         })
     }
 }
@@ -171,9 +189,14 @@ impl MetricSink for UdpMetricSink {
 ///
 /// If a metric larger than the buffer is emitted, it will be written
 /// directly to the underlying UDP socket, bypassing the buffer.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct BufferedUdpMetricSink {
-    buffer: Mutex<MultiLineWriter<UdpWriteAdapter>>,
+    // Wrap our mutex/buffer/socket in an Arc so that this sink can
+    // implement `Clone`. This allows cheap and easy copies of this sink.
+    // This is important when used as part of another data structure that
+    // can't be shared between threads (for example, when wrapped by
+    // `AsyncMetricSink`) and thus needs a copy for each thread.
+    buffer: Arc<Mutex<MultiLineWriter<UdpWriteAdapter>>>,
 }
 
 
@@ -253,9 +276,9 @@ impl BufferedUdpMetricSink {
     {
         let addr = try!(get_addr(sink_addr));
         Ok(BufferedUdpMetricSink {
-            buffer: Mutex::new(MultiLineWriter::new(
+            buffer: Arc::new(Mutex::new(MultiLineWriter::new(
                 cap, UdpWriteAdapter::new(addr, socket)
-            )),
+            ))),
         })
     }
 }
@@ -263,12 +286,126 @@ impl BufferedUdpMetricSink {
 
 impl MetricSink for BufferedUdpMetricSink {
     fn emit(&self, metric: &str) -> io::Result<usize> {
-        // TODO: How do we handle this lock being poisoned? If it
-        // is this will just panic and blow up people's application
-        // which is not great. Is there a way to recreate the mutex
-        // here if it's poisoned via settings a new one in a RefCell?
         let mut writer = self.buffer.lock().unwrap();
         writer.write(metric.as_bytes())
+    }
+}
+
+
+/// Implementation of a `MetricSink` that wraps another implementation
+/// and uses it to emit metrics asynchronously with a thread pool.
+///
+/// The wrapped implementation can by any thread safe (`Send + Sync`)
+/// `MetricSink` implementation. Results from the wrapped implementation
+/// will be discarded.
+///
+/// Because this `MetricSink` implementation uses a thread pool, the sink
+/// itself cannot be shared between threads. Instead, callers may opt to
+/// create a `.clone()` for each thread that needs to emit metrics. This
+/// of course requires that the wrapped sink implements the `Clone` trait
+/// (all of the sinks that are part of Cadence implement `Clone`).
+///
+/// When cloned, the new instance of this sink will have a cloned thread
+/// pool instance that submits jobs to the same worker threads as the
+/// original sink and a reference (`Arc`) to the wrapped sink. If you
+/// plan on cloning this sink, the thread pool should be sized
+/// appropriately to be used by all expected sink instances.
+#[derive(Debug, Clone)]
+pub struct AsyncMetricSink<T: 'static + MetricSink + Send + Sync> {
+    pool: ThreadPool,
+    delegate: Arc<T>,
+}
+
+
+impl<T: 'static + MetricSink + Send + Sync> AsyncMetricSink<T> {
+    /// Construct a new `AsyncMetricSink` instance wrapping another sink
+    /// implementation.
+    ///
+    /// The `.emit()` method of the wrapped sink will be executed in a
+    /// different thread via a thread pool. The wrapped sink should be
+    /// thread safe (`Send + Sync`).
+    ///
+    /// The default thread pool size is four threads. Callers can use
+    /// more or fewer threads by making use of the `with_threadpool`
+    /// constructor.
+    ///
+    /// # UDP Sink Example
+    ///
+    /// In this example we wrap the basic UDP sink to execute it in a
+    /// different thread.
+    ///
+    /// ```no_run
+    /// use std::net::UdpSocket;
+    /// use cadence::{UdpMetricSink, AsyncMetricSink, DEFAULT_PORT};
+    ///
+    /// let socket = UdpSocket::bind("0.0.0.0:0").unwrap();
+    /// let host = ("metrics.example.com", DEFAULT_PORT);
+    /// let udp_sink = UdpMetricSink::from(host, socket).unwrap();
+    /// let async_sink = AsyncMetricSink::from(udp_sink);
+    /// ```
+    ///
+    /// # Buffered UDP Sink Example
+    ///
+    /// This example uses the buffered UDP sink, wrapped in the async
+    /// metric sink.
+    ///
+    /// ```no_run
+    /// use std::net::UdpSocket;
+    /// use cadence::{BufferedUdpMetricSink, AsyncMetricSink, DEFAULT_PORT};
+    ///
+    /// let socket = UdpSocket::bind("0.0.0.0:0").unwrap();
+    /// let host = ("metrics.example.com", DEFAULT_PORT);
+    /// let udp_sink = BufferedUdpMetricSink::from(host, socket).unwrap();
+    /// let async_sink = AsyncMetricSink::from(udp_sink);
+    /// ```
+    pub fn from(sink: T) -> AsyncMetricSink<T> {
+        Self::with_threadpool(sink, ThreadPool::new(DEFAULT_THREAD_POOL_SIZE))
+    }
+
+    /// Construct a new `AsyncMetricSink` instance wrapping another sink
+    /// implementation that will use the provided thread pool for
+    /// asynchronous execution.
+    ///
+    /// The `.emit()` method of the wrapped sink will be executed in a
+    /// different thread via a thread pool. The wrapped sink should be
+    /// thread safe (`Send + Sync`).
+    ///
+    /// # Buffered UDP Sink With a Single Threaded Pool
+    ///
+    /// ```no_run
+    /// # extern crate threadpool;
+    /// # extern crate cadence;
+    /// # fn main() {
+    /// use std::net::UdpSocket;
+    /// use threadpool::ThreadPool;
+    /// use cadence::{BufferedUdpMetricSink, AsyncMetricSink, DEFAULT_PORT};
+    ///
+    /// let socket = UdpSocket::bind("0.0.0.0:0").unwrap();
+    /// let host = ("metrics.example.com", DEFAULT_PORT);
+    /// let udp_sink = BufferedUdpMetricSink::from(host, socket).unwrap();
+    /// let async_sink = AsyncMetricSink::with_threadpool(
+    ///     udp_sink, ThreadPool::new(1));
+    /// # }
+    /// ```
+    pub fn with_threadpool(sink: T, pool: ThreadPool) -> AsyncMetricSink<T> {
+        AsyncMetricSink {
+            pool: pool,
+            delegate: Arc::new(sink),
+        }
+    }
+}
+
+
+impl<T: 'static + MetricSink + Send + Sync> MetricSink for AsyncMetricSink<T> {
+    fn emit(&self, metric: &str) -> io::Result<usize> {
+        let owned_metric = metric.to_string();
+        let sink = self.delegate.clone();
+
+        self.pool.execute(move || {
+            let _r = sink.emit(&owned_metric);
+        });
+
+        Ok(metric.len())
     }
 }
 
@@ -336,7 +473,8 @@ mod tests {
     use std::net::UdpSocket;
 
     use super::{get_addr, MetricSink, NopMetricSink, ConsoleMetricSink,
-                LoggingMetricSink, UdpMetricSink, BufferedUdpMetricSink};
+                LoggingMetricSink, UdpMetricSink, BufferedUdpMetricSink,
+                AsyncMetricSink};
 
     #[test]
     fn test_get_addr_bad_address() {
@@ -392,7 +530,7 @@ mod tests {
     fn test_buffered_udp_metric_sink() {
         let socket = UdpSocket::bind("0.0.0.0:0").unwrap();
         // Set the capacity of the buffer such that we know it will
-        // be flush as a response to the metrics we're writing.
+        // be flushed as a response to the metrics we're writing.
         let sink = BufferedUdpMetricSink::with_capacity(
             "127.0.0.1:8125", socket, 16).unwrap();
 
@@ -401,5 +539,12 @@ mod tests {
         // the end.
         assert_eq!(9, sink.emit("foo:54|c").unwrap());
         assert_eq!(9, sink.emit("foo:67|c").unwrap());
+    }
+
+    #[test]
+    fn test_async_nop_metric_sink() {
+        let sink = AsyncMetricSink::from(NopMetricSink);
+        assert_eq!(8, sink.emit("buz:33|c").unwrap());
+        assert_eq!(8, sink.emit("boo:27|c").unwrap());
     }
 }
