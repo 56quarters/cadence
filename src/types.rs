@@ -25,7 +25,7 @@ pub trait Metric {
 /// Counters are simple values incremented or decremented by a client.
 ///
 /// See the `Counted` trait for more information.
-#[derive(PartialEq, Eq, Debug, Hash)]
+#[derive(PartialEq, Eq, Debug, Hash, Clone)]
 pub struct Counter {
     repr: String,
 }
@@ -48,7 +48,7 @@ impl Metric for Counter {
 /// Timers are a positive number of milliseconds between a start and end point.
 ///
 /// See the `Timed` trait for more information.
-#[derive(PartialEq, Eq, Debug, Hash)]
+#[derive(PartialEq, Eq, Debug, Hash, Clone)]
 pub struct Timer {
     repr: String,
 }
@@ -71,7 +71,7 @@ impl Metric for Timer {
 /// Gauges are an instantaneous value determined by the client.
 ///
 /// See the `Gauged` trait for more information.
-#[derive(PartialEq, Eq, Debug, Hash)]
+#[derive(PartialEq, Eq, Debug, Hash, Clone)]
 pub struct Gauge {
     repr: String,
 }
@@ -94,7 +94,7 @@ impl Metric for Gauge {
 /// Meters measure the rate at which events occur as determined by the server.
 ///
 /// See the `Metered` trait for more information.
-#[derive(PartialEq, Eq, Debug, Hash)]
+#[derive(PartialEq, Eq, Debug, Hash, Clone)]
 pub struct Meter {
     repr: String,
 }

@@ -276,7 +276,7 @@ impl MetricSink for BufferedUdpMetricSink {
 /// Implementation of a `MetricSink` that discards all metrics.
 ///
 /// Useful for disabling metric collection or unit tests.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct NopMetricSink;
 
 
@@ -291,7 +291,7 @@ impl MetricSink for NopMetricSink {
 /// Implementation of a `MetricSink` that emits metrics to the console.
 ///
 /// Metrics are emitted with the `println!` macro.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ConsoleMetricSink;
 
 
@@ -308,7 +308,7 @@ impl MetricSink for ConsoleMetricSink {
 /// Metrics are emitted using the `LogLevel` provided at construction with a target
 /// of `cadence::metrics`. Note that the number of bytes written returned by `emit`
 /// does not reflect if the provided log level is high enough to be active.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct LoggingMetricSink {
     level: LogLevel,
 }

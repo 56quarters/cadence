@@ -121,7 +121,7 @@ pub trait MetricClient: Counted + Timed + Gauged + Metered {}
 ///
 /// The client uses some implementation of a `MetricSink` to emit the metrics.
 /// In most cases, users will want to use the `UdpMetricSink` implementation.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct StatsdClient<T: MetricSink> {
     prefix: String,
     sink: T,
