@@ -12,6 +12,7 @@
 use std::io;
 use std::io::{BufWriter, Write};
 use std::net::{SocketAddr, UdpSocket};
+use std::str;
 
 
 /// Buffered implementation of the `Write` trait that appends a
@@ -43,6 +44,10 @@ impl<T: Write> MultiLineWriter<T> {
             inner: BufWriter::with_capacity(cap, inner),
             line_ending: Vec::from(end.as_bytes()),
         }
+    }
+
+    fn get_ref(&self) -> &T {
+        self.inner.get_ref()
     }
 }
 
@@ -79,6 +84,36 @@ impl<T: Write> Write for MultiLineWriter<T> {
         try!(self.inner.flush());
         self.written = 0;
         Ok(())
+    }
+}
+
+
+impl<T> Clone for MultiLineWriter<T> where T: Write + Clone {
+    fn clone(&self) -> Self {
+        // We know this is safe since we did the conversion from &str to
+        // bytes originally. Just go back to a &str here so that we can
+        // use the constructor and not duplicate code.
+        let ending = unsafe {
+            str::from_utf8_unchecked(&self.line_ending)
+        };
+
+        MultiLineWriter::with_ending(
+            self.capacity,
+            self.get_ref().clone(),
+            ending
+        )
+    }
+
+    fn clone_from(&mut self, source: &Self) {
+        self.capacity = source.capacity;
+        // We're creating a new BufWriter to wrap the underlying Write
+        // implementation so we don't care what the source object has
+        // already written, we're buffering in a new instance so we start
+        // from 0 bytes written.
+        self.written = 0;
+        self.inner = BufWriter::with_capacity(
+            self.capacity, source.get_ref().clone());
+        self.line_ending = source.line_ending.clone();
     }
 }
 
@@ -124,12 +159,12 @@ mod tests {
         let mut buffered = MultiLineWriter::new(16, vec![]);
 
         let write1 = buffered.write("foo:1234|c".as_bytes()).unwrap();
-        let written_after_write1 = buffered.inner.get_ref().len();
+        let written_after_write1 = buffered.get_ref().len();
 
         let write2 = buffered.write("baz:56789|c".as_bytes()).unwrap();
-        let written_after_write2 = buffered.inner.get_ref().len();
+        let written_after_write2 = buffered.get_ref().len();
 
-        let written = str::from_utf8(&buffered.inner.get_ref()).unwrap();
+        let written = str::from_utf8(&buffered.get_ref()).unwrap();
 
         assert_eq!(11, write1);
         assert_eq!(0, written_after_write1);
@@ -145,10 +180,10 @@ mod tests {
         let mut buffered = MultiLineWriter::new(32, vec![]);
 
         let write1 = buffered.write("abc:3|g".as_bytes()).unwrap();
-        let written_after_write1 = buffered.inner.get_ref().len();
+        let written_after_write1 = buffered.get_ref().len();
 
         let write2 = buffered.write("def:4|g".as_bytes()).unwrap();
-        let written_after_write2 = buffered.inner.get_ref().len();
+        let written_after_write2 = buffered.get_ref().len();
 
         assert_eq!(8, write1);
         assert_eq!(0, written_after_write1);
@@ -163,12 +198,12 @@ mod tests {
 
         let write1 = buffered.write(
             "some_really_long_metric:456|c".as_bytes()).unwrap();
-        let written_after_write1 = buffered.inner.get_ref().len();
+        let written_after_write1 = buffered.get_ref().len();
         let in_buffer_after_write1 = buffered.written;
 
         let write2 = buffered.write(
             "abc:4|g".as_bytes()).unwrap();
-        let written_after_write2 = buffered.inner.get_ref().len();
+        let written_after_write2 = buffered.get_ref().len();
         let in_buffer_after_write2 = buffered.written;
 
         assert_eq!(30, write1);
@@ -186,10 +221,10 @@ mod tests {
 
         buffered.write("xyz".as_bytes()).unwrap();
         buffered.write("abc".as_bytes()).unwrap();
-        let len_after_writes = buffered.inner.get_ref().len();
+        let len_after_writes = buffered.get_ref().len();
 
         buffered.flush().unwrap();
-        let written = str::from_utf8(&buffered.inner.get_ref()).unwrap();
+        let written = str::from_utf8(&buffered.get_ref()).unwrap();
 
         assert_eq!(0, len_after_writes);
         assert_eq!("xyz\nabc\n", written);
@@ -205,7 +240,7 @@ mod tests {
         {
             let mut writer = MultiLineWriter::new(32, &mut buf);
             let _r = writer.write("something".as_bytes()).unwrap();
-            assert_eq!(0,  writer.inner.get_ref().len());
+            assert_eq!(0,  writer.get_ref().len());
         }
 
         assert_eq!(10, buf.len());
