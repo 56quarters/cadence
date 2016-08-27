@@ -25,6 +25,11 @@ use ::sinks::MetricSink;
 const DEFAULT_THREAD_POOL_SIZE: usize = 4;
 
 
+// Default name of the threads in the thread pool used by the
+// `AsyncMetricSink`.
+const DEFAULT_THREAD_POOL_NAME: &'static str = "cadence";
+
+
 /// Implementation of a `MetricSink` that wraps another implementation
 /// and uses it to emit metrics asynchronously with a thread pool.
 ///
@@ -92,7 +97,10 @@ impl<T: 'static + MetricSink + Send + Sync> AsyncMetricSink<T> {
     /// let async_sink = AsyncMetricSink::from(udp_sink);
     /// ```
     pub fn from(sink: T) -> AsyncMetricSink<T> {
-        Self::with_threadpool(sink, ThreadPool::new(DEFAULT_THREAD_POOL_SIZE))
+        Self::with_threadpool(sink, ThreadPool::new_with_name(
+            DEFAULT_THREAD_POOL_NAME.to_string(),
+            DEFAULT_THREAD_POOL_SIZE
+        ))
     }
 
     /// Construct a new `AsyncMetricSink` instance wrapping another sink
