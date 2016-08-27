@@ -302,8 +302,10 @@ pub use self::client::{Counted, Timed, Gauged, Metered, MetricClient,
 
 
 pub use self::sinks::{MetricSink, ConsoleMetricSink, LoggingMetricSink,
-                      NopMetricSink, UdpMetricSink, BufferedUdpMetricSink,
-                      AsyncMetricSink};
+                      NopMetricSink, UdpMetricSink, BufferedUdpMetricSink};
+
+
+pub use self::sinks::threading::AsyncMetricSink;
 
 
 pub use self::types::{MetricResult, MetricError, ErrorKind, Counter, Timer,
