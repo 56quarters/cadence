@@ -1,5 +1,16 @@
 # Changelog
 
+## [v0.8.0](https://github.com/tshlabs/cadence/tree/0.8.0) - 2016-08-27
+* Add new `BufferedUdpMetricSink` implementation of a `MetricSink` that
+  buffers multiple metrics before sending then in a single network operation
+  per [#18](https://github.com/tshlabs/cadence/issues/18).
+* Add new `AsyncMetricSink` implementation of a `MetricSink` that wraps
+  another sink and sends metrics asynchronously using a thread pool per
+  [#23](https://github.com/tshlabs/cadence/issues/23).
+* Implement `Clone` trait for all builtin sinks for easier use with multiple
+  threads, specifically the `AsyncMetricSink` per
+  [#24](https://github.com/tshlabs/cadence/issues/24).
+
 ## [v0.7.0](https://github.com/tshlabs/cadence/tree/0.7.0) - 2016-07-27
 * Add new `MetricClient` trait implemented by `StatsdClient` that encompasses
   all of the other traits for emitting metrics (`Counted`, `Timed`, `Gauged`,
