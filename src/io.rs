@@ -71,7 +71,7 @@ impl<T: Write> Write for MultiLineWriter<T> {
         } else {
             // Perform the buffered write of user data and the trailing
             // newlines. Increment the number of bytes written to the
-            // buffer after each write in case the return errors.
+            // buffer after each write in case they return errors.
             let write1 = try!(self.inner.write(buf));
             self.written += write1;
 
