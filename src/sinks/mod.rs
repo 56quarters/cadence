@@ -202,7 +202,7 @@ impl BufferedUdpMetricSink {
     /// local address with any desired configuration applied (blocking vs
     /// non-blocking, timeouts, etc.).
     ///
-    /// Writes to this sink are automatically suffixed  with a Unix newline
+    /// Writes to this sink are automatically suffixed with a Unix newline
     /// ('\n') by the sink and stored in a 512 byte buffer until the buffer
     /// is full or this sink is destroyed, at which point the buffer will be
     /// flushed.

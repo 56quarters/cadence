@@ -41,11 +41,12 @@ const DEFAULT_THREAD_POOL_NAME: &'static str = "cadence";
 /// itself cannot be shared between threads. Instead, callers may opt to
 /// create a `.clone()` for each thread that needs to emit metrics. This
 /// of course requires that the wrapped sink implements the `Clone` trait
-/// (all of the sinks that are part of Cadence implement `Clone`).
+/// (all of the sinks that are part of Cadence are thread safe and
+/// implement `Clone`).
 ///
 /// When cloned, the new instance of this sink will have a cloned thread
 /// pool instance that submits jobs to the same worker threads as the
-/// original sink and a reference (`Arc`) to the wrapped sink. If you
+/// original pool and a reference (`Arc`) to the wrapped sink. If you
 /// plan on cloning this sink, the thread pool should be sized
 /// appropriately to be used by all expected sink instances.
 #[derive(Debug, Clone)]
