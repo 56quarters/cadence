@@ -84,7 +84,7 @@ pub trait Metered {
 }
 
 
-/// Trait that encompasses all other traits for metrics.
+/// Trait that encompasses all other traits for sending metrics.
 ///
 /// If you wish to use StatsdClient with a generic type or place a
 /// StatsdClient instance behind a pointer (such as a `Box`) this will allow
