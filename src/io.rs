@@ -89,7 +89,7 @@ impl<T: Write> Write for MultiLineWriter<T> {
 }
 
 
-/// Adapter for writing to a UdpSocket via the Write trait
+/// Adapter for writing to a `UdpSocket` via the `Write` trait
 #[derive(Debug)]
 pub struct UdpWriteAdapter {
     addr: SocketAddr,
