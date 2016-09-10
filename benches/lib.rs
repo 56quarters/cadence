@@ -13,14 +13,14 @@ use cadence::{DEFAULT_PORT, StatsdClient, Counter, Timer, Gauge, Meter,
 
 
 fn new_nop_client() -> StatsdClient<NopMetricSink> {
-    StatsdClient::from_sink("test.bench.nop", NopMetricSink)
+    StatsdClient::from_sink("client.bench", NopMetricSink)
 }
 
 
 fn new_udp_client() -> StatsdClient<UdpMetricSink> {
     let host = ("127.0.0.1", DEFAULT_PORT);
     StatsdClient::<UdpMetricSink>::from_udp_host(
-        "test.bench.udp", host).unwrap()
+        "client.bench", host).unwrap()
 }
 
 
@@ -28,7 +28,7 @@ fn new_buffered_udp_client() -> StatsdClient<BufferedUdpMetricSink> {
     let host = ("127.0.0.1", DEFAULT_PORT);
     let socket = UdpSocket::bind("0.0.0.0:0").unwrap();
     let sink = BufferedUdpMetricSink::from(host, socket).unwrap();
-    StatsdClient::from_sink("test.bench.buffered", sink)
+    StatsdClient::from_sink("client.bench", sink)
 }
 
 
@@ -37,7 +37,7 @@ fn new_async_buffered_udp_client() -> StatsdClient<AsyncMetricSink<BufferedUdpMe
     let socket = UdpSocket::bind("0.0.0.0:0").unwrap();
     let sink = BufferedUdpMetricSink::from(host, socket).unwrap();
     let async = AsyncMetricSink::from(sink);
-    StatsdClient::from_sink("test.bench.buffered", async)
+    StatsdClient::from_sink("client.bench", async)
 }
 
 
