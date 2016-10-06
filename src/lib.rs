@@ -91,7 +91,7 @@
 //! writing a high performance application that emits a lot of metrics.
 //!
 //! To make sure that metrics aren't interfering with the performance of
-//! your application, you may want to use a `MetricSink` implentation that
+//! your application, you may want to use a `MetricSink` implementation that
 //! buffers multiple metrics before sending them in a single network
 //! operation. For this, there's `BufferedUdpMetricSink`. An example of
 //! using this sink is given below.
