@@ -1,5 +1,8 @@
 # Changelog
 
+## [v0.8.1](https://github.com/tshlabs/cadence/tree/0.8.1) - 2016-10-11
+* Minor documentation fixes.
+
 ## [v0.8.0](https://github.com/tshlabs/cadence/tree/0.8.0) - 2016-08-27
 * Add new `BufferedUdpMetricSink` implementation of a `MetricSink` that
   buffers multiple metrics before sending then in a single network operation
