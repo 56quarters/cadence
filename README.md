@@ -284,7 +284,7 @@ client.incr("some.event");
 
 ## Documentation
 
-The documentation is available at https://tshlabs.github.io/cadence/
+The documentation is available at https://docs.rs/cadence/
 
 ## Source
 

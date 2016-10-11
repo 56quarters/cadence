@@ -18,7 +18,7 @@ cat <<EOF > index.html
 <html>
 <head>
 <title></title>
-<meta http-equiv="refresh" content="0; url=./cadence/" />
+<meta http-equiv="refresh" content="0; url=https://docs.rs/cadence/" />
 </head>
 </html>
 EOF
