@@ -120,7 +120,14 @@ pub trait MetricClient: Counted + Timed + Gauged + Metered {}
 /// documentation for each mentioned trait.
 ///
 /// The client uses some implementation of a `MetricSink` to emit the metrics.
-/// In most cases, users will want to use the `UdpMetricSink` implementation.
+///
+/// In simple use cases when performance isn't critical, the `UdpMetricSink`
+/// is likely the best choice since it is the simplest to use and understand.
+///
+/// When performance is more important, users will want to use the
+/// `BufferedUdpMetricSink` in combination with the `AsyncMetricSink` for
+/// maximum isolation between the sending metrics and your application as well
+/// as minimum overhead when sending metrics.
 #[derive(Debug, Clone)]
 pub struct StatsdClient<T: MetricSink> {
     prefix: String,
