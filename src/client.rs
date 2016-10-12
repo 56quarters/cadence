@@ -186,8 +186,7 @@ impl<T: MetricSink> StatsdClient<T> {
     }
 
     /// Create a new client instance that will use the given prefix to send
-    /// metrics to the given host over UDP using an appropriate sink. This is
-    /// the construction method that most users of this library will use.
+    /// metrics to the given host over UDP using an appropriate sink.
     ///
     /// The created UDP socket will be put into non-blocking mode.
     ///
