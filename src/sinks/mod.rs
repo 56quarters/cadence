@@ -73,7 +73,7 @@ pub trait MetricSink {
 /// into a concrete `SocketAddr` instance, returning an `InvalidInput`
 /// error if the address could not be parsed.
 fn get_addr<A: ToSocketAddrs>(addr: A) -> MetricResult<SocketAddr> {
-    match try!(addr.to_socket_addrs()).next() {
+    match addr.to_socket_addrs()?.next() {
         Some(addr) => Ok(addr),
         None => Err(MetricError::from(
             (ErrorKind::InvalidInput, "No socket addresses yielded")
@@ -150,7 +150,7 @@ impl UdpMetricSink {
                    -> MetricResult<UdpMetricSink>
         where A: ToSocketAddrs
     {
-        let addr = try!(get_addr(sink_addr));
+        let addr = get_addr(sink_addr)?;
         Ok(UdpMetricSink {
             sink_addr: addr,
             socket: Arc::new(socket),
@@ -267,7 +267,7 @@ impl BufferedUdpMetricSink {
                           -> MetricResult<BufferedUdpMetricSink>
         where A: ToSocketAddrs
     {
-        let addr = try!(get_addr(sink_addr));
+        let addr = get_addr(sink_addr)?;
         Ok(BufferedUdpMetricSink {
             buffer: Arc::new(Mutex::new(MultiLineWriter::new(
                 cap, UdpWriteAdapter::new(addr, socket)
