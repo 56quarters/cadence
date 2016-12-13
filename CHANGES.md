@@ -1,5 +1,8 @@
 # Changelog
 
+## [v0.8.2](https://github.com/tshlabs/cadence/tree/0.8.2) - 2016-12-12
+* Internal code cleanup per [#29](https://github.com/tshlabs/cadence/issues/29).
+
 ## [v0.8.1](https://github.com/tshlabs/cadence/tree/0.8.1) - 2016-10-11
 * Minor documentation fixes.
 

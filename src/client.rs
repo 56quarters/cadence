@@ -216,9 +216,9 @@ impl<T: MetricSink> StatsdClient<T> {
     pub fn from_udp_host<A>(prefix: &str, host: A) -> MetricResult<StatsdClient<UdpMetricSink>>
         where A: ToSocketAddrs
     {
-        let socket = try!(UdpSocket::bind("0.0.0.0:0"));
-        try!(socket.set_nonblocking(true));
-        let sink = try!(UdpMetricSink::from(host, socket));
+        let socket = UdpSocket::bind("0.0.0.0:0")?;
+        socket.set_nonblocking(true)?;
+        let sink = UdpMetricSink::from(host, socket)?;
         Ok(StatsdClient::from_sink(prefix, sink))
     }
 
@@ -228,7 +228,7 @@ impl<T: MetricSink> StatsdClient<T> {
     // responses.
     fn send_metric<M: Metric>(&self, metric: &M) -> MetricResult<()> {
         let metric_string = metric.as_metric_str();
-        try!(self.sink.emit(metric_string));
+        self.sink.emit(metric_string)?;
         Ok(())
     }
 }
@@ -245,7 +245,7 @@ impl<T: MetricSink> Counted for StatsdClient<T> {
 
     fn count(&self, key: &str, count: i64) -> MetricResult<Counter> {
         let counter = Counter::new(&self.prefix, key, count);
-        try!(self.send_metric(&counter));
+        self.send_metric(&counter)?;
         Ok(counter)
     }
 }
@@ -254,7 +254,7 @@ impl<T: MetricSink> Counted for StatsdClient<T> {
 impl<T: MetricSink> Timed for StatsdClient<T> {
     fn time(&self, key: &str, time: u64) -> MetricResult<Timer> {
         let timer = Timer::new(&self.prefix, key, time);
-        try!(self.send_metric(&timer));
+        self.send_metric(&timer)?;
         Ok(timer)
     }
 }
@@ -263,7 +263,7 @@ impl<T: MetricSink> Timed for StatsdClient<T> {
 impl<T: MetricSink> Gauged for StatsdClient<T> {
     fn gauge(&self, key: &str, value: u64) -> MetricResult<Gauge> {
         let gauge = Gauge::new(&self.prefix, key, value);
-        try!(self.send_metric(&gauge));
+        self.send_metric(&gauge)?;
         Ok(gauge)
     }
 }
@@ -276,7 +276,7 @@ impl<T: MetricSink> Metered for StatsdClient<T> {
 
     fn meter(&self, key: &str, value: u64) -> MetricResult<Meter> {
         let meter = Meter::new(&self.prefix, key, value);
-        try!(self.send_metric(&meter));
+        self.send_metric(&meter)?;
         Ok(meter)
     }
 }
