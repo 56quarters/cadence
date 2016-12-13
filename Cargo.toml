@@ -11,6 +11,7 @@ license = "Apache-2.0/MIT"
 keywords = ["statsd", "metrics"]
 
 [dependencies]
+crossbeam = "0.2.10"
 log = "0.3"
 threadpool = "1.3.1"
 

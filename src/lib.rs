@@ -36,8 +36,8 @@
 //!
 //! ## Install
 //!
-//! To make use of Cadence in your project, add it as a dependency in your `Cargo.toml`
-//! file.
+//! To make use of Cadence in your project, add it as a dependency in your
+//! `Cargo.toml` file.
 //!
 //! ``` toml
 //! [dependencies]
@@ -55,7 +55,9 @@
 //!
 //! ## Usage
 //!
-//! Some examples of how to use Cadence are shown below.
+//! Some examples of how to use Cadence are shown below. The examples start
+//! simple and work up to how you should be using Cadence in a production
+//! application.
 //!
 //! ### Simple Use
 //!
@@ -123,33 +125,31 @@
 //! might result in the metrics being delayed for a little while until the
 //! buffer fills.
 //!
-//! ### Asynchronous Metric Sink
+//! ### Queuing Asynchronous Metric Sink
 //!
 //! To make sure emitting metrics doesn't interfere with the performance
 //! of your application (even though emitting metrics is generally quite
 //! fast), it's probably a good idea to make sure metrics are emitted in
 //! in a different thread than your application thread.
 //!
-//! To allow you do this, there is `AsyncMetricSink`. This sink allows you
-//! to wrap any other metric sink and send metrics using a thread pool,
-//! asynchronously from the flow of your application.
+//! To allow you do this, there is `QueuingMetricSink`. This sink allows you
+//! to wrap any other metric sink and send metrics to it via a queue, as it
+//! emits the metrics in another thread, asynchronously from the flow of your
+//! application.
 //!
 //! The requirements for the wrapped metric sink are that it is thread
-//! safe, meaning that it implements the `Send` and `Sync` traits.
-//! Additionally, the wrapped sink should implement the `Clone` trait since
-//! this is how the `AsyncMetricSink` is designed to be shared between
-//! threads (see the source code for the `AsyncMetricSink` for more info).
-//! If you're using the `AsyncMetricSink` with another sink from
-//! Cadence, you don't need to worry: they are all thread safe and implement
-//! the `Clone` trait.
+//! safe, meaning that it implements the `Send` and `Sync` traits. If you're
+//! using the `QueuingMetricSink` with another sink from Cadence, you don't
+//! need to worry: they are all thread safe.
 //!
-//! An example of using the `AsyncMetricSink` to wrap a buffered UDP
-//! metric sink is given below.
+//! An example of using the `QueuingMetricSink` to wrap a buffered UDP
+//! metric sink is given below. This is the preferred way to use Cadence
+//! in production.
 //!
 //! ``` rust,no_run
 //! use std::net::UdpSocket;
 //! use cadence::prelude::*;
-//! use cadence::{StatsdClient, AsyncMetricSink, BufferedUdpMetricSink,
+//! use cadence::{StatsdClient, QueuingMetricSink, BufferedUdpMetricSink,
 //!               DEFAULT_PORT};
 //!
 //! let socket = UdpSocket::bind("0.0.0.0:0").unwrap();
@@ -157,8 +157,8 @@
 //!
 //! let host = ("metrics.example.com", DEFAULT_PORT);
 //! let udp_sink = BufferedUdpMetricSink::from(host, socket).unwrap();
-//! let async_sink = AsyncMetricSink::from(udp_sink);
-//! let client = StatsdClient::from_sink("my.prefix", async_sink);
+//! let queuing_sink = QueuingMetricSink::from(udp_sink);
+//! let client = StatsdClient::from_sink("my.prefix", queuing_sink);
 //!
 //! client.count("my.counter.thing", 29);
 //! client.time("my.service.call", 214);
@@ -232,7 +232,7 @@
 //!
 //! The Cadence `StatsdClient` uses implementations of the `MetricSink`
 //! trait to send metrics to a metric server. Most users of the Candence
-//! library probably want to use the `AsyncMetricSink` wrapping an instance
+//! library probably want to use the `QueuingMetricSink` wrapping an instance
 //! of the `BufferedMetricSink`.
 //!
 //! However, maybe you want to do something not covered by an existing sink.
@@ -289,6 +289,7 @@
 //!
 
 
+extern crate crossbeam;
 #[macro_use]
 extern crate log;
 extern crate threadpool;
@@ -305,7 +306,8 @@ pub use self::sinks::{MetricSink, ConsoleMetricSink, LoggingMetricSink,
                       NopMetricSink, UdpMetricSink, BufferedUdpMetricSink};
 
 
-pub use self::sinks::threading::AsyncMetricSink;
+pub use self::sinks::threadpool::AsyncMetricSink;
+pub use self::sinks::crossbeam::QueuingMetricSink;
 
 
 pub use self::types::{MetricResult, MetricError, ErrorKind, Counter, Timer,

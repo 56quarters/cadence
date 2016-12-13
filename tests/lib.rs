@@ -8,7 +8,8 @@ use std::sync::Arc;
 use cadence::prelude::*;
 use cadence::{DEFAULT_PORT, NopMetricSink, UdpMetricSink,
               BufferedUdpMetricSink, MetricSink, StatsdClient,
-              AsyncMetricSink, Counter, Timer, Gauge, Meter};
+              AsyncMetricSink, QueuingMetricSink, Counter, Timer,
+              Gauge, Meter};
 
 
 fn new_nop_client(prefix: &str) -> StatsdClient<NopMetricSink> {
@@ -37,6 +38,14 @@ fn new_async_buffered_udp_client(prefix: &str)
     let socket = UdpSocket::bind("0.0.0.0:0").unwrap();
     let sink = BufferedUdpMetricSink::from(host, socket).unwrap();
     StatsdClient::from_sink(prefix, AsyncMetricSink::from(sink))
+}
+
+
+fn new_queuing_buffered_udp_client(prefix: &str) -> StatsdClient<QueuingMetricSink> {
+    let host = ("127.0.0.1", DEFAULT_PORT);
+    let socket = UdpSocket::bind("0.0.0.0:0").unwrap();
+    let sink = BufferedUdpMetricSink::from(host, socket).unwrap();
+    StatsdClient::from_sink(prefix, QueuingMetricSink::from(sink))
 }
 
 
@@ -157,6 +166,15 @@ fn test_statsd_client_async_buffered_udp_sink_many_threaded() {
     let client = new_async_buffered_udp_client("cadence");
     run_clone_threaded_test(client, NUM_THREADS, NUM_ITERATIONS);
 }
+
+
+#[ignore]
+#[test]
+fn test_statsd_client_queuing_buffered_udp_sink_many_threaded() {
+    let client = new_queuing_buffered_udp_client("cadence");
+    run_arc_threaded_test(client, NUM_THREADS, NUM_ITERATIONS);
+}
+
 
 fn run_arc_threaded_test<T>(
     client: StatsdClient<T>, num_threads: u64, iterations: u64) -> ()

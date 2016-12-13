@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.9.0](https://github.com/tshlabs/cadence/tree/0.9.0) - ????-??-??
+* Implement `QueuingMetricSink` utilizing a lock-free queue from the Crossbeam
+  library per [#30](https://github.com/tshlabs/cadence/issues/30).
+
 ## [v0.8.2](https://github.com/tshlabs/cadence/tree/0.8.2) - 2016-12-12
 * Internal code cleanup per [#29](https://github.com/tshlabs/cadence/issues/29).
 
