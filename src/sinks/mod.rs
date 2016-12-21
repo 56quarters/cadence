@@ -305,6 +305,9 @@ impl MetricSink for NopMetricSink {
 ///
 /// Metrics are emitted with the `println!` macro.
 #[derive(Debug, Clone)]
+#[deprecated(since="0.9.0", note="If you with to use a console MetricSink please \
+                                  copy the functionality into your own project. This \
+                                  will be removed in version 1.0.0")]
 pub struct ConsoleMetricSink;
 
 
@@ -322,6 +325,9 @@ impl MetricSink for ConsoleMetricSink {
 /// of `cadence::metrics`. Note that the number of bytes written returned by `emit`
 /// does not reflect if the provided log level is high enough to be active.
 #[derive(Debug, Clone)]
+#[deprecated(since="0.9.0", note="If you with to use a logging MetricSink please \
+                                  copy the functionality into your own project. This \
+                                  will be removed in version 1.0.0")]
 pub struct LoggingMetricSink {
     level: LogLevel,
 }
