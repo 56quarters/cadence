@@ -31,10 +31,11 @@ Cadence is a flexible and easy way to do this!
 * Support for alternate backends via the `MetricSink` trait.
 * A simple yet flexible API for sending metrics.
 
+
 ## Install
 
-To make use of Cadence in your project, add it as a dependency in your `Cargo.toml`
-file.
+To make use of Cadence in your project, add it as a dependency in your
+`Cargo.toml` file.
 
 ``` toml
 [dependencies]
@@ -52,13 +53,15 @@ extern crate cadence;
 
 ## Usage
 
-Some examples of how to use Cadence are shown below.
+Some examples of how to use Cadence are shown below. The examples start
+simple and work up to how you should be using Cadence in a production
+application.
 
 ### Simple Use
 
-Simple usage of Cadence is shown below. In this example, we just import the client,
-create an instance that will write to some imaginary metrics server, and send a few
-metrics.
+Simple usage of Cadence is shown below. In this example, we just import
+the client, create an instance that will write to some imaginary metrics
+server, and send a few metrics.
 
 ``` rust,no_run
 // Import the client.
@@ -120,33 +123,31 @@ However, if your application only occasionally emits metrics, this sink
 might result in the metrics being delayed for a little while until the
 buffer fills.
 
-### Asynchronous Metric Sink
+### Queuing Asynchronous Metric Sink
 
 To make sure emitting metrics doesn't interfere with the performance
 of your application (even though emitting metrics is generally quite
 fast), it's probably a good idea to make sure metrics are emitted in
 in a different thread than your application thread.
 
-To allow you do this, there is `AsyncMetricSink`. This sink allows you
-to wrap any other metric sink and send metrics using a thread pool,
-asynchronously from the flow of your application.
+To allow you do this, there is `QueuingMetricSink`. This sink allows you
+to wrap any other metric sink and send metrics to it via a queue, as it
+emits the metrics in another thread, asynchronously from the flow of your
+application.
 
 The requirements for the wrapped metric sink are that it is thread
-safe, meaning that it implements the `Send` and `Sync` traits.
-Additionally, the wrapped sink should implement the `Clone` trait since
-this is how the `AsyncMetricSink` is designed to be shared between
-threads (see the source code for the `AsyncMetricSink` for more info).
-If you're using the `AsyncMetricSink` with another sink from
-Cadence, you don't need to worry: they are all thread safe and implement
-the `Clone` trait.
+safe, meaning that it implements the `Send` and `Sync` traits. If you're
+using the `QueuingMetricSink` with another sink from Cadence, you don't
+need to worry: they are all thread safe.
 
-An example of using the `AsyncMetricSink` to wrap a buffered UDP
-metric sink is given below.
+An example of using the `QueuingMetricSink` to wrap a buffered UDP
+metric sink is given below. This is the preferred way to use Cadence
+in production.
 
 ``` rust,no_run
 use std::net::UdpSocket;
 use cadence::prelude::*;
-use cadence::{StatsdClient, AsyncMetricSink, BufferedUdpMetricSink,
+use cadence::{StatsdClient, QueuingMetricSink, BufferedUdpMetricSink,
               DEFAULT_PORT};
 
 let socket = UdpSocket::bind("0.0.0.0:0").unwrap();
@@ -154,8 +155,8 @@ socket.set_nonblocking(true).unwrap();
 
 let host = ("metrics.example.com", DEFAULT_PORT);
 let udp_sink = BufferedUdpMetricSink::from(host, socket).unwrap();
-let async_sink = AsyncMetricSink::from(udp_sink);
-let client = StatsdClient::from_sink("my.prefix", async_sink);
+let queuing_sink = QueuingMetricSink::from(udp_sink);
+let client = StatsdClient::from_sink("my.prefix", queuing_sink);
 
 client.count("my.counter.thing", 29);
 client.time("my.service.call", 214);
@@ -180,13 +181,11 @@ available in the main module but aren't typically used like that.
 use cadence::prelude::*;
 use cadence::{StatsdClient, UdpMetricSink, DEFAULT_PORT};
 
-
 pub struct User {
     id: u64,
     username: String,
     email: String
 }
-
 
 // Here's a simple DAO (Data Access Object) that doesn't do anything but
 // uses a metric client to keep track of the number of times the
@@ -194,7 +193,6 @@ pub struct User {
 pub struct MyUserDao {
     metrics: Box<MetricClient>
 }
-
 
 impl MyUserDao {
     // Create a new instance that will use the StatsdClient
@@ -208,7 +206,6 @@ impl MyUserDao {
         None
     }
 }
-
 
 // Create a new Statsd client that writes to "metrics.example.com"
 let host = ("metrics.example.com", DEFAULT_PORT);
@@ -243,14 +240,12 @@ use cadence::{StatsdClient, MetricSink, DEFAULT_PORT};
 
 pub struct MyMetricSink;
 
-
 impl MetricSink for MyMetricSink {
     fn emit(&self, metric: &str) -> io::Result<usize> {
         // Your custom metric sink implementation goes here!
         Ok(0)
     }
 }
-
 
 let sink = MyMetricSink;
 let client = StatsdClient::from_sink("my.prefix", sink);

@@ -19,7 +19,8 @@ use std::sync::{Arc, Mutex};
 use ::io::{MultiLineWriter, UdpWriteAdapter};
 use ::types::{MetricResult, MetricError, ErrorKind};
 
-pub mod threading;
+pub mod crossbeam;
+pub mod threadpool;
 
 
 // Default size of the buffer for buffered metric sinks. This
