@@ -123,31 +123,33 @@ However, if your application only occasionally emits metrics, this sink
 might result in the metrics being delayed for a little while until the
 buffer fills.
 
-### Queuing Asynchronous Metric Sink
+### Asynchronous Metric Sink
 
 To make sure emitting metrics doesn't interfere with the performance
 of your application (even though emitting metrics is generally quite
 fast), it's probably a good idea to make sure metrics are emitted in
 in a different thread than your application thread.
 
-To allow you do this, there is `QueuingMetricSink`. This sink allows you
-to wrap any other metric sink and send metrics to it via a queue, as it
-emits the metrics in another thread, asynchronously from the flow of your
-application.
+To allow you do this, there is `AsyncMetricSink`. This sink allows you
+to wrap any other metric sink and send metrics using a thread pool,
+asynchronously from the flow of your application.
 
 The requirements for the wrapped metric sink are that it is thread
-safe, meaning that it implements the `Send` and `Sync` traits. If you're
-using the `QueuingMetricSink` with another sink from Cadence, you don't
-need to worry: they are all thread safe.
+safe, meaning that it implements the `Send` and `Sync` traits.
+Additionally, the wrapped sink should implement the `Clone` trait since
+this is how the `AsyncMetricSink` is designed to be shared between
+threads (see the source code for the `AsyncMetricSink` for more info).
+If you're using the `AsyncMetricSink` with another sink from
+Cadence, you don't need to worry: they are all thread safe and implement
+the `Clone` trait.
 
-An example of using the `QueuingMetricSink` to wrap a buffered UDP
-metric sink is given below. This is the preferred way to use Cadence
-in production.
+An example of using the `AsyncMetricSink` to wrap a buffered UDP
+metric sink is given below.
 
 ``` rust,no_run
 use std::net::UdpSocket;
 use cadence::prelude::*;
-use cadence::{StatsdClient, QueuingMetricSink, BufferedUdpMetricSink,
+use cadence::{StatsdClient, AsyncMetricSink, BufferedUdpMetricSink,
               DEFAULT_PORT};
 
 let socket = UdpSocket::bind("0.0.0.0:0").unwrap();
@@ -155,8 +157,8 @@ socket.set_nonblocking(true).unwrap();
 
 let host = ("metrics.example.com", DEFAULT_PORT);
 let udp_sink = BufferedUdpMetricSink::from(host, socket).unwrap();
-let queuing_sink = QueuingMetricSink::from(udp_sink);
-let client = StatsdClient::from_sink("my.prefix", queuing_sink);
+let async_sink = AsyncMetricSink::from(udp_sink);
+let client = StatsdClient::from_sink("my.prefix", async_sink);
 
 client.count("my.counter.thing", 29);
 client.time("my.service.call", 214);
