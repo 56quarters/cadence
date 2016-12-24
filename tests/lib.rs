@@ -9,7 +9,7 @@ use cadence::prelude::*;
 use cadence::{DEFAULT_PORT, NopMetricSink, UdpMetricSink,
               BufferedUdpMetricSink, MetricSink, StatsdClient,
               AsyncMetricSink, QueuingMetricSink, Counter, Timer,
-              Gauge, Meter};
+              Gauge, Meter, Histogram};
 
 
 fn new_nop_client(prefix: &str) -> StatsdClient<NopMetricSink> {
@@ -106,6 +106,14 @@ fn test_statsd_client_meter() {
 
 
 #[test]
+fn test_statsd_client_histogram() {
+    let client = new_nop_client("client.test");
+    let expected = Histogram::new("client.test", "histogram.key", 20);
+    assert_eq!(expected, client.histogram("histogram.key", 20).unwrap());
+}
+
+
+#[test]
 fn test_statsd_client_nop_sink_single_threaded() {
     let client = new_nop_client("counter.threaded.nop");
     run_arc_threaded_test(client, 1, 1);
@@ -187,9 +195,11 @@ fn run_arc_threaded_test<T>(
 
         thread::spawn(move || {
             for i in 0..iterations {
-                local_client.count("some_counter", i as i64).unwrap();
-                local_client.time("some_timer", i).unwrap();
-                local_client.gauge("some_gauge", i).unwrap();
+                local_client.count("some.counter", i as i64).unwrap();
+                local_client.time("some.timer", i).unwrap();
+                local_client.gauge("some.gauge", i).unwrap();
+                local_client.meter("some.meter", i).unwrap();
+                local_client.histogram("some.histogram", i).unwrap();
                 thread::sleep(Duration::from_millis(1));
             }
         })
@@ -210,9 +220,11 @@ fn run_clone_threaded_test<T>(
 
         thread::spawn(move || {
             for i in 0..iterations {
-                local_client.count("some_counter", i as i64).unwrap();
-                local_client.time("some_timer", i).unwrap();
-                local_client.gauge("some_gauge", i).unwrap();
+                local_client.count("some.counter", i as i64).unwrap();
+                local_client.time("some.timer", i).unwrap();
+                local_client.gauge("some.gauge", i).unwrap();
+                local_client.meter("some.meter", i).unwrap();
+                local_client.histogram("some.histogram", i).unwrap();
                 thread::sleep(Duration::from_millis(1));
             }
         })

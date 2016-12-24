@@ -47,6 +47,8 @@ impl Metric for Counter {
 
 /// Timers are a positive number of milliseconds between a start and end point.
 ///
+/// Statistical distribution of timer values is often computed by the server.
+///
 /// See the `Timed` trait for more information.
 #[derive(PartialEq, Eq, Debug, Hash, Clone)]
 pub struct Timer {
@@ -108,6 +110,33 @@ impl Meter {
 
 
 impl Metric for Meter {
+    fn as_metric_str(&self) -> &str {
+        &self.repr
+    }
+}
+
+
+/// Histograms are values whose distribution is calculated by the server.
+///
+/// The distribution calculated for histograms is often similar to that of
+/// timers. Histograms can be thought of as a more general (not limited to
+/// timing things) form of timers.
+///
+/// See the `Histogrammed` trait for more information.
+#[derive(PartialEq, Eq, Debug, Hash, Clone)]
+pub struct Histogram {
+    repr: String,
+}
+
+
+impl Histogram {
+    pub fn new(prefix: &str, key: &str, value: u64) -> Histogram {
+        Histogram { repr: format!("{}.{}:{}|h", prefix, key, value) }
+    }
+}
+
+
+impl Metric for Histogram {
     fn as_metric_str(&self) -> &str {
         &self.repr
     }
@@ -197,7 +226,8 @@ mod tests {
 
     use std::io;
     use std::error::Error;
-    use super::{Counter, Timer, Gauge, Meter, Metric, MetricError, ErrorKind};
+    use super::{Counter, Timer, Gauge, Meter, Metric, Histogram, MetricError,
+                ErrorKind};
 
     #[test]
     fn test_counter_to_metric_string() {
@@ -221,6 +251,12 @@ mod tests {
     fn test_meter_to_metric_string() {
         let meter = Meter::new("my.app", "test.meter", 5);
         assert_eq!("my.app.test.meter:5|m", meter.as_metric_str());
+    }
+
+    #[test]
+    fn test_histogram_to_metric_string() {
+        let histogram = Histogram::new("my.app", "test.histogram", 45);
+        assert_eq!("my.app.test.histogram:45|h", histogram.as_metric_str());
     }
 
     #[test]

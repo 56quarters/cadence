@@ -13,7 +13,7 @@ use std::net::{ToSocketAddrs, UdpSocket};
 
 use ::sinks::{MetricSink, UdpMetricSink};
 
-use ::types::{MetricResult, Counter, Timer, Gauge, Meter, Metric};
+use ::types::{MetricResult, Counter, Timer, Gauge, Meter, Histogram, Metric};
 
 
 /// Trait for incrementing and decrementing counters.
@@ -84,6 +84,23 @@ pub trait Metered {
 }
 
 
+/// Trait for recording histogram values.
+///
+/// Histogram values are positive values that can represent anything, whose
+/// statistical distribution is calculated by the server. The values can be
+/// timings, amount of some resource consumed, size of HTTP responses in
+/// some application, etc. Histograms can be thought of as a more general
+/// form of timers. They are an extension to the Statsd protocol so you
+/// should check if your server supports them before using them.
+///
+/// See the [Statsd spec](https://github.com/b/statsd_spec) for more
+/// information.
+pub trait Histogrammed {
+    /// Record a single histogram value with the given key
+    fn histogram(&self, key: &str, value: u64) -> MetricResult<Histogram>;
+}
+
+
 /// Trait that encompasses all other traits for sending metrics.
 ///
 /// If you wish to use `StatsdClient` with a generic type or place a
@@ -101,8 +118,9 @@ pub trait Metered {
 /// client.time("some.timer", 42).unwrap();
 /// client.gauge("some.gauge", 8).unwrap();
 /// client.meter("some.meter", 13).unwrap();
+/// client.histogram("some.histogram", 4).unwrap();
 /// ```
-pub trait MetricClient: Counted + Timed + Gauged + Metered {}
+pub trait MetricClient: Counted + Timed + Gauged + Metered + Histogrammed {}
 
 
 /// Client for Statsd that implements various traits to record metrics.
@@ -282,6 +300,15 @@ impl<T: MetricSink> Metered for StatsdClient<T> {
 }
 
 
+impl<T: MetricSink> Histogrammed for StatsdClient<T> {
+    fn histogram(&self, key: &str, value: u64) -> MetricResult<Histogram> {
+        let histo = Histogram::new(&self.prefix, key, value);
+        self.send_metric(&histo)?;
+        Ok(histo)
+    }
+}
+
+
 impl<T: MetricSink> MetricClient for StatsdClient<T> {}
 
 
@@ -296,8 +323,8 @@ fn trim_key(val: &str) -> &str {
 
 #[cfg(test)]
 mod tests {
-    use super::{trim_key, Counted, Timed, Gauged, Metered, MetricClient,
-                StatsdClient};
+    use super::{trim_key, Counted, Timed, Gauged, Metered, Histogrammed,
+                MetricClient, StatsdClient};
     use ::sinks::NopMetricSink;
 
     #[test]
@@ -347,6 +374,14 @@ mod tests {
     }
 
     #[test]
+    fn test_statsd_client_as_histogrammed() {
+        let client: Box<Histogrammed> = Box::new(StatsdClient::from_sink(
+            "prefix", NopMetricSink));
+
+        client.histogram("some.histogram", 4).unwrap();
+    }
+
+    #[test]
     fn test_statsd_client_as_metric_client() {
         let client: Box<MetricClient> = Box::new(StatsdClient::from_sink(
             "prefix", NopMetricSink));
@@ -355,5 +390,6 @@ mod tests {
         client.time("some.timer", 198).unwrap();
         client.gauge("some.gauge", 4).unwrap();
         client.meter("some.meter", 29).unwrap();
+        client.histogram("some.histogram", 32).unwrap();
     }
 }

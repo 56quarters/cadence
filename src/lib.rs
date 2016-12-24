@@ -165,7 +165,7 @@
 //! client.incr("some.event");
 //! ```
 //!
-//! ### Counted, Timed, Gauged, Metered, and MetricClient Traits
+//! ### Counted, Timed, Gauged, Metered, Histogrammed, and MetricClient Traits
 //!
 //! Each of the methods that the Cadence `StatsdClient` struct uses to send
 //! metrics are implemented as a trait. There is also a trait that combines
@@ -311,7 +311,7 @@ pub use self::sinks::crossbeam::QueuingMetricSink;
 
 
 pub use self::types::{MetricResult, MetricError, ErrorKind, Counter, Timer,
-                      Gauge, Meter};
+                      Gauge, Meter, Histogram};
 
 
 pub mod prelude;
