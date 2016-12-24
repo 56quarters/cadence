@@ -61,6 +61,12 @@ const DEFAULT_BUFFER_SIZE: usize = 512;
 /// some.meter:8|m
 /// ```
 ///
+/// ## Histogram
+///
+/// ``` text
+/// some.histogram:4|h
+/// ```
+///
 /// See the [Statsd spec](https://github.com/b/statsd_spec) for more
 /// information.
 pub trait MetricSink {

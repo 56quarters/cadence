@@ -13,12 +13,17 @@
 //!
 //! # Example
 //!
-//! ```no_run
+//! ```
 //! use cadence::prelude::*;
-//! use cadence::{DEFAULT_PORT, StatsdClient, UdpMetricSink};
+//! use cadence::{StatsdClient, NopMetricSink};
 //!
-//! let host = ("metrics.example.com", DEFAULT_PORT);
-//! let client = StatsdClient::<UdpMetricSink>::from_udp_host("some.prefix", host);
+//! let client = StatsdClient::from_sink("some.prefix", NopMetricSink);
+//!
+//! client.count("some.counter", 1).unwrap();
+//! client.time("some.timer", 23).unwrap();
+//! client.gauge("some.gauge", 45).unwrap();
+//! client.meter("some.meter", 67).unwrap();
+//! client.histogram("some.histogram", 89).unwrap();
 //! ```
 
-pub use ::client::{Counted, Timed, Gauged, Metered, MetricClient};
+pub use ::client::{Counted, Timed, Gauged, Metered, Histogrammed, MetricClient};
