@@ -132,6 +132,7 @@ pub trait MetricClient: Counted + Timed + Gauged + Metered + Histogrammed {}
 /// * `Timed` for emitting timings.
 /// * `Gauged` for emitting gauge values.
 /// * `Metered` for emitting meter values.
+/// * `Histogrammed` for emitting histogram values.
 /// * `MetricClient` for a combination of all of the above.
 ///
 /// For more information about the uses for each type of metric, see the
