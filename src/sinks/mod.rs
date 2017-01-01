@@ -313,7 +313,7 @@ impl MetricSink for NopMetricSink {
 #[derive(Debug, Clone)]
 #[deprecated(since="0.9.0", note="If you with to use a console MetricSink please \
                                   copy the functionality into your own project. This \
-                                  will be removed in version 1.0.0")]
+                                  will be removed in version 0.10.0")]
 pub struct ConsoleMetricSink;
 
 
@@ -333,7 +333,7 @@ impl MetricSink for ConsoleMetricSink {
 #[derive(Debug, Clone)]
 #[deprecated(since="0.9.0", note="If you with to use a logging MetricSink please \
                                   copy the functionality into your own project. This \
-                                  will be removed in version 1.0.0")]
+                                  will be removed in version 0.10.0")]
 pub struct LoggingMetricSink {
     level: LogLevel,
 }
