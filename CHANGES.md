@@ -1,6 +1,6 @@
 # Changelog
 
-## [0.9.0](https://github.com/tshlabs/cadence/tree/0.9.0) - ????-??-??
+## [v0.9.0](https://github.com/tshlabs/cadence/tree/0.9.0) - 2017-01-01
 * Implement `QueuingMetricSink` utilizing a lock-free queue from the Crossbeam
   library per [#30](https://github.com/tshlabs/cadence/issues/30).
 * Add new metric type, histograms, per [#40](https://github.com/tshlabs/cadence/issues/40).

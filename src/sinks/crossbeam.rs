@@ -1,6 +1,6 @@
 // Cadence - An extensible Statsd client for Rust!
 //
-// Copyright 2015-2016 TSH Labs
+// Copyright 2015-2017 TSH Labs
 //
 // Licensed under the Apache License, Version 2.0 <LICENSE-APACHE or
 // http://www.apache.org/licenses/LICENSE-2.0> or the MIT license
@@ -207,7 +207,7 @@ struct Sentinel<'a, T> where T: Send + 'static {
 
 
 impl<'a, T> Sentinel<'a, T> where T: Send + 'static {
-    fn new(context: &'a Arc<WorkerContext<T>>,) -> Sentinel<'a, T> {
+    fn new(context: &'a Arc<WorkerContext<T>>) -> Sentinel<'a, T> {
         Sentinel { context: context, active: true }
     }
 
