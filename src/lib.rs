@@ -293,7 +293,6 @@
 
 extern crate crossbeam;
 #[macro_use]
-extern crate log;
 extern crate threadpool;
 
 
@@ -304,8 +303,8 @@ pub use self::client::{Counted, Timed, Gauged, Metered, Histogrammed,
                        MetricClient, StatsdClient};
 
 
-pub use self::sinks::{MetricSink, ConsoleMetricSink, LoggingMetricSink,
-                      NopMetricSink, UdpMetricSink, BufferedUdpMetricSink};
+pub use self::sinks::{MetricSink, NopMetricSink, UdpMetricSink,
+                      BufferedUdpMetricSink};
 
 
 pub use self::sinks::threadpool::AsyncMetricSink;
