@@ -9,8 +9,6 @@
 // except according to those terms.
 
 
-use log::LogLevel;
-
 use std::io;
 use std::io::Write;
 use std::net::{ToSocketAddrs, SocketAddr, UdpSocket};
@@ -307,61 +305,13 @@ impl MetricSink for NopMetricSink {
 }
 
 
-/// Implementation of a `MetricSink` that emits metrics to the console.
-///
-/// Metrics are emitted with the `println!` macro.
-#[derive(Debug, Clone)]
-#[deprecated(since="0.9.0", note="If you with to use a console MetricSink please \
-                                  copy the functionality into your own project. This \
-                                  will be removed in version 0.10.0")]
-pub struct ConsoleMetricSink;
-
-
-impl MetricSink for ConsoleMetricSink {
-    fn emit(&self, metric: &str) -> io::Result<usize> {
-        println!("{}", metric);
-        Ok(metric.len())
-    }
-}
-
-
-/// Implementation of a `MetricSink` that emits metrics using the`log!` macro.
-///
-/// Metrics are emitted using the `LogLevel` provided at construction with a target
-/// of `cadence::metrics`. Note that the number of bytes written returned by `emit`
-/// does not reflect if the provided log level is high enough to be active.
-#[derive(Debug, Clone)]
-#[deprecated(since="0.9.0", note="If you with to use a logging MetricSink please \
-                                  copy the functionality into your own project. This \
-                                  will be removed in version 0.10.0")]
-pub struct LoggingMetricSink {
-    level: LogLevel,
-}
-
-
-impl LoggingMetricSink {
-    pub fn new(level: LogLevel) -> LoggingMetricSink {
-        LoggingMetricSink { level: level }
-    }
-}
-
-
-impl MetricSink for LoggingMetricSink {
-    fn emit(&self, metric: &str) -> io::Result<usize> {
-        log!(target: "cadence::metrics", self.level, "{}", metric);
-        Ok(metric.len())
-    }
-}
-
-
 #[cfg(test)]
 mod tests {
 
-    use log::LogLevel;
     use std::net::UdpSocket;
 
-    use super::{get_addr, MetricSink, NopMetricSink, ConsoleMetricSink,
-                LoggingMetricSink, UdpMetricSink, BufferedUdpMetricSink};
+    use super::{get_addr, MetricSink, NopMetricSink, UdpMetricSink,
+                BufferedUdpMetricSink};
 
     #[test]
     fn test_get_addr_bad_address() {
@@ -384,18 +334,6 @@ mod tests {
     fn test_nop_metric_sink() {
         let sink = NopMetricSink;
         assert_eq!(0, sink.emit("baz:4|c").unwrap());
-    }
-
-    #[test]
-    fn test_console_metric_sink() {
-        let sink = ConsoleMetricSink;
-        assert_eq!(7, sink.emit("foo:2|t").unwrap());
-    }
-
-    #[test]
-    fn test_logging_metric_sink() {
-        let sink = LoggingMetricSink::new(LogLevel::Info);
-        assert_eq!(7, sink.emit("bar:1|g").unwrap());
     }
 
     #[test]

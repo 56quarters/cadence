@@ -296,6 +296,7 @@ impl<T> Worker<T> where T: Send + 'static {
         self.queue.push(None);
     }
 
+    #[allow(dead_code)]
     fn stop_and_wait(&self) {
         let mut stopped = self.stopped.lock().unwrap();
         self.stop();
@@ -305,6 +306,7 @@ impl<T> Worker<T> where T: Send + 'static {
         }
     }
 
+    #[allow(dead_code)]
     fn is_stopped(&self) -> bool {
         *self.stopped.lock().unwrap()
     }
