@@ -49,6 +49,8 @@ const DEFAULT_THREAD_POOL_NAME: &'static str = "cadence";
 /// plan on cloning this sink, the thread pool should be sized
 /// appropriately to be used by all expected sink instances.
 #[derive(Debug, Clone)]
+#[deprecated(since="0.10.0", note="Replaced with QueuingMetricSink. This \
+                                   will be removed in version 0.11.0")]
 pub struct AsyncMetricSink<T: 'static + MetricSink + Send + Sync> {
     pool: ThreadPool,
     delegate: Arc<T>,
