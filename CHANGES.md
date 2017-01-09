@@ -7,6 +7,9 @@
   into their own projects or use Cadence version 0.9.1 until they migrate away from
   them.
 * Deprecate `AsyncMetricSink` per [#34](https://github.com/tshlabs/cadence/issues/34).
+  Anyone still using `AsyncMetricSink` is encouraged to switch to `QueuingMetricSink`
+  instead. Performance should be comparable but `QueuingMetricSink` can be shared
+  between threads without requiring a `.clone()`.
 
 ## [v0.9.1](https://github.com/tshlabs/cadence/tree/0.9.1) - 2017-01-01
 * Change deprecation version of `LoggingMetricSink` and `ConsoleMetricSink` to 0.10.0.
