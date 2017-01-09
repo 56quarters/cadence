@@ -1,6 +1,6 @@
 # Changelog
 
-## [v0.10.0](https://github.com/tshlabs/cadence/tree/0.10.0) - ????-??-??
+## [v0.10.0](https://github.com/tshlabs/cadence/tree/0.10.0) - 2017-01-08
 * **Breaking change** - Remove deprecated `ConsoleMetricSink` and `LoggingMetricSink`
   per [#46](https://github.com/tshlabs/cadence/issues/46). Users wishing to still use
   these sinks are encouraged to [copy the code](https://github.com/tshlabs/cadence/blob/0.9.1/src/sinks/mod.rs)
