@@ -6,6 +6,11 @@
   switch to `QueuingMetricSink` instead. `QueuingMetricSink` has similar performance,
   emits metrics asynchronously in another thread, and has a more ergonomic signature
   (not requiring a generic parameter for the wrapped sink).
+* **Breaking change** - Remove the generic parameter `T` from the `StatsdClient` per
+  [#45](https://github.com/tshlabs/cadence/issues/45). Instead of requiring all users
+  of the client to care about the `MetricSink` implementation, put it behind an `Arc`
+  pointer in the client and remove the type `T` from the signature. This makes the
+  client easier to use and share between threads.
 
 ## [v0.10.0](https://github.com/tshlabs/cadence/tree/0.10.0) - 2017-01-08
 * **Breaking change** - Remove deprecated `ConsoleMetricSink` and `LoggingMetricSink`

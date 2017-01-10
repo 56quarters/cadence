@@ -74,8 +74,7 @@ use cadence::{StatsdClient, UdpMetricSink, DEFAULT_PORT};
 // the client when you use it for real in your application. We're just
 // using .unwrap() here since this is an example!
 let host = ("metrics.example.com", DEFAULT_PORT);
-let client = StatsdClient::<UdpMetricSink>::from_udp_host(
-    "my.metrics", host).unwrap();
+let client = StatsdClient::from_udp_host("my.metrics", host).unwrap();
 
 // Emit metrics!
 client.incr("some.counter");
@@ -209,8 +208,7 @@ impl MyUserDao {
 
 // Create a new Statsd client that writes to "metrics.example.com"
 let host = ("metrics.example.com", DEFAULT_PORT);
-let metrics = StatsdClient::<UdpMetricSink>::from_udp_host(
-    "counter.example", host).unwrap();
+let metrics = StatsdClient::from_udp_host("counter.example", host).unwrap();
 
 // Create a new instance of the DAO that will use the client
 let dao = MyUserDao::new(metrics);
