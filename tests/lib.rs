@@ -8,8 +8,8 @@ use std::sync::Arc;
 use cadence::prelude::*;
 use cadence::{DEFAULT_PORT, NopMetricSink, UdpMetricSink,
               BufferedUdpMetricSink, MetricSink, StatsdClient,
-              AsyncMetricSink, QueuingMetricSink, Counter, Timer,
-              Gauge, Meter, Histogram};
+              QueuingMetricSink, Counter, Timer, Gauge, Meter,
+              Histogram};
 
 
 fn new_nop_client(prefix: &str) -> StatsdClient<NopMetricSink> {
@@ -29,15 +29,6 @@ fn new_buffered_udp_client(prefix: &str)
     let socket = UdpSocket::bind("0.0.0.0:0").unwrap();
     let sink = BufferedUdpMetricSink::from(host, socket).unwrap();
     StatsdClient::from_sink(prefix, sink)
-}
-
-
-fn new_async_buffered_udp_client(prefix: &str)
-                                 -> StatsdClient<AsyncMetricSink<BufferedUdpMetricSink>> {
-    let host = ("127.0.0.1", DEFAULT_PORT);
-    let socket = UdpSocket::bind("0.0.0.0:0").unwrap();
-    let sink = BufferedUdpMetricSink::from(host, socket).unwrap();
-    StatsdClient::from_sink(prefix, AsyncMetricSink::from(sink))
 }
 
 
@@ -133,12 +124,6 @@ fn test_statsd_client_buffered_udp_sink_single_threaded() {
     run_arc_threaded_test(client, 1, 1);
 }
 
-#[test]
-fn test_statsd_client_async_buffered_udp_sink_single_threaded() {
-    let client = new_async_buffered_udp_client("cadence");
-    run_clone_threaded_test(client, 1, 1);
-}
-
 
 const NUM_THREADS: u64 = 100;
 const NUM_ITERATIONS: u64 = 1_000;
@@ -170,14 +155,6 @@ fn test_statsd_client_buffered_udp_sink_many_threaded() {
 
 #[ignore]
 #[test]
-fn test_statsd_client_async_buffered_udp_sink_many_threaded() {
-    let client = new_async_buffered_udp_client("cadence");
-    run_clone_threaded_test(client, NUM_THREADS, NUM_ITERATIONS);
-}
-
-
-#[ignore]
-#[test]
 fn test_statsd_client_queuing_buffered_udp_sink_many_threaded() {
     let client = new_queuing_buffered_udp_client("cadence");
     run_arc_threaded_test(client, NUM_THREADS, NUM_ITERATIONS);
@@ -192,31 +169,6 @@ fn run_arc_threaded_test<T>(
 
     let threads: Vec<_> = (0..num_threads).map(|_| {
         let local_client = shared_client.clone();
-
-        thread::spawn(move || {
-            for i in 0..iterations {
-                local_client.count("some.counter", i as i64).unwrap();
-                local_client.time("some.timer", i).unwrap();
-                local_client.gauge("some.gauge", i).unwrap();
-                local_client.meter("some.meter", i).unwrap();
-                local_client.histogram("some.histogram", i).unwrap();
-                thread::sleep(Duration::from_millis(1));
-            }
-        })
-    }).collect();
-
-    for t in threads {
-        t.join().unwrap();
-    }
-}
-
-
-fn run_clone_threaded_test<T>(
-    client: StatsdClient<T>, num_threads: u64, iterations: u64) -> ()
-    where T: 'static + MetricSink + Send + Clone
-{
-    let threads: Vec<_> = (0..num_threads).map(|_| {
-        let local_client = client.clone();
 
         thread::spawn(move || {
             for i in 0..iterations {

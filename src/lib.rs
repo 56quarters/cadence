@@ -290,8 +290,6 @@
 
 
 extern crate crossbeam;
-#[macro_use]
-extern crate threadpool;
 
 
 pub const DEFAULT_PORT: u16 = 8125;
@@ -305,7 +303,6 @@ pub use self::sinks::{MetricSink, NopMetricSink, UdpMetricSink,
                       BufferedUdpMetricSink};
 
 
-pub use self::sinks::threadpool::AsyncMetricSink;
 pub use self::sinks::crossbeam::QueuingMetricSink;
 
 

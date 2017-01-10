@@ -9,7 +9,7 @@ use std::net::UdpSocket;
 use cadence::prelude::*;
 use cadence::{DEFAULT_PORT, StatsdClient, Counter, Timer, Gauge, Meter,
               Histogram, NopMetricSink, UdpMetricSink, BufferedUdpMetricSink,
-              AsyncMetricSink, QueuingMetricSink};
+              QueuingMetricSink};
 
 
 fn new_nop_client() -> StatsdClient<NopMetricSink> {
@@ -29,12 +29,6 @@ fn new_buffered_udp_client() -> StatsdClient<BufferedUdpMetricSink> {
     let socket = UdpSocket::bind("0.0.0.0:0").unwrap();
     let sink = BufferedUdpMetricSink::from(host, socket).unwrap();
     StatsdClient::from_sink("client.bench", sink)
-}
-
-
-fn new_async_nop_client() -> StatsdClient<AsyncMetricSink<NopMetricSink>> {
-    let async = AsyncMetricSink::from(NopMetricSink);
-    StatsdClient::from_sink("client.bench", async)
 }
 
 
@@ -61,13 +55,6 @@ fn test_benchmark_statsdclient_udp(b: &mut Bencher) {
 #[bench]
 fn test_benchmark_statsdclient_buffered_udp(b: &mut Bencher) {
     let client = new_buffered_udp_client();
-    b.iter(|| client.count("some.counter", 4));
-}
-
-
-#[bench]
-fn test_benchmark_statsdclient_async_nop(b: &mut Bencher) {
-    let client = new_async_nop_client();
     b.iter(|| client.count("some.counter", 4));
 }
 

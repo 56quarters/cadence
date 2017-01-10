@@ -1,11 +1,18 @@
 # Changelog
 
+## [v0.11.0](https://github.com/tshlabs/cadence/tree/0.11.0) - ????-??-??
+* **Breaking change** - Remove deprecated `AsyncMetricSink` per
+  [#47](https://github.com/tshlabs/cadence/issues/47). Users are encouraged to
+  switch to `QueuingMetricSink` instead. `QueuingMetricSink` has similar performance,
+  emits metrics asynchronously in another thread, and has a more ergonomic signature
+  (not requiring a generic parameter for the wrapped sink).
+
 ## [v0.10.0](https://github.com/tshlabs/cadence/tree/0.10.0) - 2017-01-08
 * **Breaking change** - Remove deprecated `ConsoleMetricSink` and `LoggingMetricSink`
   per [#46](https://github.com/tshlabs/cadence/issues/46). Users wishing to still use
-  these sinks are encouraged to [copy the code](https://github.com/tshlabs/cadence/blob/0.9.1/src/sinks/mod.rs)
-  into their own projects or use Cadence version 0.9.1 until they migrate away from
-  them.
+  these sinks are encouraged to
+  [copy the code](https://github.com/tshlabs/cadence/blob/0.9.1/src/sinks/mod.rs)
+  into their own projects or use Cadence version 0.9.1 until they migrate away from them.
 * Deprecate `AsyncMetricSink` per [#34](https://github.com/tshlabs/cadence/issues/34).
   Anyone still using `AsyncMetricSink` is encouraged to switch to `QueuingMetricSink`
   instead. Performance should be comparable but `QueuingMetricSink` can be shared
