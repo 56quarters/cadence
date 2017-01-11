@@ -8,23 +8,22 @@ use std::net::UdpSocket;
 
 use cadence::prelude::*;
 use cadence::{DEFAULT_PORT, StatsdClient, Counter, Timer, Gauge, Meter,
-              Histogram, NopMetricSink, UdpMetricSink, BufferedUdpMetricSink,
+              Histogram, NopMetricSink, BufferedUdpMetricSink,
               QueuingMetricSink};
 
 
-fn new_nop_client() -> StatsdClient<NopMetricSink> {
+fn new_nop_client() -> StatsdClient {
     StatsdClient::from_sink("client.bench", NopMetricSink)
 }
 
 
-fn new_udp_client() -> StatsdClient<UdpMetricSink> {
+fn new_udp_client() -> StatsdClient {
     let host = ("127.0.0.1", DEFAULT_PORT);
-    StatsdClient::<UdpMetricSink>::from_udp_host(
-        "client.bench", host).unwrap()
+    StatsdClient::from_udp_host("client.bench", host).unwrap()
 }
 
 
-fn new_buffered_udp_client() -> StatsdClient<BufferedUdpMetricSink> {
+fn new_buffered_udp_client() -> StatsdClient {
     let host = ("127.0.0.1", DEFAULT_PORT);
     let socket = UdpSocket::bind("0.0.0.0:0").unwrap();
     let sink = BufferedUdpMetricSink::from(host, socket).unwrap();
@@ -32,7 +31,7 @@ fn new_buffered_udp_client() -> StatsdClient<BufferedUdpMetricSink> {
 }
 
 
-fn new_queuing_nop_client() -> StatsdClient<QueuingMetricSink> {
+fn new_queuing_nop_client() -> StatsdClient {
     let async = QueuingMetricSink::from(NopMetricSink);
     StatsdClient::from_sink("client.bench", async)
 }
