@@ -12,7 +12,6 @@ keywords = ["statsd", "metrics"]
 
 [dependencies]
 crossbeam = "0.2.10"
-threadpool = "1.3.1"
 
 [lib]
 name = "cadence"
