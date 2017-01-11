@@ -9,7 +9,9 @@
 // except according to those terms.
 
 
+use std::fmt;
 use std::net::{ToSocketAddrs, UdpSocket};
+use std::sync::Arc;
 
 use ::sinks::{MetricSink, UdpMetricSink};
 
@@ -125,6 +127,8 @@ pub trait MetricClient: Counted + Timed + Gauged + Metered + Histogrammed {}
 
 /// Client for Statsd that implements various traits to record metrics.
 ///
+/// # Traits
+///
 /// The client is the main entry point for users of this library. It supports
 /// several traits for recording metrics of different types.
 ///
@@ -138,23 +142,119 @@ pub trait MetricClient: Counted + Timed + Gauged + Metered + Histogrammed {}
 /// For more information about the uses for each type of metric, see the
 /// documentation for each mentioned trait.
 ///
+///
+/// # Sinks
+///
 /// The client uses some implementation of a `MetricSink` to emit the metrics.
 ///
 /// In simple use cases when performance isn't critical, the `UdpMetricSink`
-/// is likely the best choice since it is the simplest to use and understand.
+/// is an acceptable choice since it is the simplest to use and understand.
 ///
 /// When performance is more important, users will want to use the
-/// `BufferedUdpMetricSink` in combination with the `AsyncMetricSink` for
-/// maximum isolation between the sending metrics and your application as well
+/// `BufferedUdpMetricSink` in combination with the `QueuingMetricSink` for
+/// maximum isolation between the sending of metrics and your application as well
 /// as minimum overhead when sending metrics.
-#[derive(Debug, Clone)]
-pub struct StatsdClient<T: MetricSink> {
+///
+/// # Threading
+///
+/// The `StatsdClient` is designed to work in a multithreaded application. All
+/// parts of the client can be shared between threads (i.e. it is `Send` and
+/// `Sync`). Some common ways to use the client in a multithreaded environment
+/// are given below.
+///
+/// In each of these examples, we create a struct `MyRequestHandler` that has a
+/// single method that spawns a thread to do some work and emit a metric.
+///
+/// ## Wrapping With An `Arc`
+///
+/// One option is to put all accesses to the client behind an atomic reference
+/// counting pointer (`std::sync::Arc`). If you are doing this, it makes sense
+/// to just refer to the client by the trait of all its methods for recording
+/// metrics (`MetricClient`) as well as the `Send` and `Sync` traits since the
+/// idea is to share this between threads.
+///
+/// ``` no_run
+/// use std::net::UdpSocket;
+/// use std::sync::Arc;
+/// use std::thread;
+/// use cadence::prelude::*;
+/// use cadence::{StatsdClient, BufferedUdpMetricSink, DEFAULT_PORT};
+///
+/// struct MyRequestHandler {
+///     metrics: Arc<MetricClient + Send + Sync>,
+/// }
+///
+/// impl MyRequestHandler {
+///     fn new() -> MyRequestHandler {
+///         let socket = UdpSocket::bind("0.0.0.0:0").unwrap();
+///         let host = ("localhost", DEFAULT_PORT);
+///         let sink = BufferedUdpMetricSink::from(host, socket).unwrap();
+///         MyRequestHandler {
+///             metrics: Arc::new(StatsdClient::from_sink("some.prefix", sink))
+///         }
+///     }
+///
+///     fn handle_some_request(&self) -> Result<(), String> {
+///         let metric_ref = self.metrics.clone();
+///         let _t = thread::spawn(move || {
+///             println!("Hello from the thread!");
+///             metric_ref.incr("request.handler");
+///         });
+///
+///         Ok(())
+///     }
+/// }
+/// ```
+///
+/// ## Clone Per Thread
+///
+/// Another option for sharing the client between threads is just to clone
+/// client itself. Clones of the client are relatively cheap, typically only
+/// requiring a single heap allocation (of a `String`). While this cost isn't
+/// nothing, it's not too bad. An example of this is given below.
+///
+/// ``` no_run
+/// use std::net::UdpSocket;
+/// use std::thread;
+/// use cadence::prelude::*;
+/// use cadence::{StatsdClient, BufferedUdpMetricSink, DEFAULT_PORT};
+///
+/// struct MyRequestHandler {
+///     metrics: StatsdClient,
+/// }
+///
+/// impl MyRequestHandler {
+///     fn new() -> MyRequestHandler {
+///         let socket = UdpSocket::bind("0.0.0.0:0").unwrap();
+///         let host = ("localhost", DEFAULT_PORT);
+///         let sink = BufferedUdpMetricSink::from(host, socket).unwrap();
+///         MyRequestHandler {
+///             metrics: StatsdClient::from_sink("some.prefix", sink)
+///         }
+///     }
+///
+///     fn handle_some_request(&self) -> Result<(), String> {
+///         let metric_clone = self.metrics.clone();
+///         let _t = thread::spawn(move || {
+///             println!("Hello from the thread!");
+///             metric_clone.incr("request.handler");
+///         });
+///
+///         Ok(())
+///     }
+/// }
+/// ```
+///
+/// As you can see, cloning the client itself looks a lot like using it with
+/// an `Arc`.
+#[derive(Clone)]
+pub struct StatsdClient {
     prefix: String,
-    sink: T,
+    sink: Arc<MetricSink + Sync + Send>,
 }
 
 
-impl<T: MetricSink> StatsdClient<T> {
+impl StatsdClient {
     /// Create a new client instance that will use the given prefix for
     /// all metrics emitted to the given `MetricSink` implementation.
     ///
@@ -197,10 +297,12 @@ impl<T: MetricSink> StatsdClient<T> {
     /// let sink = BufferedUdpMetricSink::from(host, socket).unwrap();
     /// let client = StatsdClient::from_sink(prefix, sink);
     /// ```
-    pub fn from_sink(prefix: &str, sink: T) -> StatsdClient<T> {
+    pub fn from_sink<T>(prefix: &str, sink: T) -> StatsdClient
+        where T: MetricSink + Sync + Send + 'static
+    {
         StatsdClient {
             prefix: trim_key(prefix).to_string(),
-            sink: sink,
+            sink: Arc::new(sink),
         }
     }
 
@@ -208,9 +310,6 @@ impl<T: MetricSink> StatsdClient<T> {
     /// metrics to the given host over UDP using an appropriate sink.
     ///
     /// The created UDP socket will be put into non-blocking mode.
-    ///
-    /// **Note** that you must include a type parameter when you call this
-    /// method to help the compiler determine the type of `T` (the sink).
     ///
     /// # Example
     ///
@@ -220,8 +319,7 @@ impl<T: MetricSink> StatsdClient<T> {
     /// let prefix = "my.stats";
     /// let host = ("metrics.example.com", 8125);
     ///
-    /// // Note that we include a type parameter for the method call
-    /// let client = StatsdClient::<UdpMetricSink>::from_udp_host(prefix, host);
+    /// let client = StatsdClient::from_udp_host(prefix, host);
     /// ```
     ///
     /// # Failures
@@ -232,7 +330,7 @@ impl<T: MetricSink> StatsdClient<T> {
     /// * It is unable to put the UDP socket into non-blocking mode.
     /// * It is unable to resolve the hostname of the metric server.
     /// * The host address is otherwise unable to be parsed.
-    pub fn from_udp_host<A>(prefix: &str, host: A) -> MetricResult<StatsdClient<UdpMetricSink>>
+    pub fn from_udp_host<A>(prefix: &str, host: A) -> MetricResult<StatsdClient>
         where A: ToSocketAddrs
     {
         let socket = UdpSocket::bind("0.0.0.0:0")?;
@@ -253,7 +351,14 @@ impl<T: MetricSink> StatsdClient<T> {
 }
 
 
-impl<T: MetricSink> Counted for StatsdClient<T> {
+impl fmt::Debug for StatsdClient {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "StatsdClient {{ prefix: {:?}, sink: ... }}", self.prefix)
+    }
+}
+
+
+impl Counted for StatsdClient {
     fn incr(&self, key: &str) -> MetricResult<Counter> {
         self.count(key, 1)
     }
@@ -270,7 +375,7 @@ impl<T: MetricSink> Counted for StatsdClient<T> {
 }
 
 
-impl<T: MetricSink> Timed for StatsdClient<T> {
+impl Timed for StatsdClient {
     fn time(&self, key: &str, time: u64) -> MetricResult<Timer> {
         let timer = Timer::new(&self.prefix, key, time);
         self.send_metric(&timer)?;
@@ -279,7 +384,7 @@ impl<T: MetricSink> Timed for StatsdClient<T> {
 }
 
 
-impl<T: MetricSink> Gauged for StatsdClient<T> {
+impl Gauged for StatsdClient {
     fn gauge(&self, key: &str, value: u64) -> MetricResult<Gauge> {
         let gauge = Gauge::new(&self.prefix, key, value);
         self.send_metric(&gauge)?;
@@ -288,7 +393,7 @@ impl<T: MetricSink> Gauged for StatsdClient<T> {
 }
 
 
-impl<T: MetricSink> Metered for StatsdClient<T> {
+impl Metered for StatsdClient {
     fn mark(&self, key: &str) -> MetricResult<Meter> {
         self.meter(key, 1)
     }
@@ -301,7 +406,7 @@ impl<T: MetricSink> Metered for StatsdClient<T> {
 }
 
 
-impl<T: MetricSink> Histogrammed for StatsdClient<T> {
+impl Histogrammed for StatsdClient {
     fn histogram(&self, key: &str, value: u64) -> MetricResult<Histogram> {
         let histo = Histogram::new(&self.prefix, key, value);
         self.send_metric(&histo)?;
@@ -310,7 +415,7 @@ impl<T: MetricSink> Histogrammed for StatsdClient<T> {
 }
 
 
-impl<T: MetricSink> MetricClient for StatsdClient<T> {}
+impl MetricClient for StatsdClient {}
 
 
 fn trim_key(val: &str) -> &str {

@@ -6,25 +6,23 @@ use std::time::Duration;
 use std::sync::Arc;
 
 use cadence::prelude::*;
-use cadence::{DEFAULT_PORT, NopMetricSink, UdpMetricSink,
-              BufferedUdpMetricSink, MetricSink, StatsdClient,
-              QueuingMetricSink, Counter, Timer, Gauge, Meter,
-              Histogram};
+use cadence::{DEFAULT_PORT, NopMetricSink, BufferedUdpMetricSink,
+              StatsdClient, QueuingMetricSink, Counter, Timer, Gauge,
+              Meter, Histogram};
 
 
-fn new_nop_client(prefix: &str) -> StatsdClient<NopMetricSink> {
+fn new_nop_client(prefix: &str) -> StatsdClient {
     StatsdClient::from_sink(prefix, NopMetricSink)
 }
 
 
-fn new_udp_client(prefix: &str) -> StatsdClient<UdpMetricSink> {
+fn new_udp_client(prefix: &str) -> StatsdClient {
     let addr = ("127.0.0.1", DEFAULT_PORT);
-    StatsdClient::<UdpMetricSink>::from_udp_host(prefix, addr).unwrap()
+    StatsdClient::from_udp_host(prefix, addr).unwrap()
 }
 
 
-fn new_buffered_udp_client(prefix: &str)
-                           -> StatsdClient<BufferedUdpMetricSink> {
+fn new_buffered_udp_client(prefix: &str) -> StatsdClient {
     let host = ("127.0.0.1", DEFAULT_PORT);
     let socket = UdpSocket::bind("0.0.0.0:0").unwrap();
     let sink = BufferedUdpMetricSink::from(host, socket).unwrap();
@@ -32,7 +30,7 @@ fn new_buffered_udp_client(prefix: &str)
 }
 
 
-fn new_queuing_buffered_udp_client(prefix: &str) -> StatsdClient<QueuingMetricSink> {
+fn new_queuing_buffered_udp_client(prefix: &str) -> StatsdClient {
     let host = ("127.0.0.1", DEFAULT_PORT);
     let socket = UdpSocket::bind("0.0.0.0:0").unwrap();
     let sink = BufferedUdpMetricSink::from(host, socket).unwrap();
@@ -161,10 +159,7 @@ fn test_statsd_client_queuing_buffered_udp_sink_many_threaded() {
 }
 
 
-fn run_arc_threaded_test<T>(
-    client: StatsdClient<T>, num_threads: u64, iterations: u64) -> ()
-    where T: 'static + MetricSink + Sync + Send
-{
+fn run_arc_threaded_test(client: StatsdClient, num_threads: u64, iterations: u64) {
     let shared_client = Arc::new(client);
 
     let threads: Vec<_> = (0..num_threads).map(|_| {
