@@ -12,7 +12,7 @@
 use std::io;
 use std::io::Write;
 use std::net::{ToSocketAddrs, SocketAddr, UdpSocket};
-use std::sync::{Arc, Mutex};
+use std::sync::Mutex;
 
 use ::io::{MultiLineWriter, UdpWriteAdapter};
 use ::types::{MetricResult, MetricError, ErrorKind};
@@ -94,15 +94,10 @@ fn get_addr<A: ToSocketAddrs>(addr: A) -> MetricResult<SocketAddr> {
 ///
 /// Each metric is sent to the Statsd server when the `.emit()` method is
 /// called, in the thread of the caller.
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct UdpMetricSink {
     sink_addr: SocketAddr,
-    // Wrap our socket in an Arc so that this sink can implement `Clone`.
-    // This allows cheap and easy copies of this sink. This is important
-    // when used as part of another data structure that can't be shared
-    // between threads (for example, when wrapped by `AsyncMetricSink`)
-    // and thus needs a copy for each thread.
-    socket: Arc<UdpSocket>,
+    socket: UdpSocket,
 }
 
 
@@ -157,7 +152,7 @@ impl UdpMetricSink {
         let addr = get_addr(sink_addr)?;
         Ok(UdpMetricSink {
             sink_addr: addr,
-            socket: Arc::new(socket),
+            socket: socket,
         })
     }
 }
@@ -186,14 +181,9 @@ impl MetricSink for UdpMetricSink {
 ///
 /// If a metric larger than the buffer is emitted, it will be written
 /// directly to the underlying UDP socket, bypassing the buffer.
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct BufferedUdpMetricSink {
-    // Wrap our mutex/buffer/socket in an Arc so that this sink can
-    // implement `Clone`. This allows cheap and easy copies of this sink.
-    // This is important when used as part of another data structure that
-    // can't be shared between threads (for example, when wrapped by
-    // `AsyncMetricSink`) and thus needs a copy for each thread.
-    buffer: Arc<Mutex<MultiLineWriter<UdpWriteAdapter>>>,
+    buffer: Mutex<MultiLineWriter<UdpWriteAdapter>>,
 }
 
 
@@ -273,9 +263,9 @@ impl BufferedUdpMetricSink {
     {
         let addr = get_addr(sink_addr)?;
         Ok(BufferedUdpMetricSink {
-            buffer: Arc::new(Mutex::new(MultiLineWriter::new(
+            buffer: Mutex::new(MultiLineWriter::new(
                 cap, UdpWriteAdapter::new(addr, socket)
-            ))),
+            )),
         })
     }
 }
