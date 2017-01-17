@@ -11,6 +11,7 @@
   of the client to care about the `MetricSink` implementation, put it behind an `Arc`
   pointer in the client and remove the type `T` from the signature. This makes the
   client easier to use and share between threads.
+* Remove use of `Arc` inside various sinks per [#35](https://github.com/tshlabs/cadence/issues/45).
 
 ## [v0.10.0](https://github.com/tshlabs/cadence/tree/0.10.0) - 2017-01-08
 * **Breaking change** - Remove deprecated `ConsoleMetricSink` and `LoggingMetricSink`
