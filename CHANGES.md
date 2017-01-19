@@ -1,6 +1,6 @@
 # Changelog
 
-## [v0.11.0](https://github.com/tshlabs/cadence/tree/0.11.0) - ????-??-??
+## [v0.11.0](https://github.com/tshlabs/cadence/tree/0.11.0) - 2017-01-18
 * **Breaking change** - Remove deprecated `AsyncMetricSink` per
   [#47](https://github.com/tshlabs/cadence/issues/47). Users are encouraged to
   switch to `QueuingMetricSink` instead. `QueuingMetricSink` has similar performance,
