@@ -1,5 +1,10 @@
 # Changelog
 
+## [v0.12.0](https://github.com/tshlabs/cadence/tree/0.12.0) - ????-??-??
+* Add new `time_duration` method to `Timed` trait per
+  [#48](https://github.com/tshlabs/cadence/issues/48). This allows users to record
+  timings using the `Duration` struct from the standard library.
+
 ## [v0.11.0](https://github.com/tshlabs/cadence/tree/0.11.0) - 2017-01-18
 * **Breaking change** - Remove deprecated `AsyncMetricSink` per
   [#47](https://github.com/tshlabs/cadence/issues/47). Users are encouraged to
@@ -11,7 +16,7 @@
   of the client to care about the `MetricSink` implementation, put it behind an `Arc`
   pointer in the client and remove the type `T` from the signature. This makes the
   client easier to use and share between threads.
-* Remove use of `Arc` inside various sinks per [#35](https://github.com/tshlabs/cadence/issues/45).
+* Remove use of `Arc` inside various sinks per [#35](https://github.com/tshlabs/cadence/issues/35).
 
 ## [v0.10.0](https://github.com/tshlabs/cadence/tree/0.10.0) - 2017-01-08
 * **Breaking change** - Remove deprecated `ConsoleMetricSink` and `LoggingMetricSink`

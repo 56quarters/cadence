@@ -12,10 +12,12 @@
 use std::fmt;
 use std::net::{ToSocketAddrs, UdpSocket};
 use std::sync::Arc;
+use std::time::Duration;
 
 use ::sinks::{MetricSink, UdpMetricSink};
 
-use ::types::{MetricResult, Counter, Timer, Gauge, Meter, Histogram, Metric};
+use ::types::{MetricResult, MetricError, ErrorKind, Counter, Timer, Gauge,
+              Meter, Histogram, Metric};
 
 
 /// Trait for incrementing and decrementing counters.
@@ -50,6 +52,12 @@ pub trait Counted {
 pub trait Timed {
     /// Record a timing in milliseconds with the given key
     fn time(&self, key: &str, time: u64) -> MetricResult<Timer>;
+
+    /// Record a timing in milliseocnds with the given key
+    ///
+    /// The duration will be truncated to millisecond precision. If the
+    /// duration cannot be represented as a `u64` an error will be returned.
+    fn time_duration(&self, key: &str, duration: Duration) -> MetricResult<Timer>;
 }
 
 
@@ -141,7 +149,6 @@ pub trait MetricClient: Counted + Timed + Gauged + Metered + Histogrammed {}
 ///
 /// For more information about the uses for each type of metric, see the
 /// documentation for each mentioned trait.
-///
 ///
 /// # Sinks
 ///
@@ -381,6 +388,17 @@ impl Timed for StatsdClient {
         self.send_metric(&timer)?;
         Ok(timer)
     }
+
+    fn time_duration(&self, key: &str, duration: Duration) -> MetricResult<Timer> {
+        let secs_as_ms = duration.as_secs().checked_mul(1_000);
+        let nanos_as_ms = (duration.subsec_nanos() as u64).checked_div(1_000_000);
+
+        let millis = secs_as_ms
+            .and_then(|v1| nanos_as_ms.and_then(|v2| v1.checked_add(v2)))
+            .ok_or_else(|| MetricError::from((ErrorKind::InvalidInput, "u64 overflow")))?;
+
+        self.time(key, millis)
+    }
 }
 
 
@@ -429,9 +447,12 @@ fn trim_key(val: &str) -> &str {
 
 #[cfg(test)]
 mod tests {
+    use std::time::Duration;
+    use std::u64;
     use super::{trim_key, Counted, Timed, Gauged, Metered, Histogrammed,
                 MetricClient, StatsdClient};
     use ::sinks::NopMetricSink;
+    use ::types::{ErrorKind, Timer};
 
     #[test]
     fn test_trim_key_with_trailing_dot() {
@@ -497,5 +518,23 @@ mod tests {
         client.gauge("some.gauge", 4).unwrap();
         client.meter("some.meter", 29).unwrap();
         client.histogram("some.histogram", 32).unwrap();
+    }
+
+    #[test]
+    fn test_statsd_client_time_duration_no_overflow() {
+        let client = StatsdClient::from_sink("prefix", NopMetricSink);
+        let res = client.time_duration("key", Duration::from_millis(157));
+        let expected = Timer::new("prefix", "key", 157);
+
+        assert_eq!(expected, res.unwrap());
+    }
+
+    #[test]
+    fn test_statsd_client_time_duration_with_overflow() {
+        let client = StatsdClient::from_sink("prefix", NopMetricSink);
+        let res = client.time_duration("key", Duration::from_secs(u64::MAX));
+        let err = res.unwrap_err();
+
+        assert_eq!(ErrorKind::InvalidInput, err.kind())
     }
 }

@@ -16,3 +16,6 @@ crossbeam = "0.2.10"
 [lib]
 name = "cadence"
 path = "src/lib.rs"
+
+[badges]
+travis-ci = { repository = "tshlabs/cadence" }
