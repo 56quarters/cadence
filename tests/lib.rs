@@ -71,6 +71,14 @@ fn test_statsd_client_time() {
 
 
 #[test]
+fn test_statsd_client_time_duration() {
+    let client = new_nop_client("client.test");
+    let expected = Timer::new("client.test", "timer.key", 35);
+    assert_eq!(expected, client.time_duration("timer.key", Duration::from_millis(35)).unwrap());
+}
+
+
+#[test]
 fn test_statsd_client_gauge() {
     let client = new_nop_client("client.test");
     let expected = Gauge::new("client.test", "gauge.key", 5);
