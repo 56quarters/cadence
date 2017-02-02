@@ -2,3 +2,4 @@ perf
 target
 Cargo.lock
 .#*
+.idea
