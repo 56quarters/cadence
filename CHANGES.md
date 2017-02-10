@@ -1,9 +1,10 @@
 # Changelog
 
-## [v0.12.0](https://github.com/tshlabs/cadence/tree/0.12.0) - ????-??-??
+## [v0.12.0](https://github.com/tshlabs/cadence/tree/0.12.0) - 2017-02-09
 * Add new `time_duration` method to `Timed` trait per
   [#48](https://github.com/tshlabs/cadence/issues/48). This allows users to record
   timings using the `Duration` struct from the standard library.
+* Add examples of Cadence usage per [#36](https://github.com/tshlabs/cadence/issues/36).
 
 ## [v0.11.0](https://github.com/tshlabs/cadence/tree/0.11.0) - 2017-01-18
 * **Breaking change** - Remove deprecated `AsyncMetricSink` per
