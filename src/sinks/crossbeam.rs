@@ -8,6 +8,8 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
+// We actually need the Mutex since we use it with a Condvar
+#![cfg_attr(feature = "cargo-clippy", allow(mutex_atomic))]
 
 use std::io;
 use std::fmt;
@@ -276,12 +278,8 @@ impl<T> Worker<T> where T: Send + 'static {
     }
 
     fn run(&self) {
-        loop {
-            if let Some(v) = self.queue.pop() {
-                (self.task)(v);
-            } else {
-                break;
-            }
+        while let Some(v) = self.queue.pop() {
+            (self.task)(v);
         }
 
         // Set the "stopped" flag so that callers using the `stop_and_wait`
