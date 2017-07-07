@@ -76,6 +76,9 @@ pub trait MetricSink {
 /// Attempt to convert anything implementing the `ToSocketAddrs` trait
 /// into a concrete `SocketAddr` instance, returning an `InvalidInput`
 /// error if the address could not be parsed.
+// Public portion of the API (the sink constructors) is pass by value so
+// there's no point in changing this to be pass by reference yet.
+#[cfg_attr(feature = "cargo-clippy", allow(needless_pass_by_value))]
 fn get_addr<A: ToSocketAddrs>(addr: A) -> MetricResult<SocketAddr> {
     match addr.to_socket_addrs()?.next() {
         Some(addr) => Ok(addr),

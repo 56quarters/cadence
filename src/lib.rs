@@ -164,7 +164,7 @@
 //! client.incr("some.event");
 //! ```
 //!
-//! ### Counted, Timed, Gauged, Metered, Histogrammed, and MetricClient Traits
+//! ### `Counted`, `Timed`, `Gauged`, `Metered`, `Histogrammed`, and `MetricClient` Traits
 //!
 //! Each of the methods that the Cadence `StatsdClient` struct uses to send
 //! metrics are implemented as a trait. There is also a trait that combines
