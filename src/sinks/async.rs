@@ -8,6 +8,7 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
+
 // We actually need the Mutex since we use it with a Condvar
 #![cfg_attr(feature = "cargo-clippy", allow(mutex_atomic))]
 
@@ -19,7 +20,7 @@ use std::thread;
 
 use crossbeam::sync::MsQueue;
 
-use ::sinks::MetricSink;
+use sinks::core::MetricSink;
 
 
 /// Implementation of a `MetricSink` that wraps another implementation
@@ -324,7 +325,7 @@ mod tests {
     use std::sync::{Arc, Mutex};
     use std::sync::atomic::{AtomicBool, Ordering};
     use std::thread;
-    use ::sinks::MetricSink;
+    use ::sinks::core::MetricSink;
     use super::{QueuingMetricSink, Worker};
 
     #[test]

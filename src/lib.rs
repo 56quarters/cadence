@@ -298,10 +298,7 @@ pub use self::client::{Counted, Timed, Gauged, Metered, Histogrammed,
 
 
 pub use self::sinks::{MetricSink, NopMetricSink, UdpMetricSink,
-                      BufferedUdpMetricSink};
-
-
-pub use self::sinks::crossbeam::QueuingMetricSink;
+                      BufferedUdpMetricSink, QueuingMetricSink};
 
 
 pub use self::types::{MetricResult, MetricError, ErrorKind, Counter, Timer,
