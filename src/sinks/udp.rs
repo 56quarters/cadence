@@ -127,9 +127,9 @@ impl MetricSink for UdpMetricSink {
 ///
 /// Metrics are line buffered, meaning that a trailing "\n" is added
 /// after each metric written to this sink. When the buffer is sufficiently
-/// full, the contents of the buffer are flushed to a UDP socket and then
-/// the metric is written to the buffer. The buffer is also flushed when
-/// this sink is destroyed.
+/// full and a write is attempted, the contents of the buffer are flushed to
+/// a UDP socket and then the metric is written to the buffer. The buffer is
+/// also flushed when this sink is destroyed.
 ///
 /// The default size of the buffer is 512 bytes. This is the "safest"
 /// size for a UDP packet according to the Etsy Statsd docs. The
