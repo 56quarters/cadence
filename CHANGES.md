@@ -1,5 +1,8 @@
 # Changelog
 
+## [v0.12.1](https://github.com/tshlabs/cadence/tree/0.12.1) - 2017-09-21
+* Minor documentation improvements and code cleanup.
+
 ## [v0.12.0](https://github.com/tshlabs/cadence/tree/0.12.0) - 2017-02-09
 * Add new `time_duration` method to `Timed` trait per
   [#48](https://github.com/tshlabs/cadence/issues/48). This allows users to record
