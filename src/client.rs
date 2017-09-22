@@ -391,7 +391,7 @@ impl Timed for StatsdClient {
 
     fn time_duration(&self, key: &str, duration: Duration) -> MetricResult<Timer> {
         let secs_as_ms = duration.as_secs().checked_mul(1_000);
-        let nanos_as_ms = (duration.subsec_nanos() as u64).checked_div(1_000_000);
+        let nanos_as_ms = u64::from(duration.subsec_nanos()).checked_div(1_000_000);
 
         let millis = secs_as_ms
             .and_then(|v1| nanos_as_ms.and_then(|v2| v1.checked_add(v2)))

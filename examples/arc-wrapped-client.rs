@@ -34,7 +34,7 @@ impl ThreadedHandler {
 
 impl RequestHandler for ThreadedHandler {
     fn handle(&self) -> Result<(), String> {
-        let metrics_ref = self.metrics.clone();
+        let metrics_ref = Arc::clone(&self.metrics);
 
         let t = thread::spawn(move || {
             let _ = metrics_ref.incr("request.handled");

@@ -100,7 +100,7 @@ impl QueuingMetricSink {
     {
         let worker = Worker::new(move |v: String| { let _r = sink.emit(&v); });
         let context = Arc::new(WorkerContext::new(worker));
-        spawn_worker_in_thread(context.clone());
+        spawn_worker_in_thread(Arc::clone(&context));
 
         QueuingMetricSink { context: context }
     }
@@ -228,7 +228,7 @@ impl<'a, T> Drop for Sentinel<'a, T> where T: Send + 'static {
             // that this was a panic and spawn a new thread with an Arc of
             // the worker and its context.
             self.context.stats.incr_panic();
-            spawn_worker_in_thread(self.context.clone());
+            spawn_worker_in_thread(Arc::clone(self.context));
         }
     }
 }
