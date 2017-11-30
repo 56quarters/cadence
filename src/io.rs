@@ -15,6 +15,25 @@ use std::net::{SocketAddr, UdpSocket};
 use std::str;
 
 
+#[derive(Debug)]
+struct WriterMetrics {
+    inner_write: u64,
+    buf_write: u64,
+    flushed: u64,
+}
+
+
+impl WriterMetrics {
+    fn new() -> Self {
+        WriterMetrics {
+            inner_write: 0,
+            buf_write: 0,
+            flushed: 0,
+        }
+    }
+}
+
+
 /// Buffered implementation of the `Write` trait that appends a
 /// trailing line ending string to every input written and only
 /// writes the complete input in a single call to the underlying
@@ -23,10 +42,10 @@ use std::str;
 pub struct MultiLineWriter<T: Write> {
     written: usize,
     capacity: usize,
+    metrics: WriterMetrics,
     inner: BufWriter<T>,
     line_ending: Vec<u8>,
 }
-
 
 impl<T: Write> MultiLineWriter<T> {
     /// Create a new buffered `MultiLineWriter` instance that suffixes
@@ -41,6 +60,7 @@ impl<T: Write> MultiLineWriter<T> {
         MultiLineWriter {
             written: 0,
             capacity: cap,
+            metrics: WriterMetrics::new(),
             inner: BufWriter::with_capacity(cap, inner),
             line_ending: Vec::from(end.as_bytes()),
         }
@@ -50,18 +70,21 @@ impl<T: Write> MultiLineWriter<T> {
     fn get_ref(&self) -> &T {
         self.inner.get_ref()
     }
+
+    #[allow(dead_code)]
+    fn get_metrics(&self) -> &WriterMetrics {
+        &self.metrics
+    }
 }
 
 
 impl<T: Write> Write for MultiLineWriter<T> {
     fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
         let left = self.capacity - self.written;
+        let required = buf.len() + self.line_ending.len();
 
-        if left < buf.len() + self.line_ending.len() {
-            self.flush()?;
-        }
-
-        if buf.len() > self.capacity {
+        if required > self.capacity {
+            self.metrics.inner_write += 1;
             // If the user has given us a value bigger than our buffer
             // to write, bypass the buffer and write directly to the Write
             // implementation that our BufWriter is wrapping.
@@ -69,6 +92,11 @@ impl<T: Write> Write for MultiLineWriter<T> {
             let write2 = self.inner.get_mut().write(&self.line_ending)?;
             Ok(write1 + write2)
         } else {
+            if left < required {
+                self.flush()?;
+            }
+
+            self.metrics.buf_write += 1;
             // Perform the buffered write of user data and the trailing
             // newlines. Increment the number of bytes written to the
             // buffer after each write in case they return errors.
@@ -82,6 +110,7 @@ impl<T: Write> Write for MultiLineWriter<T> {
     }
 
     fn flush(&mut self) -> io::Result<()> {
+        self.metrics.flushed += 1;
         self.inner.flush()?;
         self.written = 0;
         Ok(())
@@ -184,6 +213,24 @@ mod tests {
         assert_eq!(8, write2);
         assert_eq!(30, written_after_write2);
         assert_eq!(8, in_buffer_after_write2);
+    }
+
+    // Make sure that writing an 8 byte payload to a buffer with only
+    // 8 bytes of capacity results in using the "direct write" code
+    // path since we need to take the trailing newline into account
+    #[test]
+    fn test_buffer_write_equal_capacity() {
+        let mut buffered = MultiLineWriter::new(8, vec![]);
+
+        let bytes_written = buffered.write("foo:42|c".as_bytes()).unwrap();
+        let written = str::from_utf8(&buffered.get_ref()).unwrap();
+        let buf_metrics = buffered.get_metrics();
+
+        assert_eq!("foo:42|c\n", written);
+        assert_eq!(9, bytes_written, "expected {} bytes to be written", 9);
+        assert_eq!(1, buf_metrics.inner_write, "expected inner_write to be {}", 1);
+        assert_eq!(0, buf_metrics.buf_write, "expected buf_write to be {}", 0);
+        assert_eq!(0, buf_metrics.flushed, "expected flushed to be {}", 0);
     }
 
     #[test]
