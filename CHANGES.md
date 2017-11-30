@@ -1,5 +1,11 @@
 # Changelog
 
+
+## [v0.12.2](https://github.com/tshlabs/cadence/tree/0.12.2) - 2017-11-29
+* Fix off-by-one bug in underlying functionality for `BufferedUdpSink`
+  that would have caused extra writes to the UDP socket per
+  [#59](https://github.com/tshlabs/cadence/issues/59).
+
 ## [v0.12.1](https://github.com/tshlabs/cadence/tree/0.12.1) - 2017-09-21
 * Minor documentation improvements and code cleanup.
 
