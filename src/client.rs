@@ -53,7 +53,7 @@ pub trait Timed {
     /// Record a timing in milliseconds with the given key
     fn time(&self, key: &str, time: u64) -> MetricResult<Timer>;
 
-    /// Record a timing in milliseocnds with the given key
+    /// Record a timing in milliseconds with the given key
     ///
     /// The duration will be truncated to millisecond precision. If the
     /// duration cannot be represented as a `u64` an error will be returned.
