@@ -306,6 +306,7 @@ pub use self::types::{MetricResult, MetricError, ErrorKind, Counter, Timer,
 
 
 pub mod prelude;
+mod builder;
 mod client;
 mod io;
 mod sinks;

@@ -14,6 +14,8 @@ use std::net::{ToSocketAddrs, UdpSocket};
 use std::sync::Arc;
 use std::time::Duration;
 
+use ::builder::MetricBuilder;
+
 use ::sinks::{MetricSink, UdpMetricSink};
 
 use ::types::{MetricResult, MetricError, ErrorKind, Counter, Timer, Gauge,
@@ -32,12 +34,15 @@ use ::types::{MetricResult, MetricError, ErrorKind, Counter, Timer, Gauge,
 pub trait Counted {
     /// Increment the counter by `1`
     fn incr(&self, key: &str) -> MetricResult<Counter>;
+    fn incr_with_tags(&self, key: &str) -> MetricBuilder<Counter>;
 
     /// Decrement the counter by `1`
     fn decr(&self, key: &str) -> MetricResult<Counter>;
+    fn decr_with_tags(&self, key: &str) -> MetricBuilder<Counter>;
 
     /// Increment or decrement the counter by the given amount
     fn count(&self, key: &str, count: i64) -> MetricResult<Counter>;
+    fn count_with_tags(&self, key: &str, count: i64) -> MetricBuilder<Counter>;
 }
 
 
@@ -52,12 +57,14 @@ pub trait Counted {
 pub trait Timed {
     /// Record a timing in milliseconds with the given key
     fn time(&self, key: &str, time: u64) -> MetricResult<Timer>;
+    fn time_with_tags(&self, key: &str, time: u64) -> MetricBuilder<Timer>;
 
     /// Record a timing in milliseconds with the given key
     ///
     /// The duration will be truncated to millisecond precision. If the
     /// duration cannot be represented as a `u64` an error will be returned.
     fn time_duration(&self, key: &str, duration: Duration) -> MetricResult<Timer>;
+    //fn time_duration_with_tags(&self, key: &str, duration: Duration) -> MetricBuilder<Timer>;
 }
 
 
@@ -72,6 +79,7 @@ pub trait Timed {
 pub trait Gauged {
     /// Record a gauge value with the given key
     fn gauge(&self, key: &str, value: u64) -> MetricResult<Gauge>;
+    fn gauge_with_tags(&self, key: &str, value: u64) -> MetricBuilder<Gauge>;
 }
 
 
@@ -349,7 +357,8 @@ impl StatsdClient {
     // Convert a metric to its Statsd string representation and then send
     // it as UTF-8 bytes to the metric sink. Convert any I/O errors from the
     // sink to a MetricResult.
-    fn send_metric<M: Metric>(&self, metric: &M) -> MetricResult<()> {
+    // XXX:
+    pub fn send_metric<M: Metric>(&self, metric: &M) -> MetricResult<()> {
         let metric_string = metric.as_metric_str();
         self.sink.emit(metric_string)?;
         Ok(())
@@ -369,8 +378,16 @@ impl Counted for StatsdClient {
         self.count(key, 1)
     }
 
+    fn incr_with_tags(&self, key: &str) -> MetricBuilder<Counter> {
+        self.count_with_tags(key, 1)
+    }
+
     fn decr(&self, key: &str) -> MetricResult<Counter> {
         self.count(key, -1)
+    }
+
+    fn decr_with_tags(&self, key: &str) -> MetricBuilder<Counter> {
+        self.count_with_tags(key, -1)
     }
 
     fn count(&self, key: &str, count: i64) -> MetricResult<Counter> {
@@ -378,6 +395,22 @@ impl Counted for StatsdClient {
         self.send_metric(&counter)?;
         Ok(counter)
     }
+
+    fn count_with_tags(&self, key: &str, count: i64) -> MetricBuilder<Counter> {
+        let counter = Counter::new(&self.prefix, key, count);
+        MetricBuilder::new(counter, self)
+    }
+}
+
+
+
+fn duration_to_millis(duration: Duration) -> MetricResult<u64> {
+    let secs_as_ms = duration.as_secs().checked_mul(1_000);
+    let nanos_as_ms = u64::from(duration.subsec_nanos()).checked_div(1_000_000);
+
+    secs_as_ms
+        .and_then(|v1| nanos_as_ms.and_then(|v2| v1.checked_add(v2)))
+        .ok_or_else(|| MetricError::from((ErrorKind::InvalidInput, "u64 overflow")))
 }
 
 
@@ -388,16 +421,24 @@ impl Timed for StatsdClient {
         Ok(timer)
     }
 
+    fn time_with_tags(&self, key: &str, time: u64) -> MetricBuilder<Timer> {
+        let timer = Timer::new(&self.prefix, key, time);
+        MetricBuilder::new(timer, self)
+    }
+
     fn time_duration(&self, key: &str, duration: Duration) -> MetricResult<Timer> {
-        let secs_as_ms = duration.as_secs().checked_mul(1_000);
-        let nanos_as_ms = u64::from(duration.subsec_nanos()).checked_div(1_000_000);
-
-        let millis = secs_as_ms
-            .and_then(|v1| nanos_as_ms.and_then(|v2| v1.checked_add(v2)))
-            .ok_or_else(|| MetricError::from((ErrorKind::InvalidInput, "u64 overflow")))?;
-
+        let millis = duration_to_millis(duration)?;
         self.time(key, millis)
     }
+
+    /*
+    fn time_duration_with_tags(&self, key: &str, duration: Duration) -> MetricBuilder<Timer> {
+        // XXX: this needs to return an error when millis doesn't compute
+        let millis = duration_to_millis(duration)?;
+        let timer = Timer::new(&self.prefix, key, millis);
+        MetricBuilder::new(timer, self)
+    }
+    */
 }
 
 
@@ -406,6 +447,11 @@ impl Gauged for StatsdClient {
         let gauge = Gauge::new(&self.prefix, key, value);
         self.send_metric(&gauge)?;
         Ok(gauge)
+    }
+
+    fn gauge_with_tags(&self, key: &str, value: u64) -> MetricBuilder<Gauge> {
+        let gauge = Gauge::new(&self.prefix, key, value);
+        MetricBuilder::new(gauge, self)
     }
 }
 
@@ -535,5 +581,29 @@ mod tests {
         let err = res.unwrap_err();
 
         assert_eq!(ErrorKind::InvalidInput, err.kind())
+    }
+
+    #[test]
+    fn test_statsd_client_with_tags() {
+        let client: Box<MetricClient> = Box::new(StatsdClient::from_sink("prefix", NopMetricSink));
+
+        client.incr_with_tags("some.counter").send().unwrap();
+        client
+            .count_with_tags("some.counter", 3)
+            .with_tag("foo", "bar")
+            .send()
+            .unwrap();
+        client
+            .time_with_tags("some.timer", 22)
+            .with_tag("host", "app01.example.com")
+            .with_tag("bucket", "A")
+            .send()
+            .unwrap();
+        client
+            .gauge_with_tags("some.gauge", 4)
+            .with_tag("bucket", "A")
+            .with_tag_value("file-server")
+            .send()
+            .unwrap();
     }
 }
