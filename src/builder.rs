@@ -8,66 +8,173 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
+use std::fmt::{self, Write};
+use std::marker::PhantomData;
 use client::StatsdClient;
 use types::{Metric, MetricResult};
 
+#[derive(Clone, Copy)]
+enum MetricValue {
+    Signed(i64),
+    Unsigned(u64),
+}
+
+impl fmt::Display for MetricValue {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+          match *self {
+            MetricValue::Signed(i) => i.fmt(f),
+            MetricValue::Unsigned(i) => i.fmt(f),
+        }
+    }
+}
+
+#[derive(Clone, Copy)]
+enum MetricType {
+    Counter,
+    Timer,
+    Gauge,
+    Meter,
+    Histogram,
+}
+
+impl fmt::Display for MetricType {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match *self {
+            MetricType::Counter => "c".fmt(f),
+            MetricType::Timer => "ms".fmt(f),
+            MetricType::Gauge => "g".fmt(f),
+            MetricType::Meter => "m".fmt(f),
+            MetricType::Histogram => "h".fmt(f),
+        }
+    }
+}
+
 #[derive(Clone)]
-pub struct MetricBuilder<'t, 'c, T>
+pub(crate) struct MetricFormatter<'a, T>
 where
-    T: Metric,
+    T: Metric + From<String>,
 {
-    metric: T,
-    tags: Option<Vec<(Option<&'t str>, &'t str)>>,
+    metric: PhantomData<T>,
+    prefix: &'a str,
+    key: &'a str,
+    val: MetricValue,
+    type_: MetricType,
+    tags: Option<Vec<(Option<&'a str>, &'a str)>>,
+}
+
+impl<'a, T> MetricFormatter<'a, T>
+where
+    T: Metric + From<String>,
+{
+    pub(crate) fn counter(prefix: &'a str, key: &'a str, val: i64) -> Self {
+        Self::from_i64(prefix, key, val, MetricType::Counter)
+    }
+
+    pub(crate) fn timer(prefix: &'a str, key: &'a str, val: u64) -> Self {
+        Self::from_u64(prefix, key, val, MetricType::Timer)
+    }
+
+    pub(crate) fn gauge(prefix: &'a str, key: &'a str, val: u64) -> Self {
+        Self::from_u64(prefix, key, val, MetricType::Gauge)
+    }
+
+    pub(crate) fn meter(prefix: &'a str, key: &'a str, val: u64) -> Self {
+        Self::from_u64(prefix, key, val, MetricType::Meter)
+    }
+
+    pub(crate) fn histogram(prefix: &'a str, key: &'a str, val: u64) -> Self {
+        Self::from_u64(prefix, key, val, MetricType::Histogram)
+    }
+
+    fn from_u64(prefix: &'a str, key: &'a str, val: u64, type_: MetricType) -> Self {
+        MetricFormatter{
+            metric: PhantomData,
+            prefix: prefix,
+            key: key,
+            val: MetricValue::Unsigned(val),
+            type_: type_,
+            tags: None,
+        }
+    }
+
+    fn from_i64(prefix: &'a str, key: &'a str, val: i64, type_: MetricType) -> Self {
+        MetricFormatter{
+            metric: PhantomData,
+            prefix: prefix,
+            key: key,
+            val: MetricValue::Signed(val),
+            type_: type_,
+            tags: None,
+        }
+    }
+
+    fn with_tag(&mut self, key: &'a str, value: &'a str) {
+        self.tags
+            .get_or_insert_with(|| Vec::new())
+            .push((Some(key), value));
+    }
+
+    fn with_tag_value(&mut self, value: &'a str) {
+        self.tags
+            .get_or_insert_with(|| Vec::new())
+            .push((None, value));
+    }
+
+    fn build_base_metric(&self) -> String {
+        // XXX: Wild guess, this /should/ be exactly what we need for the base
+        // metric and even the tags that will be appended.
+        let required = self.prefix.len() + self.key.len() + 10;
+
+        let mut buf = String::with_capacity(required);
+        let _ = write!(buf, "{}.{}:{}|{}", self.prefix, self.key, self.val, self.type_);
+        buf
+    }
+
+    pub(crate) fn build(&self) -> T {
+        let mut base = self.build_base_metric();
+        if let Some(tags) = self.tags.as_ref() {
+            push_datadog_tags(&mut base, tags);
+        }
+
+        T::from(base)
+    }
+}
+
+#[derive(Clone)]
+pub struct MetricBuilder<'m, 'c, T>
+where
+    T: Metric + From<String>,
+{
+    // TODO: Make this Option<Formatter> and Option<Error>?
+    formatter: MetricFormatter<'m, T>,
     client: &'c StatsdClient,
 }
 
-impl<'t, 'c, T> MetricBuilder<'t, 'c, T>
+impl<'m, 'c, T> MetricBuilder<'m, 'c, T>
 where
-    T: Metric,
+    T: Metric + From<String>,
 {
-    pub fn new(metric: T, client: &'c StatsdClient) -> Self {
+    pub(crate) fn new(formatter: MetricFormatter<'m, T>, client: &'c StatsdClient) -> Self {
         MetricBuilder {
-            metric: metric,
-            tags: None,
+            formatter: formatter,
             client: client,
         }
     }
 
-    pub fn with_tag(&mut self, key: &'t str, value: &'t str) -> &mut Self {
-        self.tags
-            .get_or_insert_with(|| Vec::new())
-            .push((Some(key), value));
+    pub fn with_tag(&mut self, key: &'m str, value: &'m str) -> &mut Self {
+        self.formatter.with_tag(key, value);
         self
     }
 
-    pub fn with_tag_value(&mut self, value: &'t str) -> &mut Self {
-        self.tags
-            .get_or_insert_with(|| Vec::new())
-            .push((None, value));
+    pub fn with_tag_value(&mut self, value: &'m str) -> &mut Self {
+        self.formatter.with_tag_value(value);
         self
     }
 
-    fn build(&self) -> String {
-        let mut metric_string = self.metric.as_metric_str().to_string();
-        if let Some(tags) = self.tags.as_ref() {
-            push_datadog_tags(&mut metric_string, tags);
-        }
-        metric_string
-    }
-
-    pub fn send(&self) -> MetricResult<()> {
-        let metric = MetricFromBuilder { repr: self.build() };
-        self.client.send_metric(&metric)
-    }
-}
-
-struct MetricFromBuilder {
-    repr: String,
-}
-
-impl Metric for MetricFromBuilder {
-    fn as_metric_str(&self) -> &str {
-        &self.repr
+    pub fn send(&self) -> MetricResult<T> {
+        let metric: T = self.formatter.build();
+        self.client.send_metric(&metric)?;
+        Ok(metric)
     }
 }
 

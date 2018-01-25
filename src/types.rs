@@ -13,6 +13,7 @@ use std::error;
 use std::fmt;
 use std::io;
 
+use ::builder::MetricFormatter;
 
 /// Trait for metrics to expose Statsd metric string slice representation.
 ///
@@ -33,10 +34,15 @@ pub struct Counter {
 
 impl Counter {
     pub fn new(prefix: &str, key: &str, count: i64) -> Counter {
-        Counter { repr: format!("{}.{}:{}|c", prefix, key, count) }
+        MetricFormatter::counter(prefix, key, count).build()
     }
 }
 
+impl From<String> for Counter {
+    fn from(s: String) -> Self {
+        Counter { repr: s }
+    }
+}
 
 impl Metric for Counter {
     fn as_metric_str(&self) -> &str {
@@ -58,10 +64,15 @@ pub struct Timer {
 
 impl Timer {
     pub fn new(prefix: &str, key: &str, time: u64) -> Timer {
-        Timer { repr: format!("{}.{}:{}|ms", prefix, key, time) }
+        MetricFormatter::timer(prefix, key, time).build()
     }
 }
 
+impl From<String> for Timer {
+    fn from(s: String) -> Self {
+        Timer { repr: s }
+    }
+}
 
 impl Metric for Timer {
     fn as_metric_str(&self) -> &str {
@@ -81,10 +92,15 @@ pub struct Gauge {
 
 impl Gauge {
     pub fn new(prefix: &str, key: &str, value: u64) -> Gauge {
-        Gauge { repr: format!("{}.{}:{}|g", prefix, key, value) }
+        MetricFormatter::gauge(prefix, key, value).build()
     }
 }
 
+impl From<String> for Gauge {
+    fn from(s: String) -> Self {
+        Gauge { repr: s }
+    }
+}
 
 impl Metric for Gauge {
     fn as_metric_str(&self) -> &str {
@@ -104,10 +120,15 @@ pub struct Meter {
 
 impl Meter {
     pub fn new(prefix: &str, key: &str, value: u64) -> Meter {
-        Meter { repr: format!("{}.{}:{}|m", prefix, key, value) }
+        MetricFormatter::meter(prefix, key, value).build()
     }
 }
 
+impl From<String> for Meter {
+    fn from(s: String) -> Self {
+        Meter { repr: s }
+    }
+}
 
 impl Metric for Meter {
     fn as_metric_str(&self) -> &str {
@@ -131,10 +152,15 @@ pub struct Histogram {
 
 impl Histogram {
     pub fn new(prefix: &str, key: &str, value: u64) -> Histogram {
-        Histogram { repr: format!("{}.{}:{}|h", prefix, key, value) }
+        MetricFormatter::histogram(prefix, key, value).build()
     }
 }
 
+impl From<String> for Histogram {
+    fn from(s: String) -> Self {
+        Histogram { repr: s }
+    }
+}
 
 impl Metric for Histogram {
     fn as_metric_str(&self) -> &str {
