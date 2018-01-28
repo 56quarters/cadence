@@ -188,7 +188,7 @@ fn push_datadog_tags(metric: &mut String, tags: &[(Option<&str>, &str)]) {
         .sum();
 
     // reserve enough space for prefix, tags/: separators and commas
-    let prefix = "#|";
+    let prefix = "|#";
     let tags_size = prefix.len() + kv_size + tags.len() - 1;
     metric.reserve(tags_size);
 
@@ -215,7 +215,7 @@ mod tests {
 
         let mut m = metric_str.to_string();
         push_datadog_tags(&mut m, &vec![(Some("host"), "app01.example.com")]);
-        assert_eq!(m, format!("{}#|host:app01.example.com", metric_str));
+        assert_eq!(m, format!("{}|#host:app01.example.com", metric_str));
 
         let mut m = metric_str.to_string();
         push_datadog_tags(
@@ -229,7 +229,7 @@ mod tests {
         assert_eq!(
             m,
             format!(
-                "{}#|host:app01.example.com,bucket:A,file-server",
+                "{}|#host:app01.example.com,bucket:A,file-server",
                 metric_str
             )
         );
