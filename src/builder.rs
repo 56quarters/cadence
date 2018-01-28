@@ -13,7 +13,7 @@ use std::marker::PhantomData;
 use client::StatsdClient;
 use types::{Metric, MetricResult};
 
-#[derive(Clone, Copy)]
+#[derive(PartialEq, Eq, Debug, Hash, Clone, Copy)]
 enum MetricValue {
     Signed(i64),
     Unsigned(u64),
@@ -21,14 +21,14 @@ enum MetricValue {
 
 impl fmt::Display for MetricValue {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-          match *self {
+        match *self {
             MetricValue::Signed(i) => i.fmt(f),
             MetricValue::Unsigned(i) => i.fmt(f),
         }
     }
 }
 
-#[derive(Clone, Copy)]
+#[derive(PartialEq, Eq, Debug, Hash, Clone, Copy)]
 enum MetricType {
     Counter,
     Timer,
@@ -49,7 +49,7 @@ impl fmt::Display for MetricType {
     }
 }
 
-#[derive(Clone)]
+#[derive(PartialEq, Eq, Debug, Hash, Clone)]
 pub(crate) struct MetricFormatter<'a, T>
 where
     T: Metric + From<String>,
@@ -87,7 +87,7 @@ where
     }
 
     fn from_u64(prefix: &'a str, key: &'a str, val: u64, type_: MetricType) -> Self {
-        MetricFormatter{
+        MetricFormatter {
             metric: PhantomData,
             prefix: prefix,
             key: key,
@@ -98,7 +98,7 @@ where
     }
 
     fn from_i64(prefix: &'a str, key: &'a str, val: i64, type_: MetricType) -> Self {
-        MetricFormatter{
+        MetricFormatter {
             metric: PhantomData,
             prefix: prefix,
             key: key,
@@ -140,7 +140,7 @@ where
     }
 }
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct MetricBuilder<'m, 'c, T>
 where
     T: Metric + From<String>,
@@ -207,7 +207,128 @@ fn push_datadog_tags(metric: &mut String, tags: &[(Option<&str>, &str)]) {
 
 #[cfg(test)]
 mod tests {
-    use super::push_datadog_tags;
+    use types::{Counter, Gauge, Histogram, Meter, Metric, Timer};
+    use super::{push_datadog_tags, MetricFormatter};
+
+    #[test]
+    fn test_metric_formatter_counter_no_tags() {
+        let fmt = MetricFormatter::counter("prefix", "some.key", 4);
+        let counter: Counter = fmt.build();
+
+        assert_eq!("prefix.some.key:4|c", counter.as_metric_str());
+    }
+
+    #[test]
+    fn test_metric_formatter_counter_with_tags() {
+        let mut fmt = MetricFormatter::counter("prefix", "some.key", 4);
+        fmt.with_tag("host", "app03.example.com");
+        fmt.with_tag("bucket", "2");
+        fmt.with_tag_value("beta");
+
+        let counter: Counter = fmt.build();
+
+        assert_eq!(
+            concat!(
+                "prefix.some.key:4|c|#",
+                "host:app03.example.com,",
+                "bucket:2,",
+                "beta",
+            ),
+            counter.as_metric_str()
+        );
+    }
+
+    #[test]
+    fn test_metric_formatter_timer_no_tags() {
+        let fmt = MetricFormatter::timer("prefix", "some.method", 21);
+        let timer: Timer = fmt.build();
+
+        assert_eq!("prefix.some.method:21|ms", timer.as_metric_str());
+    }
+
+    #[test]
+    fn test_metric_formatter_timer_with_tags() {
+        let mut fmt = MetricFormatter::timer("prefix", "some.method", 21);
+        fmt.with_tag("app", "metrics");
+        fmt.with_tag_value("async");
+
+        let timer: Timer = fmt.build();
+
+        assert_eq!(
+            "prefix.some.method:21|ms|#app:metrics,async",
+            timer.as_metric_str()
+        );
+    }
+
+    #[test]
+    fn test_metric_formatter_gauge_no_tags() {
+        let fmt = MetricFormatter::gauge("prefix", "num.failures", 7);
+        let gauge: Gauge = fmt.build();
+
+        assert_eq!("prefix.num.failures:7|g", gauge.as_metric_str());
+    }
+
+    #[test]
+    fn test_metric_formatter_gauge_with_tags() {
+        let mut fmt = MetricFormatter::gauge("prefix", "num.failures", 7);
+        fmt.with_tag("window", "300");
+        fmt.with_tag_value("best-effort");
+
+        let gauge: Gauge = fmt.build();
+
+        assert_eq!(
+            "prefix.num.failures:7|g|#window:300,best-effort",
+            gauge.as_metric_str()
+        );
+    }
+
+    #[test]
+    fn test_metric_formatter_meter_no_tags() {
+        let fmt = MetricFormatter::meter("prefix", "user.logins", 3);
+        let meter: Meter = fmt.build();
+
+        assert_eq!("prefix.user.logins:3|m", meter.as_metric_str());
+    }
+
+    #[test]
+    fn test_metric_formatter_meter_with_tags() {
+        let mut fmt = MetricFormatter::meter("prefix", "user.logins", 3);
+        fmt.with_tag("user-type", "verified");
+        fmt.with_tag_value("bucket1");
+
+        let meter: Meter = fmt.build();
+
+        assert_eq!(
+            "prefix.user.logins:3|m|#user-type:verified,bucket1",
+            meter.as_metric_str()
+        );
+    }
+
+    #[test]
+    fn test_metric_formatter_histogram_no_tags() {
+        let fmt = MetricFormatter::histogram("prefix", "num.results", 44);
+        let histogram: Histogram = fmt.build();
+
+        assert_eq!("prefix.num.results:44|h", histogram.as_metric_str());
+    }
+
+    #[test]
+    fn test_metric_formatter_histogram_with_tags() {
+        let mut fmt = MetricFormatter::histogram("prefix", "num.results", 44);
+        fmt.with_tag("user-type", "authenticated");
+        fmt.with_tag_value("source=search");
+
+        let histogram: Histogram = fmt.build();
+
+        assert_eq!(
+            concat!(
+                "prefix.num.results:44|h|#",
+                "user-type:authenticated,",
+                "source=search"
+            ),
+            histogram.as_metric_str()
+        );
+    }
 
     #[test]
     fn test_push_datadog_tags() {
