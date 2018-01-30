@@ -1,6 +1,7 @@
 // Cadence - An extensible Statsd client for Rust!
 //
 // Copyright 2018 Philip Jenvey <pjenvey@mozilla.com>
+// Copyright 2018 TSH Labs
 //
 // Licensed under the Apache License, Version 2.0 <LICENSE-APACHE or
 // http://www.apache.org/licenses/LICENSE-2.0> or the MIT license
@@ -11,7 +12,9 @@
 use std::fmt::{self, Write};
 use std::marker::PhantomData;
 use client::StatsdClient;
-use types::{Metric, MetricResult};
+use types::{Metric, MetricError, MetricResult};
+
+const DATADOG_TAGS_PREFIX: &'static str = "|#";
 
 #[derive(PartialEq, Eq, Debug, Hash, Clone, Copy)]
 enum MetricValue {
@@ -120,34 +123,47 @@ where
             .push((None, value));
     }
 
-    fn build_base_metric(&self) -> String {
+    fn write_base_metric(&self, out: &mut String) {
+        let _ = write!(
+            out,
+            "{}.{}:{}|{}",
+            self.prefix, self.key, self.val, self.type_
+        );
+    }
+
+    fn write_tags(&self, out: &mut String) {
+        if let Some(tags) = self.tags.as_ref() {
+            write_datadog_tags(out, tags);
+        }
+    }
+
+    fn size_hint(&self) -> usize {
         // XXX: Wild guess, this /should/ be exactly what we need for the base
         // metric and even the tags that will be appended.
-        let required = self.prefix.len() + self.key.len() + 10;
-
-        let mut buf = String::with_capacity(required);
-        let _ = write!(buf, "{}.{}:{}|{}", self.prefix, self.key, self.val, self.type_);
-        buf
+        let size = self.prefix.len() + self.key.len() + 10;
+        if let Some(tags) = self.tags.as_ref() {
+            size + datadog_tags_size_hint(tags)
+        } else {
+            size
+        }
     }
 
     pub(crate) fn build(&self) -> T {
-        let mut base = self.build_base_metric();
-        if let Some(tags) = self.tags.as_ref() {
-            push_datadog_tags(&mut base, tags);
-        }
-
-        T::from(base)
+        let mut metric_string = String::with_capacity(self.size_hint());
+        self.write_base_metric(&mut metric_string);
+        self.write_tags(&mut metric_string);
+        T::from(metric_string)
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct MetricBuilder<'m, 'c, T>
 where
     T: Metric + From<String>,
 {
-    // TODO: Make this Option<Formatter> and Option<Error>?
     formatter: MetricFormatter<'m, T>,
     client: &'c StatsdClient,
+    err: Option<MetricError>,
 }
 
 impl<'m, 'c, T> MetricBuilder<'m, 'c, T>
@@ -158,6 +174,18 @@ where
         MetricBuilder {
             formatter: formatter,
             client: client,
+            err: None,
+        }
+    }
+
+    pub(crate) fn from_error(err: MetricError, client: &'c StatsdClient) -> Self {
+        // Deferring the error for a later send(), setup a bogus formatter that
+        // won't be used
+        let formatter = MetricFormatter::counter("", "", 0);
+        MetricBuilder {
+            formatter: formatter,
+            client: client,
+            err: Some(err),
         }
     }
 
@@ -171,28 +199,29 @@ where
         self
     }
 
-    pub fn send(&self) -> MetricResult<T> {
+    pub fn send(&mut self) -> MetricResult<T> {
+        if let Some(err) = self.err.take() {
+            return Err(err);
+        }
         let metric: T = self.formatter.build();
         self.client.send_metric(&metric)?;
         Ok(metric)
     }
 }
 
-fn push_datadog_tags(metric: &mut String, tags: &[(Option<&str>, &str)]) {
-    // XXX: could return an Error if there's any empty strings
+fn datadog_tags_size_hint(tags: &[(Option<&str>, &str)]) -> usize {
+    // enough space for prefix, tags/: separators and commas
     let kv_size: usize = tags.iter()
         .map(|tag| {
             tag.0.map_or(0, |k| k.len() + 1) // +1 for : separator
              + tag.1.len()
         })
         .sum();
+    DATADOG_TAGS_PREFIX.len() + kv_size + tags.len() - 1
+}
 
-    // reserve enough space for prefix, tags/: separators and commas
-    let prefix = "|#";
-    let tags_size = prefix.len() + kv_size + tags.len() - 1;
-    metric.reserve(tags_size);
-
-    metric.push_str(prefix);
+fn write_datadog_tags(metric: &mut String, tags: &[(Option<&str>, &str)]) {
+    metric.push_str(DATADOG_TAGS_PREFIX);
     for (i, &(key, value)) in tags.iter().enumerate() {
         if i > 0 {
             metric.push(',');
@@ -208,7 +237,7 @@ fn push_datadog_tags(metric: &mut String, tags: &[(Option<&str>, &str)]) {
 #[cfg(test)]
 mod tests {
     use types::{Counter, Gauge, Histogram, Meter, Metric, Timer};
-    use super::{push_datadog_tags, MetricFormatter};
+    use super::{write_datadog_tags, MetricFormatter};
 
     #[test]
     fn test_metric_formatter_counter_no_tags() {
@@ -331,15 +360,13 @@ mod tests {
     }
 
     #[test]
-    fn test_push_datadog_tags() {
-        let metric_str = "some.counter:1|c";
+    fn test_write_datadog_tags() {
+        let mut m = String::from("some.counter:1|c");
+        write_datadog_tags(&mut m, &vec![(Some("host"), "app01.example.com")]);
+        assert_eq!(m, "some.counter:1|c|#host:app01.example.com");
 
-        let mut m = metric_str.to_string();
-        push_datadog_tags(&mut m, &vec![(Some("host"), "app01.example.com")]);
-        assert_eq!(m, format!("{}|#host:app01.example.com", metric_str));
-
-        let mut m = metric_str.to_string();
-        push_datadog_tags(
+        let mut m = String::new();
+        write_datadog_tags(
             &mut m,
             &vec![
                 (Some("host"), "app01.example.com"),
@@ -347,12 +374,6 @@ mod tests {
                 (None, "file-server"),
             ],
         );
-        assert_eq!(
-            m,
-            format!(
-                "{}|#host:app01.example.com,bucket:A,file-server",
-                metric_str
-            )
-        );
+        assert_eq!(m, "|#host:app01.example.com,bucket:A,file-server",);
     }
 }

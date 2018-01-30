@@ -64,7 +64,11 @@ pub trait Timed {
     /// The duration will be truncated to millisecond precision. If the
     /// duration cannot be represented as a `u64` an error will be returned.
     fn time_duration(&self, key: &str, duration: Duration) -> MetricResult<Timer>;
-    //fn time_duration_with_tags(&self, key: &str, duration: Duration) -> MetricBuilder<Timer>;
+    fn time_duration_with_tags<'a>(
+        &'a self,
+        key: &'a str,
+        duration: Duration,
+    ) -> MetricBuilder<Timer>;
 }
 
 
@@ -403,17 +407,6 @@ impl Counted for StatsdClient {
 }
 
 
-
-fn duration_to_millis(duration: Duration) -> MetricResult<u64> {
-    let secs_as_ms = duration.as_secs().checked_mul(1_000);
-    let nanos_as_ms = u64::from(duration.subsec_nanos()).checked_div(1_000_000);
-
-    secs_as_ms
-        .and_then(|v1| nanos_as_ms.and_then(|v2| v1.checked_add(v2)))
-        .ok_or_else(|| MetricError::from((ErrorKind::InvalidInput, "u64 overflow")))
-}
-
-
 impl Timed for StatsdClient {
     fn time(&self, key: &str, time: u64) -> MetricResult<Timer> {
         self.time_with_tags(key, time).send()
@@ -425,18 +418,25 @@ impl Timed for StatsdClient {
     }
 
     fn time_duration(&self, key: &str, duration: Duration) -> MetricResult<Timer> {
-        let millis = duration_to_millis(duration)?;
-        self.time(key, millis)
+        self.time_duration_with_tags(key, duration).send()
     }
 
-    /*
-    fn time_duration_with_tags(&self, key: &str, duration: Duration) -> MetricBuilder<Timer> {
-        // XXX: this needs to return an error when millis doesn't compute
-        let millis = duration_to_millis(duration)?;
-        let timer = Timer::new(&self.prefix, key, millis);
-        MetricBuilder::new(timer, self)
+    fn time_duration_with_tags<'a>(
+        &'a self,
+        key: &'a str,
+        duration: Duration,
+    ) -> MetricBuilder<Timer> {
+        let secs_as_ms = duration.as_secs().checked_mul(1_000);
+        let nanos_as_ms = u64::from(duration.subsec_nanos()).checked_div(1_000_000);
+
+        let result = secs_as_ms
+            .and_then(|v1| nanos_as_ms.and_then(|v2| v1.checked_add(v2)))
+            .ok_or_else(|| MetricError::from((ErrorKind::InvalidInput, "u64 overflow")));
+        match result {
+            Ok(millis) => self.time_with_tags(key, millis),
+            Err(e) => MetricBuilder::from_error(e, self)
+        }
     }
-    */
 }
 
 
@@ -611,5 +611,28 @@ mod tests {
             .with_tag_value("file-server")
             .send()
             .unwrap();
+    }
+
+    #[test]
+    fn test_statsd_client_time_duration_with_tags() {
+        let client = StatsdClient::from_sink("prefix", NopMetricSink);
+        client
+            .time_duration_with_tags("key", Duration::from_millis(157))
+            .with_tag("foo", "bar")
+            .with_tag_value("quux")
+            .send()
+            .unwrap();
+    }
+
+    #[test]
+    fn test_statsd_client_time_duration_with_tags_with_overflow() {
+        let client = StatsdClient::from_sink("prefix", NopMetricSink);
+        let res = client
+            .time_duration_with_tags("key", Duration::from_secs(u64::MAX))
+            .with_tag("foo", "bar")
+            .with_tag_value("quux")
+            .send();
+        assert!(res.is_err());
+        assert_eq!(ErrorKind::InvalidInput, res.unwrap_err().kind());
     }
 }
