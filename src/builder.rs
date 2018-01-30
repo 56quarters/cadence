@@ -14,8 +14,9 @@ use std::marker::PhantomData;
 use client::StatsdClient;
 use types::{Metric, MetricError, MetricResult};
 
-const DATADOG_TAGS_PREFIX: &'static str = "|#";
+const DATADOG_TAGS_PREFIX: &str = "|#";
 
+/// Uniform holder for values that knows how to display itself
 #[derive(PartialEq, Eq, Debug, Hash, Clone, Copy)]
 enum MetricValue {
     Signed(i64),
@@ -31,6 +32,7 @@ impl fmt::Display for MetricValue {
     }
 }
 
+/// Type of metric that knows how to display itself
 #[derive(PartialEq, Eq, Debug, Hash, Clone, Copy)]
 enum MetricType {
     Counter,
@@ -113,13 +115,13 @@ where
 
     fn with_tag(&mut self, key: &'a str, value: &'a str) {
         self.tags
-            .get_or_insert_with(|| Vec::new())
+            .get_or_insert_with(Vec::new)
             .push((Some(key), value));
     }
 
     fn with_tag_value(&mut self, value: &'a str) {
         self.tags
-            .get_or_insert_with(|| Vec::new())
+            .get_or_insert_with(Vec::new)
             .push((None, value));
     }
 
@@ -138,9 +140,20 @@ where
     }
 
     fn size_hint(&self) -> usize {
-        // XXX: Wild guess, this /should/ be exactly what we need for the base
-        // metric and even the tags that will be appended.
-        let size = self.prefix.len() + self.key.len() + 10;
+        // Note: This isn't actually the number of bytes required, it's just
+        // a guess (♪ this is just a tribute ♪). This is probably sufficient in
+        // most cases and guessing is faster than actually doing the math to find
+        // the exact number of bytes required.
+        //
+        // Justification for "10" bytes: the max number of digits we could possibly
+        // need for the string representation of our value is 20 (for both u64::MAX
+        // and i64::MIN including the minus sign). So, 10 digits covers a pretty
+        // large range of values that will actually be seen in practice. Plus, using
+        // a constant is faster than computing the `val.log(10)` of our value which
+        // we would need to know exactly how many digits it takes up.
+        let size = self.prefix.len() + 1 /* . */ + self.key.len()
+            + 1 /* : */ + 10 /* see above */ + 1 /* | */ + 2 /* type */;
+
         if let Some(tags) = self.tags.as_ref() {
             size + datadog_tags_size_hint(tags)
         } else {
@@ -156,6 +169,23 @@ where
     }
 }
 
+/// Builder for adding tags to in-progress metrics.
+///
+/// The only way to instantiate an instance of this builder is via methods in
+/// in the `StatsdClient` client.
+///
+/// This builder adds tags, key-value pairs or just values, to a metric that
+/// was previously constructed by a called to method on `StatsdClient`. The
+/// tags are added to metrics and sent via the client when `MetricBuilder::send()`
+/// is invoked. Adding tags via this builder will typically result in one or
+/// more extra heap allocations.
+///
+/// Any errors countered constructing or validating the metrics will be propagated
+/// here through the `::send()` call.
+///
+/// Currently, only Datadog style tags are supported. For more information on the
+/// exact format used, see the
+/// [Datadog docs](https://docs.datadoghq.com/developers/dogstatsd/#datagram-format).
 #[derive(Debug)]
 pub struct MetricBuilder<'m, 'c, T>
 where
@@ -189,16 +219,19 @@ where
         }
     }
 
+    /// Add a key-value tag to this metric.
     pub fn with_tag(&mut self, key: &'m str, value: &'m str) -> &mut Self {
         self.formatter.with_tag(key, value);
         self
     }
 
+    /// Add a value tag to this metric.
     pub fn with_tag_value(&mut self, value: &'m str) -> &mut Self {
         self.formatter.with_tag_value(value);
         self
     }
 
+    /// Send a metric using the client that created this builder.
     pub fn send(&mut self) -> MetricResult<T> {
         if let Some(err) = self.err.take() {
             return Err(err);

@@ -34,14 +34,23 @@ use ::types::{MetricResult, MetricError, ErrorKind, Counter, Timer, Gauge,
 pub trait Counted {
     /// Increment the counter by `1`
     fn incr(&self, key: &str) -> MetricResult<Counter>;
+
+    /// Increment the counter by `1` and return a `MetricBuilder` that can
+    /// be used to add tags to the metric.
     fn incr_with_tags<'a>(&'a self, key: &'a str) -> MetricBuilder<Counter>;
 
     /// Decrement the counter by `1`
     fn decr(&self, key: &str) -> MetricResult<Counter>;
+
+    /// Decrement the counter by `1` and return a `MetricBuilder that can
+    /// be used to add tags to the metric.
     fn decr_with_tags<'a>(&'a self, key: &'a str) -> MetricBuilder<Counter>;
 
     /// Increment or decrement the counter by the given amount
     fn count(&self, key: &str, count: i64) -> MetricResult<Counter>;
+
+    /// Increment or decrement the counter by the given amount and return
+    /// a `MetricBuilder` that can be used to add tags to the metric.
     fn count_with_tags<'a>(&'a self, key: &'a str, count: i64) -> MetricBuilder<Counter>;
 }
 
@@ -57,6 +66,9 @@ pub trait Counted {
 pub trait Timed {
     /// Record a timing in milliseconds with the given key
     fn time(&self, key: &str, time: u64) -> MetricResult<Timer>;
+
+    /// Record a timing in milliseconds with the given key and return a
+    /// `MetricBuilder` that can be used to add tags to the metric.
     fn time_with_tags<'a>(&'a self, key: &'a str, time: u64) -> MetricBuilder<Timer>;
 
     /// Record a timing in milliseconds with the given key
@@ -64,6 +76,13 @@ pub trait Timed {
     /// The duration will be truncated to millisecond precision. If the
     /// duration cannot be represented as a `u64` an error will be returned.
     fn time_duration(&self, key: &str, duration: Duration) -> MetricResult<Timer>;
+
+    /// Record a timing in milliseconds with the given key and return a
+    /// `MetricBuilder` that can be used to add tags to the metric.
+    ///
+    /// The duration will be truncated to millisecond precision. If the
+    /// duration cannot be represented as a `u64` an error will be deferred
+    /// and returned when `MetricBuilder::send()` is called.
     fn time_duration_with_tags<'a>(
         &'a self,
         key: &'a str,
@@ -83,6 +102,9 @@ pub trait Timed {
 pub trait Gauged {
     /// Record a gauge value with the given key
     fn gauge(&self, key: &str, value: u64) -> MetricResult<Gauge>;
+
+    /// Record a gauge value with the given key and return a `MetricBuilder`
+    /// that can be used to add tags to the metric.
     fn gauge_with_tags<'a>(&'a self, key: &'a str, value: u64) -> MetricBuilder<Gauge>;
 }
 
@@ -100,10 +122,16 @@ pub trait Gauged {
 pub trait Metered {
     /// Record a single metered event with the given key
     fn mark(&self, key: &str) -> MetricResult<Meter>;
+
+    /// Record a single metered event with the given key and return a
+    /// `MetricBuilder` that can be used to add tags to the metric.
     fn mark_with_tags<'a>(&'a self, key: &'a str) -> MetricBuilder<Meter>;
 
     /// Record a meter value with the given key
     fn meter(&self, key: &str, value: u64) -> MetricResult<Meter>;
+
+    /// Record a meter value with the given key and return a `MetricBuilder`
+    /// that can be used to add tags to the metric.
     fn meter_with_tags<'a>(&'a self, key: &'a str, value: u64) -> MetricBuilder<Meter>;
 }
 
@@ -122,6 +150,9 @@ pub trait Metered {
 pub trait Histogrammed {
     /// Record a single histogram value with the given key
     fn histogram(&self, key: &str, value: u64) -> MetricResult<Histogram>;
+
+    /// Record a single histogram value with the given key and return a
+    /// `MetricBuilder` that can be used to add tags to the metric.
     fn histogram_with_tags<'a>(&'a self, key: &'a str, value: u64) -> MetricBuilder<Histogram>;
 }
 

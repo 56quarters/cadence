@@ -286,24 +286,20 @@
 //! ```
 //!
 
-
 extern crate crossbeam;
-
 
 pub const DEFAULT_PORT: u16 = 8125;
 
+pub use self::builder::MetricBuilder;
 
 pub use self::client::{Counted, Timed, Gauged, Metered, Histogrammed,
                        MetricClient, StatsdClient};
 
-
 pub use self::sinks::{MetricSink, NopMetricSink, UdpMetricSink,
                       BufferedUdpMetricSink, QueuingMetricSink};
 
-
 pub use self::types::{MetricResult, MetricError, ErrorKind, Counter, Timer,
                       Gauge, Meter, Histogram};
-
 
 pub mod prelude;
 mod builder;
