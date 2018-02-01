@@ -186,6 +186,36 @@ where
 /// Currently, only Datadog style tags are supported. For more information on the
 /// exact format used, see the
 /// [Datadog docs](https://docs.datadoghq.com/developers/dogstatsd/#datagram-format).
+///
+/// # Example
+///
+/// An example of how the metric builder is used with a `StatsdClient` instance
+/// is given below.
+///
+/// ```
+/// use cadence::prelude::*;
+/// use cadence::{StatsdClient, NopMetricSink, Metric};
+///
+/// let client = StatsdClient::from_sink("some.prefix", NopMetricSink);
+/// let res = client.incr_with_tags("some.key")
+///    .with_tag("host", "app11.example.com")
+///    .with_tag("segment", "23")
+///    .with_tag_value("beta")
+///    .send();
+///
+/// assert_eq!(
+///     concat!(
+///         "some.prefix.some.key:1|c|#",
+///         "host:app11.example.com,",
+///         "segment:23,",
+///         "beta"
+///     ),
+///     res.unwrap().as_metric_str()
+/// );
+/// ```
+///
+/// In this example, two key-value tags and one value tag are added to the
+/// metric before it is finally sent to the Statsd server.
 #[derive(Debug)]
 pub struct MetricBuilder<'m, 'c, T>
 where
@@ -220,12 +250,46 @@ where
     }
 
     /// Add a key-value tag to this metric.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use cadence::prelude::*;
+    /// use cadence::{StatsdClient, NopMetricSink, Metric};
+    ///
+    /// let client = StatsdClient::from_sink("some.prefix", NopMetricSink);
+    /// let res = client.decr_with_tags("some.key")
+    ///    .with_tag("type", "user-signup")
+    ///    .send();
+    ///
+    /// assert_eq!(
+    ///    "some.prefix.some.key:-1|c|#type:user-signup",
+    ///    res.unwrap().as_metric_str()
+    /// );
+    /// ```
     pub fn with_tag(&mut self, key: &'m str, value: &'m str) -> &mut Self {
         self.formatter.with_tag(key, value);
         self
     }
 
     /// Add a value tag to this metric.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use cadence::prelude::*;
+    /// use cadence::{StatsdClient, NopMetricSink, Metric};
+    ///
+    /// let client = StatsdClient::from_sink("some.prefix", NopMetricSink);
+    /// let res = client.count_with_tags("some.key", 4)
+    ///    .with_tag_value("beta-testing")
+    ///    .send();
+    ///
+    /// assert_eq!(
+    ///    "some.prefix.some.key:4|c|#beta-testing",
+    ///    res.unwrap().as_metric_str()
+    /// );
+    /// ```
     pub fn with_tag_value(&mut self, value: &'m str) -> &mut Self {
         self.formatter.with_tag_value(value);
         self

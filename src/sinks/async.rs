@@ -59,10 +59,6 @@ use sinks::core::MetricSink;
 /// At the end of this code block, all metrics are guaranteed to be sent to
 /// the underlying wrapped metric sink before the thread used by the queuing
 /// sink is stopped.
-///
-/// **WARNING** This `MetricSink` is unstable and may change in a future
-/// release. It's possible that it contains bugs. You are advised against
-/// running it in production.
 #[derive(Debug, Clone)]
 pub struct QueuingMetricSink {
     context: Arc<WorkerContext<String>>,

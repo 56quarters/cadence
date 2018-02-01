@@ -299,7 +299,7 @@ pub use self::sinks::{MetricSink, NopMetricSink, UdpMetricSink,
                       BufferedUdpMetricSink, QueuingMetricSink};
 
 pub use self::types::{MetricResult, MetricError, ErrorKind, Counter, Timer,
-                      Gauge, Meter, Histogram};
+                      Gauge, Meter, Histogram, Metric};
 
 pub mod prelude;
 mod builder;

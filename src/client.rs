@@ -31,6 +31,9 @@ use ::types::{MetricResult, MetricError, ErrorKind, Counter, Timer, Gauge,
 ///
 /// See the [Statsd spec](https://github.com/b/statsd_spec) for more
 /// information.
+///
+/// Note that tags are a [Datadog](https://docs.datadoghq.com/developers/dogstatsd/)
+/// extension to Statsd and may not be supported by your server.
 pub trait Counted {
     /// Increment the counter by `1`
     fn incr(&self, key: &str) -> MetricResult<Counter>;
@@ -63,6 +66,9 @@ pub trait Counted {
 ///
 /// See the [Statsd spec](https://github.com/b/statsd_spec) for more
 /// information.
+///
+/// Note that tags are a [Datadog](https://docs.datadoghq.com/developers/dogstatsd/)
+/// extension to Statsd and may not be supported by your server.
 pub trait Timed {
     /// Record a timing in milliseconds with the given key
     fn time(&self, key: &str, time: u64) -> MetricResult<Timer>;
@@ -99,6 +105,9 @@ pub trait Timed {
 ///
 /// See the [Statsd spec](https://github.com/b/statsd_spec) for more
 /// information.
+///
+/// Note that tags are a [Datadog](https://docs.datadoghq.com/developers/dogstatsd/)
+/// extension to Statsd and may not be supported by your server.
 pub trait Gauged {
     /// Record a gauge value with the given key
     fn gauge(&self, key: &str, value: u64) -> MetricResult<Gauge>;
@@ -119,6 +128,9 @@ pub trait Gauged {
 ///
 /// See the [Statsd spec](https://github.com/b/statsd_spec) for more
 /// information.
+///
+/// Note that tags are a [Datadog](https://docs.datadoghq.com/developers/dogstatsd/)
+/// extension to Statsd and may not be supported by your server.
 pub trait Metered {
     /// Record a single metered event with the given key
     fn mark(&self, key: &str) -> MetricResult<Meter>;
@@ -142,11 +154,14 @@ pub trait Metered {
 /// statistical distribution is calculated by the server. The values can be
 /// timings, amount of some resource consumed, size of HTTP responses in
 /// some application, etc. Histograms can be thought of as a more general
-/// form of timers. They are an extension to the Statsd protocol so you
-/// should check if your server supports them before using them.
+/// form of timers.
 ///
 /// See the [Statsd spec](https://github.com/b/statsd_spec) for more
 /// information.
+///
+/// Note that tags and histograms are a
+/// [Datadog](https://docs.datadoghq.com/developers/dogstatsd/) extension to
+/// Statsd and may not be supported by your server.
 pub trait Histogrammed {
     /// Record a single histogram value with the given key
     fn histogram(&self, key: &str, value: u64) -> MetricResult<Histogram>;
