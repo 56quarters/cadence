@@ -194,8 +194,8 @@ impl BufferedUdpMetricSink {
     /// ('\n') by the sink and stored in a buffer until the buffer is full
     /// or this sink is destroyed, at which point the buffer will be flushed.
     ///
-    /// For guidance on sizing your buffer see the [Statsd docs]
-    /// (https://github.com/etsy/statsd/blob/master/docs/metric_types.md#multi-metric-packets).
+    /// For guidance on sizing your buffer see the
+    /// [Statsd docs](https://github.com/etsy/statsd/blob/master/docs/metric_types.md#multi-metric-packets).
     ///
     /// # Example
     ///
