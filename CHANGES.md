@@ -1,5 +1,14 @@
 # Changelog
 
+## [v0.13.0](https://github.com/tshlabs/cadence/tree/0.13.0) - 2018-??-??
+* **Breaking change** - Added `_with_tags` method variants to all traits for
+  emitting metrics (`Counted`, `Timed`, `Gauged`, `Metered`, `Histogrammed`).
+  These methods will return a `MetricBuilder` instance that can be used to add
+  [Datadog](https://docs.datadoghq.com/developers/dogstatsd/) style tags to
+  metrics. Tags are an extension so they may not be supported by all Statsd
+  servers.
+* The `Metric` trait (which is used by each type of metric object for returning
+  a `&str` representation of itself) is now part of the public API.
 
 ## [v0.12.2](https://github.com/tshlabs/cadence/tree/0.12.2) - 2017-11-29
 * Fix off-by-one bug in underlying functionality for `BufferedUdpSink`
