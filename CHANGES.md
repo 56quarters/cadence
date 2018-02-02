@@ -2,8 +2,9 @@
 
 ## [v0.13.0](https://github.com/tshlabs/cadence/tree/0.13.0) - 2018-??-??
 * **Breaking change** - Added `_with_tags` method variants to all traits for
-  emitting metrics (`Counted`, `Timed`, `Gauged`, `Metered`, `Histogrammed`).
-  These methods will return a `MetricBuilder` instance that can be used to add
+  emitting metrics (`Counted`, `Timed`, `Gauged`, `Metered`, `Histogrammed`)
+  per [#41](https://github.com/tshlabs/cadence/issues/41). These methods will
+  return a `MetricBuilder` instance that can be used to add
   [Datadog](https://docs.datadoghq.com/developers/dogstatsd/) style tags to
   metrics. Tags are an extension so they may not be supported by all Statsd
   servers.
