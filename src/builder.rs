@@ -267,8 +267,10 @@ where
     ///    res.unwrap().as_metric_str()
     /// );
     /// ```
-    pub fn with_tag(&mut self, key: &'m str, value: &'m str) -> &mut Self {
-        self.formatter.with_tag(key, value);
+    pub fn with_tag(mut self, key: &'m str, value: &'m str) -> Self {
+        if let None = self.err {
+            self.formatter.with_tag(key, value);
+        }
         self
     }
 
@@ -290,14 +292,36 @@ where
     ///    res.unwrap().as_metric_str()
     /// );
     /// ```
-    pub fn with_tag_value(&mut self, value: &'m str) -> &mut Self {
-        self.formatter.with_tag_value(value);
+    pub fn with_tag_value(mut self, value: &'m str) -> Self {
+        if let None = self.err {
+            self.formatter.with_tag_value(value);
+        }
         self
     }
 
     /// Send a metric using the client that created this builder.
-    pub fn send(&mut self) -> MetricResult<T> {
-        if let Some(err) = self.err.take() {
+    ///
+    /// Note that the builder is consumed by this method and thus `.send()` can
+    /// only be called a single time per builder.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use cadence::prelude::*;
+    /// use cadence::{StatsdClient, NopMetricSink, Metric};
+    ///
+    /// let client = StatsdClient::from_sink("some.prefix", NopMetricSink);
+    /// let res = client.gauge_with_tags("some.key", 7)
+    ///    .with_tag("test-segment", "12345")
+    ///    .send();
+    ///
+    /// assert_eq!(
+    ///    "some.prefix.some.key:7|g|#test-segment:12345",
+    ///    res.unwrap().as_metric_str()
+    /// );
+    /// ```
+    pub fn send(self) -> MetricResult<T> {
+        if let Some(err) = self.err {
             return Err(err);
         }
         let metric: T = self.formatter.build();
