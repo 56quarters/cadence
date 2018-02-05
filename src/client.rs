@@ -549,7 +549,7 @@ mod tests {
     use super::{trim_key, Counted, Timed, Gauged, Metered, Histogrammed,
                 MetricClient, StatsdClient};
     use ::sinks::NopMetricSink;
-    use ::types::{ErrorKind, Timer};
+    use ::types::{ErrorKind, Metric};
 
     #[test]
     fn test_trim_key_with_trailing_dot() {
@@ -559,6 +559,103 @@ mod tests {
     #[test]
     fn test_trim_key_no_trailing_dot() {
         assert_eq!("some.prefix", trim_key("some.prefix"));
+    }
+
+    #[test]
+    fn test_statsd_client_count_with_tags() {
+        let client = StatsdClient::from_sink("prefix", NopMetricSink);
+        let res = client
+            .count_with_tags("some.counter", 3)
+            .with_tag("foo", "bar")
+            .send();
+
+        assert_eq!("prefix.some.counter:3|c|#foo:bar", res.unwrap().as_metric_str());
+    }
+
+    #[test]
+    fn test_statsd_client_gauge_with_tags() {
+        let client = StatsdClient::from_sink("prefix", NopMetricSink);
+        let res = client
+            .gauge_with_tags("some.gauge", 4)
+            .with_tag("bucket", "A")
+            .with_tag_value("file-server")
+            .send();
+
+        assert_eq!(
+            "prefix.some.gauge:4|g|#bucket:A,file-server",
+            res.unwrap().as_metric_str()
+        );
+    }
+
+    #[test]
+    fn test_statsd_client_meter_with_tags() {
+        let client = StatsdClient::from_sink("prefix", NopMetricSink);
+        let res = client
+            .meter_with_tags("some.meter", 64)
+            .with_tag("segment", "142")
+            .with_tag_value("beta")
+            .send();
+
+        assert_eq!(
+            "prefix.some.meter:64|m|#segment:142,beta",
+            res.unwrap().as_metric_str()
+        );
+    }
+
+    #[test]
+    fn test_statsd_client_histogram_with_tags() {
+        let client = StatsdClient::from_sink("prefix", NopMetricSink);
+        let res = client
+            .histogram_with_tags("some.histo", 27)
+            .with_tag("host", "www03.example.com")
+            .with_tag_value("rc1")
+            .send();
+
+        assert_eq!(
+            "prefix.some.histo:27|h|#host:www03.example.com,rc1",
+            res.unwrap().as_metric_str()
+        );
+    }
+
+    #[test]
+    fn test_statsd_client_time_duration() {
+        let client = StatsdClient::from_sink("prefix", NopMetricSink);
+        let res = client.time_duration("key", Duration::from_millis(157));
+
+        assert_eq!("prefix.key:157|ms", res.unwrap().as_metric_str());
+    }
+
+    #[test]
+    fn test_statsd_client_time_duration_with_overflow() {
+        let client = StatsdClient::from_sink("prefix", NopMetricSink);
+        let res = client.time_duration("key", Duration::from_secs(u64::MAX));
+
+        assert_eq!(ErrorKind::InvalidInput, res.unwrap_err().kind())
+    }
+
+    #[test]
+    fn test_statsd_client_time_duration_with_tags() {
+        let client = StatsdClient::from_sink("prefix", NopMetricSink);
+        let res = client
+            .time_duration_with_tags("key", Duration::from_millis(157))
+            .with_tag("foo", "bar")
+            .with_tag_value("quux")
+            .send();
+
+        assert_eq!("prefix.key:157|ms|#foo:bar,quux", res.unwrap().as_metric_str());
+    }
+
+    #[test]
+    fn test_statsd_client_time_duration_with_tags_with_overflow() {
+        let client = StatsdClient::from_sink("prefix", NopMetricSink);
+        let res = client
+            .time_duration_with_tags("key", Duration::from_secs(u64::MAX))
+            .with_tag("foo", "bar")
+            .with_tag_value("quux")
+            .send();
+
+        assert!(res.is_err());
+        assert_eq!(ErrorKind::InvalidInput, res.unwrap_err().kind());
     }
 
     // The following tests really just ensure that we've actually
@@ -615,70 +712,5 @@ mod tests {
         client.gauge("some.gauge", 4).unwrap();
         client.meter("some.meter", 29).unwrap();
         client.histogram("some.histogram", 32).unwrap();
-    }
-
-    #[test]
-    fn test_statsd_client_time_duration_no_overflow() {
-        let client = StatsdClient::from_sink("prefix", NopMetricSink);
-        let res = client.time_duration("key", Duration::from_millis(157));
-        let expected = Timer::new("prefix", "key", 157);
-
-        assert_eq!(expected, res.unwrap());
-    }
-
-    #[test]
-    fn test_statsd_client_time_duration_with_overflow() {
-        let client = StatsdClient::from_sink("prefix", NopMetricSink);
-        let res = client.time_duration("key", Duration::from_secs(u64::MAX));
-        let err = res.unwrap_err();
-
-        assert_eq!(ErrorKind::InvalidInput, err.kind())
-    }
-
-    #[test]
-    fn test_statsd_client_with_tags() {
-        let client: Box<MetricClient> = Box::new(StatsdClient::from_sink("prefix", NopMetricSink));
-
-        client.incr_with_tags("some.counter").send().unwrap();
-        client
-            .count_with_tags("some.counter", 3)
-            .with_tag("foo", "bar")
-            .send()
-            .unwrap();
-        client
-            .time_with_tags("some.timer", 22)
-            .with_tag("host", "app01.example.com")
-            .with_tag("bucket", "A")
-            .send()
-            .unwrap();
-        client
-            .gauge_with_tags("some.gauge", 4)
-            .with_tag("bucket", "A")
-            .with_tag_value("file-server")
-            .send()
-            .unwrap();
-    }
-
-    #[test]
-    fn test_statsd_client_time_duration_with_tags() {
-        let client = StatsdClient::from_sink("prefix", NopMetricSink);
-        client
-            .time_duration_with_tags("key", Duration::from_millis(157))
-            .with_tag("foo", "bar")
-            .with_tag_value("quux")
-            .send()
-            .unwrap();
-    }
-
-    #[test]
-    fn test_statsd_client_time_duration_with_tags_with_overflow() {
-        let client = StatsdClient::from_sink("prefix", NopMetricSink);
-        let res = client
-            .time_duration_with_tags("key", Duration::from_secs(u64::MAX))
-            .with_tag("foo", "bar")
-            .with_tag_value("quux")
-            .send();
-        assert!(res.is_err());
-        assert_eq!(ErrorKind::InvalidInput, res.unwrap_err().kind());
     }
 }
