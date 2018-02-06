@@ -39,7 +39,7 @@ impl WriterMetrics {
 /// writes the complete input in a single call to the underlying
 /// writer.
 #[derive(Debug)]
-pub struct MultiLineWriter<T: Write> {
+pub(crate) struct MultiLineWriter<T: Write> {
     written: usize,
     capacity: usize,
     metrics: WriterMetrics,
@@ -50,13 +50,13 @@ pub struct MultiLineWriter<T: Write> {
 impl<T: Write> MultiLineWriter<T> {
     /// Create a new buffered `MultiLineWriter` instance that suffixes
     /// each write with a newline character ('\n').
-    pub fn new(cap: usize, inner: T) -> MultiLineWriter<T> {
+    pub(crate) fn new(cap: usize, inner: T) -> MultiLineWriter<T> {
         Self::with_ending(cap, inner, "\n")
     }
 
     /// Create a new buffered `MultiLineWriter` instance that suffixes
     /// each write with the given line ending.
-    pub fn with_ending(cap: usize, inner: T, end: &str) -> MultiLineWriter<T> {
+    pub(crate) fn with_ending(cap: usize, inner: T, end: &str) -> MultiLineWriter<T> {
         MultiLineWriter {
             written: 0,
             capacity: cap,
@@ -120,14 +120,14 @@ impl<T: Write> Write for MultiLineWriter<T> {
 
 /// Adapter for writing to a `UdpSocket` via the `Write` trait
 #[derive(Debug)]
-pub struct UdpWriteAdapter {
+pub(crate) struct UdpWriteAdapter {
     addr: SocketAddr,
     socket: UdpSocket,
 }
 
 
 impl UdpWriteAdapter {
-    pub fn new(addr: SocketAddr, socket: UdpSocket) -> UdpWriteAdapter {
+    pub(crate) fn new(addr: SocketAddr, socket: UdpSocket) -> UdpWriteAdapter {
         UdpWriteAdapter {
             addr: addr,
             socket: socket
