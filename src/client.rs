@@ -480,7 +480,7 @@ impl Timed for StatsdClient {
             .ok_or_else(|| MetricError::from((ErrorKind::InvalidInput, "u64 overflow")));
         match result {
             Ok(millis) => self.time_with_tags(key, millis),
-            Err(e) => MetricBuilder::from_error(e, self)
+            Err(e) => MetricBuilder::from_error(e)
         }
     }
 }

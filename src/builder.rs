@@ -169,6 +169,17 @@ where
     }
 }
 
+/// Internal state of a MetricBuilder
+///
+/// The builder can either be in the process of formatting a metric to send
+/// via a client or it can be simply holding on to an error that it will return
+/// to a caller when `.send()` is finally invoked.
+#[derive(Debug)]
+enum BuilderRepr<'m, 'c, T> where T: Metric + From<String> {
+    Success(MetricFormatter<'m, T>, &'c StatsdClient),
+    Error(MetricError),
+}
+
 /// Builder for adding tags to in-progress metrics.
 ///
 /// The only way to instantiate an instance of this builder is via methods in
@@ -221,9 +232,7 @@ pub struct MetricBuilder<'m, 'c, T>
 where
     T: Metric + From<String>,
 {
-    formatter: MetricFormatter<'m, T>,
-    client: &'c StatsdClient,
-    err: Option<MetricError>,
+    repr: BuilderRepr<'m, 'c, T>
 }
 
 impl<'m, 'c, T> MetricBuilder<'m, 'c, T>
@@ -232,20 +241,13 @@ where
 {
     pub(crate) fn new(formatter: MetricFormatter<'m, T>, client: &'c StatsdClient) -> Self {
         MetricBuilder {
-            formatter: formatter,
-            client: client,
-            err: None,
+            repr: BuilderRepr::Success(formatter, client)
         }
     }
 
-    pub(crate) fn from_error(err: MetricError, client: &'c StatsdClient) -> Self {
-        // Deferring the error for a later send(), setup a bogus formatter that
-        // won't be used
-        let formatter = MetricFormatter::counter("", "", 0);
+    pub(crate) fn from_error(err: MetricError) -> Self {
         MetricBuilder {
-            formatter: formatter,
-            client: client,
-            err: Some(err),
+            repr: BuilderRepr::Error(err)
         }
     }
 
@@ -268,8 +270,8 @@ where
     /// );
     /// ```
     pub fn with_tag(mut self, key: &'m str, value: &'m str) -> Self {
-        if let None = self.err {
-            self.formatter.with_tag(key, value);
+        if let BuilderRepr::Success(ref mut formatter, _) = self.repr {
+            formatter.with_tag(key, value);
         }
         self
     }
@@ -293,8 +295,8 @@ where
     /// );
     /// ```
     pub fn with_tag_value(mut self, value: &'m str) -> Self {
-        if let None = self.err {
-            self.formatter.with_tag_value(value);
+        if let BuilderRepr::Success(ref mut formatter, _) = self.repr {
+            formatter.with_tag_value(value);
         }
         self
     }
@@ -321,12 +323,14 @@ where
     /// );
     /// ```
     pub fn send(self) -> MetricResult<T> {
-        if let Some(err) = self.err {
-            return Err(err);
+        match self.repr {
+            BuilderRepr::Error(err) => Err(err),
+            BuilderRepr::Success(ref formatter, client) => {
+                let metric: T = formatter.build();
+                client.send_metric(&metric)?;
+                Ok(metric)
+            }
         }
-        let metric: T = self.formatter.build();
-        self.client.send_metric(&metric)?;
-        Ok(metric)
     }
 }
 
