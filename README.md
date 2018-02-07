@@ -29,6 +29,7 @@ Cadence is a flexible and easy way to do this!
 
 * Support for emitting counters, timers, histograms, gauges, and meters to Statsd over UDP.
 * Support for alternate backends via the `MetricSink` trait.
+* Support for [Datadog](https://docs.datadoghq.com/developers/dogstatsd/) style metric tags.
 * A simple yet flexible API for sending metrics.
 
 
@@ -160,6 +161,28 @@ let client = StatsdClient::from_sink("my.prefix", queuing_sink);
 client.count("my.counter.thing", 29);
 client.time("my.service.call", 214);
 client.incr("some.event");
+```
+
+### Use With Tags
+
+Adding tags to metrics is accomplished via the use of each of the `_with_tags`
+methods that are part of the Cadence `StatsdClient` struct. An example of using
+these methods is given below. Note that tags are an extension to the Statsd
+protocol and so may not be supported by all servers.
+
+See the [Datadog docs](https://docs.datadoghq.com/developers/dogstatsd/) for
+more information.
+
+```rust,no_run
+use cadence::prelude::*;
+use cadence::{StatsdClient, NopMetricSink};
+
+let client = StatsdClient::from_sink("my.prefix", NopMetricSink);
+
+client.count_with_tags("my.counter.thing", 29)
+    .with_tag("host", "web03.example.com")
+    .with_tag_value("beta-test")
+    .send();
 ```
 
 ### `Counted`, `Timed`, `Gauged`, `Metered`, `Histogrammed`, and `MetricClient` Traits

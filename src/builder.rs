@@ -169,7 +169,7 @@ where
     }
 }
 
-/// Internal state of a MetricBuilder
+/// Internal state of a `MetricBuilder`
 ///
 /// The builder can either be in the process of formatting a metric to send
 /// via a client or it can be simply holding on to an error that it will return
