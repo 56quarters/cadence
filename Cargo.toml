@@ -1,6 +1,6 @@
 [package]
 name = "cadence"
-version = "0.13.0"
+version = "0.13.1"
 authors = ["TSH Labs"]
 description = "An extensible Statsd client for Rust"
 homepage = "https://github.com/tshlabs/cadence"

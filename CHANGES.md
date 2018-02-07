@@ -1,5 +1,8 @@
 # Changelog
 
+## [v0.13.1](https://github.com/tshlabs/cadence/tree/0.13.1) - 2018-02-07
+* Minor documentation improvements.
+
 ## [v0.13.0](https://github.com/tshlabs/cadence/tree/0.13.0) - 2018-02-06
 * **Breaking change** - Added `_with_tags` method variants to all traits for
   emitting metrics (`Counted`, `Timed`, `Gauged`, `Metered`, `Histogrammed`)
