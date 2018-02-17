@@ -182,21 +182,22 @@ enum BuilderRepr<'m, 'c, T> where T: Metric + From<String> {
 
 /// Builder for adding tags to in-progress metrics.
 ///
-/// The only way to instantiate an instance of this builder is via methods in
-/// in the `StatsdClient` client.
-///
 /// This builder adds tags, key-value pairs or just values, to a metric that
-/// was previously constructed by a called to method on `StatsdClient`. The
+/// was previously constructed by a call to a method on `StatsdClient`. The
 /// tags are added to metrics and sent via the client when `MetricBuilder::send()`
-/// is invoked. Adding tags via this builder will typically result in one or
-/// more extra heap allocations.
-///
-/// Any errors countered constructing or validating the metrics will be propagated
-/// here through the `::send()` call.
+/// is invoked. Any errors countered constructing, validating, or sending the
+/// metrics will be propagated and returned when the `.send()` method is finally
+/// invoked.
 ///
 /// Currently, only Datadog style tags are supported. For more information on the
 /// exact format used, see the
 /// [Datadog docs](https://docs.datadoghq.com/developers/dogstatsd/#datagram-format).
+///
+/// Adding tags to a metric via this builder will typically result in one or more
+/// extra heap allocations.
+///
+/// NOTE: The only way to instantiate an instance of this builder is via methods in
+/// in the `StatsdClient` client.
 ///
 /// # Example
 ///
@@ -260,12 +261,12 @@ where
     /// use cadence::{StatsdClient, NopMetricSink, Metric};
     ///
     /// let client = StatsdClient::from_sink("some.prefix", NopMetricSink);
-    /// let res = client.decr_with_tags("some.key")
-    ///    .with_tag("type", "user-signup")
+    /// let res = client.incr_with_tags("some.key")
+    ///    .with_tag("user", "authenticated")
     ///    .send();
     ///
     /// assert_eq!(
-    ///    "some.prefix.some.key:-1|c|#type:user-signup",
+    ///    "some.prefix.some.key:1|c|#user:authenticated",
     ///    res.unwrap().as_metric_str()
     /// );
     /// ```
@@ -339,7 +340,7 @@ fn datadog_tags_size_hint(tags: &[(Option<&str>, &str)]) -> usize {
     let kv_size: usize = tags.iter()
         .map(|tag| {
             tag.0.map_or(0, |k| k.len() + 1) // +1 for : separator
-             + tag.1.len()
+                + tag.1.len()
         })
         .sum();
     DATADOG_TAGS_PREFIX.len() + kv_size + tags.len() - 1
@@ -499,6 +500,6 @@ mod tests {
                 (None, "file-server"),
             ],
         );
-        assert_eq!(m, "|#host:app01.example.com,bucket:A,file-server",);
+        assert_eq!(m, "|#host:app01.example.com,bucket:A,file-server", );
     }
 }
