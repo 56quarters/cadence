@@ -237,7 +237,7 @@ impl<'a, T> Drop for Sentinel<'a, T> where T: Send + 'static {
 /// `.stop_and_wait()`, and `.is_stopped()` methods are meant to be called
 /// from the main thread (thread A).
 ///
-/// This worker is stopped by recieving a "poison pill" message on the
+/// This worker is stopped by receiving a "poison pill" message on the
 /// queue that it is consuming messages from. Thus, calls to `.submit()`,
 /// consuming messages in '.run()`, and `.stop()` typically involve no
 /// locking.
@@ -250,7 +250,7 @@ impl<'a, T> Drop for Sentinel<'a, T> where T: Send + 'static {
 /// If you're just trying to make use of this worker you don't need to
 /// worry about this, just call `.submit()`, `.run()`, and `.stop()`.
 /// But, if you're wondering why this is mixing lock-free data structures
-/// with locking and is genernally more complicated that it seems like
+/// with locking and is generally more complicated that it seems like
 /// it should be: testing is the reason.
 struct Worker<T> where T: Send + 'static {
     task: Box<Fn(T) -> () + Sync +  Send + 'static>,
