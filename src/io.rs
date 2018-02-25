@@ -8,12 +8,10 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-
 use std::io;
 use std::io::{BufWriter, Write};
 use std::net::{SocketAddr, UdpSocket};
 use std::str;
-
 
 #[derive(Debug)]
 struct WriterMetrics {
@@ -21,7 +19,6 @@ struct WriterMetrics {
     buf_write: u64,
     flushed: u64,
 }
-
 
 impl WriterMetrics {
     fn new() -> Self {
@@ -32,7 +29,6 @@ impl WriterMetrics {
         }
     }
 }
-
 
 /// Buffered implementation of the `Write` trait that appends a
 /// trailing line ending string to every input written and only
@@ -77,7 +73,6 @@ impl<T: Write> MultiLineWriter<T> {
     }
 }
 
-
 impl<T: Write> Write for MultiLineWriter<T> {
     fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
         let left = self.capacity - self.written;
@@ -117,7 +112,6 @@ impl<T: Write> Write for MultiLineWriter<T> {
     }
 }
 
-
 /// Adapter for writing to a `UdpSocket` via the `Write` trait
 #[derive(Debug)]
 pub(crate) struct UdpWriteAdapter {
@@ -125,16 +119,14 @@ pub(crate) struct UdpWriteAdapter {
     socket: UdpSocket,
 }
 
-
 impl UdpWriteAdapter {
     pub(crate) fn new(addr: SocketAddr, socket: UdpSocket) -> UdpWriteAdapter {
         UdpWriteAdapter {
             addr: addr,
-            socket: socket
+            socket: socket,
         }
     }
 }
-
 
 impl Write for UdpWriteAdapter {
     fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
@@ -145,7 +137,6 @@ impl Write for UdpWriteAdapter {
         Ok(())
     }
 }
-
 
 #[cfg(test)]
 mod tests {
@@ -196,13 +187,13 @@ mod tests {
     fn test_write_bigger_than_buffer() {
         let mut buffered = MultiLineWriter::new(16, vec![]);
 
-        let write1 = buffered.write(
-            "some_really_long_metric:456|c".as_bytes()).unwrap();
+        let write1 = buffered
+            .write("some_really_long_metric:456|c".as_bytes())
+            .unwrap();
         let written_after_write1 = buffered.get_ref().len();
         let in_buffer_after_write1 = buffered.written;
 
-        let write2 = buffered.write(
-            "abc:4|g".as_bytes()).unwrap();
+        let write2 = buffered.write("abc:4|g".as_bytes()).unwrap();
         let written_after_write2 = buffered.get_ref().len();
         let in_buffer_after_write2 = buffered.written;
 
@@ -227,10 +218,10 @@ mod tests {
         let buf_metrics = buffered.get_metrics();
 
         assert_eq!("foo:42|c\n", written);
-        assert_eq!(9, bytes_written, "expected {} bytes to be written", 9);
-        assert_eq!(1, buf_metrics.inner_write, "expected inner_write to be {}", 1);
-        assert_eq!(0, buf_metrics.buf_write, "expected buf_write to be {}", 0);
-        assert_eq!(0, buf_metrics.flushed, "expected flushed to be {}", 0);
+        assert_eq!(9, bytes_written, "expected {} bytes", 9);
+        assert_eq!(1, buf_metrics.inner_write, "expected inner_write = {}", 1);
+        assert_eq!(0, buf_metrics.buf_write, "expected buf_write = {}", 0);
+        assert_eq!(0, buf_metrics.flushed, "expected flushed = {}", 0);
     }
 
     #[test]
@@ -258,7 +249,7 @@ mod tests {
         {
             let mut writer = MultiLineWriter::new(32, &mut buf);
             let _r = writer.write("something".as_bytes()).unwrap();
-            assert_eq!(0,  writer.get_ref().len());
+            assert_eq!(0, writer.get_ref().len());
         }
 
         assert_eq!(10, buf.len());

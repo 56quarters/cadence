@@ -13,13 +13,12 @@ extern crate cadence;
 
 use std::net::UdpSocket;
 use cadence::prelude::*;
-use cadence::{StatsdClient, QueuingMetricSink, BufferedUdpMetricSink, DEFAULT_PORT};
-
+use cadence::{BufferedUdpMetricSink, QueuingMetricSink, StatsdClient, DEFAULT_PORT};
 
 fn main() {
     let sock = UdpSocket::bind("0.0.0.0:0").unwrap();
     let buffered = BufferedUdpMetricSink::from(("localhost", DEFAULT_PORT), sock).unwrap();
-    let queued =  QueuingMetricSink::from(buffered);
+    let queued = QueuingMetricSink::from(buffered);
     let metrics = StatsdClient::from_sink("example.prefix", queued);
 
     metrics.count("example.counter", 1).unwrap();

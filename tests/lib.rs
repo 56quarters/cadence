@@ -6,21 +6,17 @@ use std::time::Duration;
 use std::sync::Arc;
 
 use cadence::prelude::*;
-use cadence::{DEFAULT_PORT, NopMetricSink, BufferedUdpMetricSink,
-              StatsdClient, QueuingMetricSink, Counter, Timer, Gauge,
-              Meter, Histogram};
-
+use cadence::{BufferedUdpMetricSink, Counter, Gauge, Histogram, Meter, NopMetricSink,
+              QueuingMetricSink, StatsdClient, Timer, DEFAULT_PORT};
 
 fn new_nop_client(prefix: &str) -> StatsdClient {
     StatsdClient::from_sink(prefix, NopMetricSink)
 }
 
-
 fn new_udp_client(prefix: &str) -> StatsdClient {
     let addr = ("127.0.0.1", DEFAULT_PORT);
     StatsdClient::from_udp_host(prefix, addr).unwrap()
 }
-
 
 fn new_buffered_udp_client(prefix: &str) -> StatsdClient {
     let host = ("127.0.0.1", DEFAULT_PORT);
@@ -29,14 +25,12 @@ fn new_buffered_udp_client(prefix: &str) -> StatsdClient {
     StatsdClient::from_sink(prefix, sink)
 }
 
-
 fn new_queuing_buffered_udp_client(prefix: &str) -> StatsdClient {
     let host = ("127.0.0.1", DEFAULT_PORT);
     let socket = UdpSocket::bind("0.0.0.0:0").unwrap();
     let sink = BufferedUdpMetricSink::from(host, socket).unwrap();
     StatsdClient::from_sink(prefix, QueuingMetricSink::from(sink))
 }
-
 
 #[test]
 fn test_statsd_client_incr() {
@@ -45,14 +39,12 @@ fn test_statsd_client_incr() {
     assert_eq!(expected, client.incr("counter.key").unwrap());
 }
 
-
 #[test]
 fn test_statsd_client_decr() {
     let client = new_nop_client("client.test");
     let expected = Counter::new("client.test", "counter.key", -1);
     assert_eq!(expected, client.decr("counter.key").unwrap());
 }
-
 
 #[test]
 fn test_statsd_client_count() {
@@ -61,7 +53,6 @@ fn test_statsd_client_count() {
     assert_eq!(expected, client.count("counter.key", 42).unwrap());
 }
 
-
 #[test]
 fn test_statsd_client_time() {
     let client = new_nop_client("client.test");
@@ -69,14 +60,17 @@ fn test_statsd_client_time() {
     assert_eq!(expected, client.time("timer.key", 25).unwrap());
 }
 
-
 #[test]
 fn test_statsd_client_time_duration() {
     let client = new_nop_client("client.test");
     let expected = Timer::new("client.test", "timer.key", 35);
-    assert_eq!(expected, client.time_duration("timer.key", Duration::from_millis(35)).unwrap());
+    assert_eq!(
+        expected,
+        client
+            .time_duration("timer.key", Duration::from_millis(35))
+            .unwrap()
+    );
 }
-
 
 #[test]
 fn test_statsd_client_gauge() {
@@ -85,14 +79,12 @@ fn test_statsd_client_gauge() {
     assert_eq!(expected, client.gauge("gauge.key", 5).unwrap());
 }
 
-
 #[test]
 fn test_statsd_client_mark() {
     let client = new_nop_client("client.test");
     let expected = Meter::new("client.test", "meter.key", 1);
     assert_eq!(expected, client.mark("meter.key").unwrap());
 }
-
 
 #[test]
 fn test_statsd_client_meter() {
@@ -101,7 +93,6 @@ fn test_statsd_client_meter() {
     assert_eq!(expected, client.meter("meter.key", 7).unwrap());
 }
 
-
 #[test]
 fn test_statsd_client_histogram() {
     let client = new_nop_client("client.test");
@@ -109,13 +100,11 @@ fn test_statsd_client_histogram() {
     assert_eq!(expected, client.histogram("histogram.key", 20).unwrap());
 }
 
-
 #[test]
 fn test_statsd_client_nop_sink_single_threaded() {
     let client = new_nop_client("counter.threaded.nop");
     run_arc_threaded_test(client, 1, 1);
 }
-
 
 #[test]
 fn test_statsd_client_udp_sink_single_threaded() {
@@ -123,17 +112,14 @@ fn test_statsd_client_udp_sink_single_threaded() {
     run_arc_threaded_test(client, 1, 1);
 }
 
-
 #[test]
 fn test_statsd_client_buffered_udp_sink_single_threaded() {
     let client = new_buffered_udp_client("cadence");
     run_arc_threaded_test(client, 1, 1);
 }
 
-
 const NUM_THREADS: u64 = 100;
 const NUM_ITERATIONS: u64 = 1_000;
-
 
 #[ignore]
 #[test]
@@ -142,14 +128,12 @@ fn test_statsd_client_nop_sink_many_threaded() {
     run_arc_threaded_test(client, NUM_THREADS, NUM_ITERATIONS);
 }
 
-
 #[ignore]
 #[test]
 fn test_statsd_client_udp_sink_many_threaded() {
     let client = new_udp_client("cadence");
     run_arc_threaded_test(client, NUM_THREADS, NUM_ITERATIONS);
 }
-
 
 #[ignore]
 #[test]
@@ -158,7 +142,6 @@ fn test_statsd_client_buffered_udp_sink_many_threaded() {
     run_arc_threaded_test(client, NUM_THREADS, NUM_ITERATIONS);
 }
 
-
 #[ignore]
 #[test]
 fn test_statsd_client_queuing_buffered_udp_sink_many_threaded() {
@@ -166,24 +149,25 @@ fn test_statsd_client_queuing_buffered_udp_sink_many_threaded() {
     run_arc_threaded_test(client, NUM_THREADS, NUM_ITERATIONS);
 }
 
-
 fn run_arc_threaded_test(client: StatsdClient, num_threads: u64, iterations: u64) {
     let shared_client = Arc::new(client);
 
-    let threads: Vec<_> = (0..num_threads).map(|_| {
-        let local_client = Arc::clone(&shared_client);
+    let threads: Vec<_> = (0..num_threads)
+        .map(|_| {
+            let local_client = Arc::clone(&shared_client);
 
-        thread::spawn(move || {
-            for i in 0..iterations {
-                local_client.count("some.counter", i as i64).unwrap();
-                local_client.time("some.timer", i).unwrap();
-                local_client.gauge("some.gauge", i).unwrap();
-                local_client.meter("some.meter", i).unwrap();
-                local_client.histogram("some.histogram", i).unwrap();
-                thread::sleep(Duration::from_millis(1));
-            }
+            thread::spawn(move || {
+                for i in 0..iterations {
+                    local_client.count("some.counter", i as i64).unwrap();
+                    local_client.time("some.timer", i).unwrap();
+                    local_client.gauge("some.gauge", i).unwrap();
+                    local_client.meter("some.meter", i).unwrap();
+                    local_client.histogram("some.histogram", i).unwrap();
+                    thread::sleep(Duration::from_millis(1));
+                }
+            })
         })
-    }).collect();
+        .collect();
 
     for t in threads {
         t.join().unwrap();

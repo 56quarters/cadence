@@ -11,8 +11,7 @@
 extern crate cadence;
 
 use cadence::prelude::*;
-use cadence::{StatsdClient, NopMetricSink};
-
+use cadence::{NopMetricSink, StatsdClient};
 
 fn main() {
     let sink = NopMetricSink;

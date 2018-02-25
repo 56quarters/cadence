@@ -8,7 +8,6 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-
 //! Export commonly used parts of Cadence for easy glob imports
 //!
 //! # Example
@@ -26,4 +25,4 @@
 //! client.histogram("some.histogram", 89).unwrap();
 //! ```
 
-pub use ::client::{Counted, Timed, Gauged, Metered, Histogrammed, MetricClient};
+pub use client::{Counted, Gauged, Histogrammed, Metered, MetricClient, Timed};

@@ -8,7 +8,6 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-
 // We actually need the Mutex since we use it with a Condvar
 #![cfg_attr(feature = "cargo-clippy", allow(mutex_atomic))]
 
@@ -21,7 +20,6 @@ use std::thread;
 use crossbeam::sync::MsQueue;
 
 use sinks::core::MetricSink;
-
 
 /// Implementation of a `MetricSink` that wraps another implementation
 /// and uses it to emit metrics asynchronously, in another thread.
@@ -64,7 +62,6 @@ pub struct QueuingMetricSink {
     context: Arc<WorkerContext<String>>,
 }
 
-
 impl QueuingMetricSink {
     /// Construct a new `QueuingMetricSink` instance wrapping another sink
     /// implementation.
@@ -92,9 +89,12 @@ impl QueuingMetricSink {
     /// let queuing_sink = QueuingMetricSink::from(udp_sink);
     /// ```
     pub fn from<T>(sink: T) -> QueuingMetricSink
-        where T: MetricSink + Sync + Send + 'static
+    where
+        T: MetricSink + Sync + Send + 'static,
     {
-        let worker = Worker::new(move |v: String| { let _r = sink.emit(&v); });
+        let worker = Worker::new(move |v: String| {
+            let _r = sink.emit(&v);
+        });
         let context = Arc::new(WorkerContext::new(worker));
         spawn_worker_in_thread(Arc::clone(&context));
 
@@ -109,14 +109,12 @@ impl QueuingMetricSink {
     }
 }
 
-
 impl MetricSink for QueuingMetricSink {
     fn emit(&self, metric: &str) -> io::Result<usize> {
         self.context.worker.submit(metric.to_string());
         Ok(metric.len())
     }
 }
-
 
 impl Drop for QueuingMetricSink {
     /// Send the worker a signal to stop processing metrics.
@@ -128,7 +126,6 @@ impl Drop for QueuingMetricSink {
     }
 }
 
-
 /// Statistics about the worker running.
 ///
 /// These statistics are only used for unit testing to verify that our
@@ -139,10 +136,11 @@ struct WorkerStats {
     panics: AtomicUsize,
 }
 
-
 impl WorkerStats {
     fn new() -> WorkerStats {
-        WorkerStats { panics: AtomicUsize::new(0) }
+        WorkerStats {
+            panics: AtomicUsize::new(0),
+        }
     }
 
     fn incr_panic(&self) {
@@ -154,19 +152,23 @@ impl WorkerStats {
     }
 }
 
-
 /// Holder for a worker and statistics about it.
 ///
 /// Users of the context are expected to directly reference the members
 /// of this struct.
 #[derive(Debug)]
-struct WorkerContext<T> where T: Send + 'static {
+struct WorkerContext<T>
+where
+    T: Send + 'static,
+{
     worker: Worker<T>,
     stats: WorkerStats,
 }
 
-
-impl<T> WorkerContext<T> where T: Send + 'static {
+impl<T> WorkerContext<T>
+where
+    T: Send + 'static,
+{
     fn new(worker: Worker<T>) -> WorkerContext<T> {
         WorkerContext {
             worker: worker,
@@ -175,14 +177,14 @@ impl<T> WorkerContext<T> where T: Send + 'static {
     }
 }
 
-
 /// Create a thread and run the worker in it to completion
 ///
 /// This function uses a `Sentinel` struct to make sure that any panics from
 /// running the worker result in another thread being spawned to start running
 /// the worker again.
 fn spawn_worker_in_thread<T>(context: Arc<WorkerContext<T>>) -> thread::JoinHandle<()>
-    where T: Send + 'static
+where
+    T: Send + 'static,
 {
     thread::spawn(move || {
         let mut sentinel = Sentinel::new(&context);
@@ -191,7 +193,6 @@ fn spawn_worker_in_thread<T>(context: Arc<WorkerContext<T>>) -> thread::JoinHand
     })
 }
 
-
 /// Struct for ensuring a worker runs to completion correctly, without
 /// panicking.
 ///
@@ -199,15 +200,23 @@ fn spawn_worker_in_thread<T>(context: Arc<WorkerContext<T>>) -> thread::JoinHand
 /// in its destructor unless the `.cancel()` method is called after the
 /// worker completes (which won't happen if the worker panics).
 #[derive(Debug)]
-struct Sentinel<'a, T> where T: Send + 'static {
+struct Sentinel<'a, T>
+where
+    T: Send + 'static,
+{
     context: &'a Arc<WorkerContext<T>>,
     active: bool,
 }
 
-
-impl<'a, T> Sentinel<'a, T> where T: Send + 'static {
+impl<'a, T> Sentinel<'a, T>
+where
+    T: Send + 'static,
+{
     fn new(context: &'a Arc<WorkerContext<T>>) -> Sentinel<'a, T> {
-        Sentinel { context: context, active: true }
+        Sentinel {
+            context: context,
+            active: true,
+        }
     }
 
     fn cancel(&mut self) {
@@ -215,8 +224,10 @@ impl<'a, T> Sentinel<'a, T> where T: Send + 'static {
     }
 }
 
-
-impl<'a, T> Drop for Sentinel<'a, T> where T: Send + 'static {
+impl<'a, T> Drop for Sentinel<'a, T>
+where
+    T: Send + 'static,
+{
     fn drop(&mut self) {
         if self.active {
             // This sentinel didn't have its `.cancel()`method called so
@@ -228,7 +239,6 @@ impl<'a, T> Drop for Sentinel<'a, T> where T: Send + 'static {
         }
     }
 }
-
 
 /// Worker to repeatedly run a method consuming entries in a queue.
 ///
@@ -252,16 +262,24 @@ impl<'a, T> Drop for Sentinel<'a, T> where T: Send + 'static {
 /// But, if you're wondering why this is mixing lock-free data structures
 /// with locking and is generally more complicated that it seems like
 /// it should be: testing is the reason.
-struct Worker<T> where T: Send + 'static {
-    task: Box<Fn(T) -> () + Sync +  Send + 'static>,
+struct Worker<T>
+where
+    T: Send + 'static,
+{
+    task: Box<Fn(T) -> () + Sync + Send + 'static>,
     queue: MsQueue<Option<T>>,
     stopped: Mutex<bool>,
     cond: Condvar,
 }
 
-
-impl<T> Worker<T> where T: Send + 'static {
-    fn new<F>(task: F) -> Worker<T> where F: Fn(T) -> () + Sync + Send + 'static {
+impl<T> Worker<T>
+where
+    T: Send + 'static,
+{
+    fn new<F>(task: F) -> Worker<T>
+    where
+        F: Fn(T) -> () + Sync + Send + 'static,
+    {
         Worker {
             task: Box::new(task),
             queue: MsQueue::new(),
@@ -307,13 +325,14 @@ impl<T> Worker<T> where T: Send + 'static {
     }
 }
 
-
-impl<T> fmt::Debug for Worker<T> where T: Send + 'static {
+impl<T> fmt::Debug for Worker<T>
+where
+    T: Send + 'static,
+{
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "Worker {{ ... }}")
     }
 }
-
 
 #[cfg(test)]
 mod tests {
@@ -321,7 +340,7 @@ mod tests {
     use std::sync::{Arc, Mutex};
     use std::sync::atomic::{AtomicBool, Ordering};
     use std::thread;
-    use ::sinks::core::MetricSink;
+    use sinks::core::MetricSink;
     use super::{QueuingMetricSink, Worker};
 
     #[test]
@@ -384,9 +403,7 @@ mod tests {
 
     impl TestMetricSink {
         fn new(store: Arc<Mutex<Vec<String>>>) -> TestMetricSink {
-            TestMetricSink {
-                metrics: store,
-            }
+            TestMetricSink { metrics: store }
         }
     }
 

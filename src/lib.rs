@@ -8,7 +8,6 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-
 //! An extensible Statsd client for Rust!
 //!
 //! [Statsd](https://github.com/etsy/statsd) is a network server that listens for
@@ -315,14 +314,13 @@ pub const DEFAULT_PORT: u16 = 8125;
 
 pub use self::builder::MetricBuilder;
 
-pub use self::client::{Counted, Timed, Gauged, Metered, Histogrammed,
-                       MetricClient, StatsdClient};
+pub use self::client::{Counted, Gauged, Histogrammed, Metered, MetricClient, StatsdClient, Timed};
 
-pub use self::sinks::{MetricSink, NopMetricSink, UdpMetricSink,
-                      BufferedUdpMetricSink, QueuingMetricSink};
+pub use self::sinks::{BufferedUdpMetricSink, MetricSink, NopMetricSink, QueuingMetricSink,
+                      UdpMetricSink};
 
-pub use self::types::{MetricResult, MetricError, ErrorKind, Counter, Timer,
-                      Gauge, Meter, Histogram, Metric};
+pub use self::types::{Counter, ErrorKind, Gauge, Histogram, Meter, Metric, MetricError,
+                      MetricResult, Timer};
 
 pub mod prelude;
 mod builder;

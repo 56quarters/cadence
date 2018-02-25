@@ -120,9 +120,7 @@ where
     }
 
     fn with_tag_value(&mut self, value: &'a str) {
-        self.tags
-            .get_or_insert_with(Vec::new)
-            .push((None, value));
+        self.tags.get_or_insert_with(Vec::new).push((None, value));
     }
 
     fn write_base_metric(&self, out: &mut String) {
@@ -175,7 +173,10 @@ where
 /// via a client or it can be simply holding on to an error that it will return
 /// to a caller when `.send()` is finally invoked.
 #[derive(Debug)]
-enum BuilderRepr<'m, 'c, T> where T: Metric + From<String> {
+enum BuilderRepr<'m, 'c, T>
+where
+    T: Metric + From<String>,
+{
     Success(MetricFormatter<'m, T>, &'c StatsdClient),
     Error(MetricError),
 }
@@ -233,7 +234,7 @@ pub struct MetricBuilder<'m, 'c, T>
 where
     T: Metric + From<String>,
 {
-    repr: BuilderRepr<'m, 'c, T>
+    repr: BuilderRepr<'m, 'c, T>,
 }
 
 impl<'m, 'c, T> MetricBuilder<'m, 'c, T>
@@ -242,13 +243,13 @@ where
 {
     pub(crate) fn new(formatter: MetricFormatter<'m, T>, client: &'c StatsdClient) -> Self {
         MetricBuilder {
-            repr: BuilderRepr::Success(formatter, client)
+            repr: BuilderRepr::Success(formatter, client),
         }
     }
 
     pub(crate) fn from_error(err: MetricError) -> Self {
         MetricBuilder {
-            repr: BuilderRepr::Error(err)
+            repr: BuilderRepr::Error(err),
         }
     }
 
@@ -500,6 +501,6 @@ mod tests {
                 (None, "file-server"),
             ],
         );
-        assert_eq!(m, "|#host:app01.example.com,bucket:A,file-server", );
+        assert_eq!(m, "|#host:app01.example.com,bucket:A,file-server");
     }
 }

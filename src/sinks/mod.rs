@@ -8,11 +8,10 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-
 mod async;
 mod core;
 mod udp;
 
 pub use sinks::async::QueuingMetricSink;
-pub use sinks::core::{NopMetricSink, MetricSink};
+pub use sinks::core::{MetricSink, NopMetricSink};
 pub use sinks::udp::{BufferedUdpMetricSink, UdpMetricSink};

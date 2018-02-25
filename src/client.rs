@@ -8,19 +8,14 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-
 use std::fmt;
 use std::net::{ToSocketAddrs, UdpSocket};
 use std::sync::Arc;
 use std::time::Duration;
 
-use ::builder::{MetricBuilder, MetricFormatter};
-
-use ::sinks::{MetricSink, UdpMetricSink};
-
-use ::types::{MetricResult, MetricError, ErrorKind, Counter, Timer, Gauge,
-              Meter, Histogram, Metric};
-
+use builder::{MetricBuilder, MetricFormatter};
+use sinks::{MetricSink, UdpMetricSink};
+use types::{Counter, ErrorKind, Gauge, Histogram, Meter, Metric, MetricError, MetricResult, Timer};
 
 /// Trait for incrementing and decrementing counters.
 ///
@@ -56,7 +51,6 @@ pub trait Counted {
     /// a `MetricBuilder` that can be used to add tags to the metric.
     fn count_with_tags<'a>(&'a self, key: &'a str, count: i64) -> MetricBuilder<Counter>;
 }
-
 
 /// Trait for recording timings in milliseconds.
 ///
@@ -96,7 +90,6 @@ pub trait Timed {
     ) -> MetricBuilder<Timer>;
 }
 
-
 /// Trait for recording gauge values.
 ///
 /// Gauge values are an instantaneous measurement of a value determined
@@ -116,7 +109,6 @@ pub trait Gauged {
     /// that can be used to add tags to the metric.
     fn gauge_with_tags<'a>(&'a self, key: &'a str, value: u64) -> MetricBuilder<Gauge>;
 }
-
 
 /// Trait for recording meter values.
 ///
@@ -147,7 +139,6 @@ pub trait Metered {
     fn meter_with_tags<'a>(&'a self, key: &'a str, value: u64) -> MetricBuilder<Meter>;
 }
 
-
 /// Trait for recording histogram values.
 ///
 /// Histogram values are positive values that can represent anything, whose
@@ -171,7 +162,6 @@ pub trait Histogrammed {
     fn histogram_with_tags<'a>(&'a self, key: &'a str, value: u64) -> MetricBuilder<Histogram>;
 }
 
-
 /// Trait that encompasses all other traits for sending metrics.
 ///
 /// If you wish to use `StatsdClient` with a generic type or place a
@@ -192,7 +182,6 @@ pub trait Histogrammed {
 /// client.histogram("some.histogram", 4).unwrap();
 /// ```
 pub trait MetricClient: Counted + Timed + Gauged + Metered + Histogrammed {}
-
 
 /// Client for Statsd that implements various traits to record metrics.
 ///
@@ -321,7 +310,6 @@ pub struct StatsdClient {
     sink: Arc<MetricSink + Sync + Send>,
 }
 
-
 impl StatsdClient {
     /// Create a new client instance that will use the given prefix for
     /// all metrics emitted to the given `MetricSink` implementation.
@@ -366,7 +354,8 @@ impl StatsdClient {
     /// let client = StatsdClient::from_sink(prefix, sink);
     /// ```
     pub fn from_sink<T>(prefix: &str, sink: T) -> StatsdClient
-        where T: MetricSink + Sync + Send + 'static
+    where
+        T: MetricSink + Sync + Send + 'static,
     {
         StatsdClient {
             prefix: trim_key(prefix).to_string(),
@@ -399,7 +388,8 @@ impl StatsdClient {
     /// * It is unable to resolve the hostname of the metric server.
     /// * The host address is otherwise unable to be parsed.
     pub fn from_udp_host<A>(prefix: &str, host: A) -> MetricResult<StatsdClient>
-        where A: ToSocketAddrs
+    where
+        A: ToSocketAddrs,
     {
         let socket = UdpSocket::bind("0.0.0.0:0")?;
         socket.set_nonblocking(true)?;
@@ -417,13 +407,11 @@ impl StatsdClient {
     }
 }
 
-
 impl fmt::Debug for StatsdClient {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "StatsdClient {{ prefix: {:?}, sink: ... }}", self.prefix)
     }
 }
-
 
 impl Counted for StatsdClient {
     fn incr(&self, key: &str) -> MetricResult<Counter> {
@@ -452,7 +440,6 @@ impl Counted for StatsdClient {
     }
 }
 
-
 impl Timed for StatsdClient {
     fn time(&self, key: &str, time: u64) -> MetricResult<Timer> {
         self.time_with_tags(key, time).send()
@@ -480,11 +467,10 @@ impl Timed for StatsdClient {
             .ok_or_else(|| MetricError::from((ErrorKind::InvalidInput, "u64 overflow")));
         match result {
             Ok(millis) => self.time_with_tags(key, millis),
-            Err(e) => MetricBuilder::from_error(e)
+            Err(e) => MetricBuilder::from_error(e),
         }
     }
 }
-
 
 impl Gauged for StatsdClient {
     fn gauge(&self, key: &str, value: u64) -> MetricResult<Gauge> {
@@ -496,7 +482,6 @@ impl Gauged for StatsdClient {
         MetricBuilder::new(fmt, self)
     }
 }
-
 
 impl Metered for StatsdClient {
     fn mark(&self, key: &str) -> MetricResult<Meter> {
@@ -517,7 +502,6 @@ impl Metered for StatsdClient {
     }
 }
 
-
 impl Histogrammed for StatsdClient {
     fn histogram(&self, key: &str, value: u64) -> MetricResult<Histogram> {
         self.histogram_with_tags(key, value).send()
@@ -529,9 +513,7 @@ impl Histogrammed for StatsdClient {
     }
 }
 
-
 impl MetricClient for StatsdClient {}
-
 
 fn trim_key(val: &str) -> &str {
     if val.ends_with('.') {
@@ -541,15 +523,14 @@ fn trim_key(val: &str) -> &str {
     }
 }
 
-
 #[cfg(test)]
 mod tests {
     use std::time::Duration;
     use std::u64;
-    use super::{trim_key, Counted, Timed, Gauged, Metered, Histogrammed,
-                MetricClient, StatsdClient};
-    use ::sinks::NopMetricSink;
-    use ::types::{ErrorKind, Metric};
+    use super::{trim_key, Counted, Gauged, Histogrammed, Metered, MetricClient, StatsdClient,
+                Timed};
+    use sinks::NopMetricSink;
+    use types::{ErrorKind, Metric};
 
     #[test]
     fn test_trim_key_with_trailing_dot() {
@@ -569,7 +550,10 @@ mod tests {
             .with_tag("foo", "bar")
             .send();
 
-        assert_eq!("prefix.some.counter:3|c|#foo:bar", res.unwrap().as_metric_str());
+        assert_eq!(
+            "prefix.some.counter:3|c|#foo:bar",
+            res.unwrap().as_metric_str()
+        );
     }
 
     #[test]
@@ -642,7 +626,10 @@ mod tests {
             .with_tag_value("quux")
             .send();
 
-        assert_eq!("prefix.key:157|ms|#foo:bar,quux", res.unwrap().as_metric_str());
+        assert_eq!(
+            "prefix.key:157|ms|#foo:bar,quux",
+            res.unwrap().as_metric_str()
+        );
     }
 
     #[test]
@@ -664,48 +651,42 @@ mod tests {
 
     #[test]
     fn test_statsd_client_as_counted() {
-        let client: Box<Counted> = Box::new(StatsdClient::from_sink(
-            "prefix", NopMetricSink));
+        let client: Box<Counted> = Box::new(StatsdClient::from_sink("prefix", NopMetricSink));
 
         client.count("some.counter", 5).unwrap();
     }
 
     #[test]
     fn test_statsd_client_as_timed() {
-        let client: Box<Timed> = Box::new(StatsdClient::from_sink(
-            "prefix", NopMetricSink));
+        let client: Box<Timed> = Box::new(StatsdClient::from_sink("prefix", NopMetricSink));
 
         client.time("some.timer", 20).unwrap();
     }
 
     #[test]
     fn test_statsd_client_as_gauged() {
-        let client: Box<Gauged> = Box::new(StatsdClient::from_sink(
-            "prefix", NopMetricSink));
+        let client: Box<Gauged> = Box::new(StatsdClient::from_sink("prefix", NopMetricSink));
 
         client.gauge("some.gauge", 32).unwrap();
     }
 
     #[test]
     fn test_statsd_client_as_metered() {
-        let client: Box<Metered> = Box::new(StatsdClient::from_sink(
-            "prefix", NopMetricSink));
+        let client: Box<Metered> = Box::new(StatsdClient::from_sink("prefix", NopMetricSink));
 
         client.meter("some.meter", 9).unwrap();
     }
 
     #[test]
     fn test_statsd_client_as_histogrammed() {
-        let client: Box<Histogrammed> = Box::new(StatsdClient::from_sink(
-            "prefix", NopMetricSink));
+        let client: Box<Histogrammed> = Box::new(StatsdClient::from_sink("prefix", NopMetricSink));
 
         client.histogram("some.histogram", 4).unwrap();
     }
 
     #[test]
     fn test_statsd_client_as_metric_client() {
-        let client: Box<MetricClient> = Box::new(StatsdClient::from_sink(
-            "prefix", NopMetricSink));
+        let client: Box<MetricClient> = Box::new(StatsdClient::from_sink("prefix", NopMetricSink));
 
         client.count("some.counter", 3).unwrap();
         client.time("some.timer", 198).unwrap();

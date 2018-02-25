@@ -14,8 +14,7 @@ extern crate cadence;
 
 use std::thread;
 use cadence::prelude::*;
-use cadence::{StatsdClient, NopMetricSink};
-
+use cadence::{NopMetricSink, StatsdClient};
 
 pub trait RequestHandler {
     fn handle(&self) -> Result<(), String>;

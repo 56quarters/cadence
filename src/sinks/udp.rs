@@ -8,16 +8,14 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-
 use std::io;
 use std::io::Write;
-use std::net::{ToSocketAddrs, SocketAddr, UdpSocket};
+use std::net::{SocketAddr, ToSocketAddrs, UdpSocket};
 use std::sync::Mutex;
 
 use io::{MultiLineWriter, UdpWriteAdapter};
 use sinks::core::MetricSink;
-use types::{MetricResult, MetricError, ErrorKind};
-
+use types::{ErrorKind, MetricError, MetricResult};
 
 // Default size of the buffer for buffered metric sinks. This
 // is a rather conservative value, picked to make sure the entire
@@ -25,7 +23,6 @@ use types::{MetricResult, MetricError, ErrorKind};
 // different value based on the configuration of the network
 // their application runs in.
 const DEFAULT_BUFFER_SIZE: usize = 512;
-
 
 /// Attempt to convert anything implementing the `ToSocketAddrs` trait
 /// into a concrete `SocketAddr` instance, returning an `InvalidInput`
@@ -36,12 +33,12 @@ const DEFAULT_BUFFER_SIZE: usize = 512;
 fn get_addr<A: ToSocketAddrs>(addr: A) -> MetricResult<SocketAddr> {
     match addr.to_socket_addrs()?.next() {
         Some(addr) => Ok(addr),
-        None => Err(MetricError::from(
-            (ErrorKind::InvalidInput, "No socket addresses yielded")
-        )),
+        None => Err(MetricError::from((
+            ErrorKind::InvalidInput,
+            "No socket addresses yielded",
+        ))),
     }
 }
-
 
 /// Implementation of a `MetricSink` that emits metrics over UDP.
 ///
@@ -56,7 +53,6 @@ pub struct UdpMetricSink {
     sink_addr: SocketAddr,
     socket: UdpSocket,
 }
-
 
 impl UdpMetricSink {
     /// Construct a new `UdpMetricSink` instance.
@@ -102,9 +98,9 @@ impl UdpMetricSink {
     ///
     /// * It is unable to resolve the hostname of the metric server.
     /// * The host address is otherwise unable to be parsed
-    pub fn from<A>(sink_addr: A, socket: UdpSocket)
-                   -> MetricResult<UdpMetricSink>
-        where A: ToSocketAddrs
+    pub fn from<A>(sink_addr: A, socket: UdpSocket) -> MetricResult<UdpMetricSink>
+    where
+        A: ToSocketAddrs,
     {
         let addr = get_addr(sink_addr)?;
         Ok(UdpMetricSink {
@@ -114,13 +110,11 @@ impl UdpMetricSink {
     }
 }
 
-
 impl MetricSink for UdpMetricSink {
     fn emit(&self, metric: &str) -> io::Result<usize> {
         self.socket.send_to(metric.as_bytes(), &self.sink_addr)
     }
 }
-
 
 /// Implementation of a `MetricSink` that buffers metrics before
 /// sending them to a UDP socket.
@@ -142,7 +136,6 @@ impl MetricSink for UdpMetricSink {
 pub struct BufferedUdpMetricSink {
     buffer: Mutex<MultiLineWriter<UdpWriteAdapter>>,
 }
-
 
 impl BufferedUdpMetricSink {
     /// Construct a new `BufferedUdpMetricSink` instance with a default
@@ -175,9 +168,9 @@ impl BufferedUdpMetricSink {
     ///
     /// * It is unable to resolve the hostname of the metric server.
     /// * The host address is otherwise unable to be parsed
-    pub fn from<A>(sink_addr: A, socket: UdpSocket)
-                   -> MetricResult<BufferedUdpMetricSink>
-        where A: ToSocketAddrs
+    pub fn from<A>(sink_addr: A, socket: UdpSocket) -> MetricResult<BufferedUdpMetricSink>
+    where
+        A: ToSocketAddrs,
     {
         Self::with_capacity(sink_addr, socket, DEFAULT_BUFFER_SIZE)
     }
@@ -214,19 +207,23 @@ impl BufferedUdpMetricSink {
     ///
     /// * It is unable to resolve the hostname of the metric server.
     /// * The host address is otherwise unable to be parsed
-    pub fn with_capacity<A>(sink_addr: A, socket: UdpSocket, cap: usize)
-                          -> MetricResult<BufferedUdpMetricSink>
-        where A: ToSocketAddrs
+    pub fn with_capacity<A>(
+        sink_addr: A,
+        socket: UdpSocket,
+        cap: usize,
+    ) -> MetricResult<BufferedUdpMetricSink>
+    where
+        A: ToSocketAddrs,
     {
         let addr = get_addr(sink_addr)?;
         Ok(BufferedUdpMetricSink {
             buffer: Mutex::new(MultiLineWriter::new(
-                cap, UdpWriteAdapter::new(addr, socket)
+                cap,
+                UdpWriteAdapter::new(addr, socket),
             )),
         })
     }
 }
-
 
 impl MetricSink for BufferedUdpMetricSink {
     fn emit(&self, metric: &str) -> io::Result<usize> {
@@ -235,11 +232,10 @@ impl MetricSink for BufferedUdpMetricSink {
     }
 }
 
-
 #[cfg(test)]
 mod tests {
     use std::net::UdpSocket;
-    use super::{get_addr, MetricSink, UdpMetricSink, BufferedUdpMetricSink};
+    use super::{get_addr, BufferedUdpMetricSink, MetricSink, UdpMetricSink};
 
     #[test]
     fn test_get_addr_bad_address() {
@@ -273,8 +269,7 @@ mod tests {
         let socket = UdpSocket::bind("0.0.0.0:0").unwrap();
         // Set the capacity of the buffer such that we know it will
         // be flushed as a response to the metrics we're writing.
-        let sink = BufferedUdpMetricSink::with_capacity(
-            "127.0.0.1:8125", socket, 16).unwrap();
+        let sink = BufferedUdpMetricSink::with_capacity("127.0.0.1:8125", socket, 16).unwrap();
 
         // Note that we're including an extra byte in the expected
         // number written since each metric is followed by a '\n' at

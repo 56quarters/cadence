@@ -8,9 +8,7 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-
 use std::io;
-
 
 /// Trait for various backends that send Statsd metrics somewhere.
 ///
@@ -56,13 +54,11 @@ pub trait MetricSink {
     fn emit(&self, metric: &str) -> io::Result<usize>;
 }
 
-
 /// Implementation of a `MetricSink` that discards all metrics.
 ///
 /// Useful for disabling metric collection or unit tests.
 #[derive(Debug, Clone)]
 pub struct NopMetricSink;
-
 
 impl MetricSink for NopMetricSink {
     #[allow(unused_variables)]
@@ -70,7 +66,6 @@ impl MetricSink for NopMetricSink {
         Ok(0)
     }
 }
-
 
 #[cfg(test)]
 mod tests {
