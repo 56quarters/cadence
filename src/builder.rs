@@ -229,6 +229,7 @@ where
 ///
 /// In this example, two key-value tags and one value tag are added to the
 /// metric before it is finally sent to the Statsd server.
+#[must_use = "Did you forget to call .send() after adding tags?"]
 #[derive(Debug)]
 pub struct MetricBuilder<'m, 'c, T>
 where
