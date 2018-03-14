@@ -1,5 +1,9 @@
 # Changelog
 
+## [v0.13.2](https://github.com/tshlabs/cadence/tree/0.13.2) - 2018-03-13
+* Warn when `MetricBuilder` instances aren't used when adding tags to metrics
+  per [#63](https://github.com/tshlabs/cadence/issues/63).
+
 ## [v0.13.1](https://github.com/tshlabs/cadence/tree/0.13.1) - 2018-02-07
 * Minor documentation improvements.
 
