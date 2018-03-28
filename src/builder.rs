@@ -170,15 +170,15 @@ where
 /// Internal state of a `MetricBuilder`
 ///
 /// The builder can either be in the process of formatting a metric to send
-/// via a client or it can be simply holding on to an error that it will return
-/// to a caller when `.send()` is finally invoked.
+/// via a client or it can be simply holding on to an error that it will be
+/// dealt with when `.try_send()` or `.send()` is finally invoked.
 #[derive(Debug)]
 enum BuilderRepr<'m, 'c, T>
 where
     T: Metric + From<String>,
 {
     Success(MetricFormatter<'m, T>, &'c StatsdClient),
-    Error(MetricError),
+    Error(MetricError, &'c StatsdClient),
 }
 
 /// Builder for adding tags to in-progress metrics.
@@ -214,7 +214,7 @@ where
 ///    .with_tag("host", "app11.example.com")
 ///    .with_tag("segment", "23")
 ///    .with_tag_value("beta")
-///    .send();
+///    .try_send();
 ///
 /// assert_eq!(
 ///     concat!(
@@ -248,9 +248,9 @@ where
         }
     }
 
-    pub(crate) fn from_error(err: MetricError) -> Self {
+    pub(crate) fn from_error(err: MetricError, client: &'c StatsdClient) -> Self {
         MetricBuilder {
-            repr: BuilderRepr::Error(err),
+            repr: BuilderRepr::Error(err, client),
         }
     }
 
@@ -265,7 +265,7 @@ where
     /// let client = StatsdClient::from_sink("some.prefix", NopMetricSink);
     /// let res = client.incr_with_tags("some.key")
     ///    .with_tag("user", "authenticated")
-    ///    .send();
+    ///    .try_send();
     ///
     /// assert_eq!(
     ///    "some.prefix.some.key:1|c|#user:authenticated",
@@ -290,7 +290,7 @@ where
     /// let client = StatsdClient::from_sink("some.prefix", NopMetricSink);
     /// let res = client.count_with_tags("some.key", 4)
     ///    .with_tag_value("beta-testing")
-    ///    .send();
+    ///    .try_send();
     ///
     /// assert_eq!(
     ///    "some.prefix.some.key:4|c|#beta-testing",
@@ -306,8 +306,8 @@ where
 
     /// Send a metric using the client that created this builder.
     ///
-    /// Note that the builder is consumed by this method and thus `.send()` can
-    /// only be called a single time per builder.
+    /// Note that the builder is consumed by this method and thus `.try_send()`
+    /// can only be called a single time per builder.
     ///
     /// # Example
     ///
@@ -318,20 +318,59 @@ where
     /// let client = StatsdClient::from_sink("some.prefix", NopMetricSink);
     /// let res = client.gauge_with_tags("some.key", 7)
     ///    .with_tag("test-segment", "12345")
-    ///    .send();
+    ///    .try_send();
     ///
     /// assert_eq!(
     ///    "some.prefix.some.key:7|g|#test-segment:12345",
     ///    res.unwrap().as_metric_str()
     /// );
     /// ```
-    pub fn send(self) -> MetricResult<T> {
+    pub fn try_send(self) -> MetricResult<T> {
         match self.repr {
-            BuilderRepr::Error(err) => Err(err),
+            BuilderRepr::Error(err, _) => Err(err),
             BuilderRepr::Success(ref formatter, client) => {
                 let metric: T = formatter.build();
                 client.send_metric(&metric)?;
                 Ok(metric)
+            }
+        }
+    }
+
+    /// Send a metric using the client that created this builder, discarding
+    /// successful results and invoking a custom handler for error results.
+    ///
+    /// By default, if no handler is given, a "no-op" handler is used that
+    /// simply discards all errors. If this isn't desired, a custom handler
+    /// should be supplied when creating a new `StatsdClient` instance.
+    ///
+    /// Note that the builder is consumed by this method and thus `.send()`
+    /// can only be called a single time per builder.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use cadence::prelude::*;
+    /// use cadence::{StatsdClient, MetricError, NopMetricSink};
+    ///
+    /// fn my_handler(err: MetricError) {
+    ///     println!("Metric error: {}", err);
+    /// }
+    ///
+    /// let client = StatsdClient::builder("some.prefix", NopMetricSink)
+    ///     .with_error_handler(my_handler)
+    ///     .build();
+    ///
+    /// client.gauge_with_tags("some.key", 7)
+    ///    .with_tag("region", "us-west-1")
+    ///    .send();
+    /// ```
+    pub fn send(self) -> () {
+        match self.repr{
+            BuilderRepr::Error(err, client) => client.consume_error(err),
+            BuilderRepr::Success(_, client) => {
+                if let Err(e) = self.try_send() {
+                    client.consume_error(e);
+                }
             }
         }
     }
