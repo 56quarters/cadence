@@ -40,6 +40,10 @@ enum MetricType {
     Gauge,
     Meter,
     Histogram,
+    #[cfg(feature = "datadog-extensions")]
+    Set,
+    #[cfg(feature = "datadog-extensions")]
+    Distribution
 }
 
 impl fmt::Display for MetricType {
@@ -50,6 +54,10 @@ impl fmt::Display for MetricType {
             MetricType::Gauge => "g".fmt(f),
             MetricType::Meter => "m".fmt(f),
             MetricType::Histogram => "h".fmt(f),
+            #[cfg(feature = "datadog-extensions")]
+            MetricType::Set => "s".fmt(f),
+            #[cfg(feature = "datadog-extensions")]
+            MetricType::Distribution => "d".fmt(f),
         }
     }
 }
@@ -89,6 +97,16 @@ where
 
     pub(crate) fn histogram(prefix: &'a str, key: &'a str, val: u64) -> Self {
         Self::from_u64(prefix, key, val, MetricType::Histogram)
+    }
+
+    #[cfg(feature = "datadog-extensions")]
+    pub(crate) fn set(prefix: &'a str, key: &'a str, val: i64) -> Self {
+        Self::from_i64(prefix, key, val, MetricType::Set)
+    }
+
+    #[cfg(feature = "datadog-extensions")]
+    pub(crate) fn distribution(prefix: &'a str, key: &'a str, val: i64) -> Self {
+        Self::from_i64(prefix, key, val, MetricType::Distribution)
     }
 
     fn from_u64(prefix: &'a str, key: &'a str, val: u64, type_: MetricType) -> Self {
@@ -376,7 +394,7 @@ where
     }
 }
 
-fn datadog_tags_size_hint(tags: &[(Option<&str>, &str)]) -> usize {
+pub(crate) fn datadog_tags_size_hint(tags: &[(Option<&str>, &str)]) -> usize {
     // enough space for prefix, tags/: separators and commas
     let kv_size: usize = tags.iter()
         .map(|tag| {
@@ -387,7 +405,7 @@ fn datadog_tags_size_hint(tags: &[(Option<&str>, &str)]) -> usize {
     DATADOG_TAGS_PREFIX.len() + kv_size + tags.len() - 1
 }
 
-fn write_datadog_tags(metric: &mut String, tags: &[(Option<&str>, &str)]) {
+pub(crate) fn write_datadog_tags(metric: &mut String, tags: &[(Option<&str>, &str)]) {
     metric.push_str(DATADOG_TAGS_PREFIX);
     for (i, &(key, value)) in tags.iter().enumerate() {
         if i > 0 {

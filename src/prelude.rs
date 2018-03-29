@@ -26,3 +26,11 @@
 //! ```
 
 pub use client::{Counted, Gauged, Histogrammed, Metered, MetricClient, Timed};
+
+#[cfg(feature = "datadog-extensions")]
+pub use datadog::{
+    Setted,
+    Distributed,
+    Evented,
+    DatadogMetricClient,
+ };

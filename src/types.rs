@@ -233,7 +233,6 @@ pub type MetricResult<T> = Result<T, MetricError>;
 
 #[cfg(test)]
 mod tests {
-
     use std::io;
     use std::error::Error;
     use super::{Counter, ErrorKind, Gauge, Histogram, Meter, Metric, MetricError, Timer};
