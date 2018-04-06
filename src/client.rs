@@ -183,6 +183,76 @@ pub trait Histogrammed {
 /// ```
 pub trait MetricClient: Counted + Timed + Gauged + Metered + Histogrammed {}
 
+
+/// Builder for creating and customizing `StatsdClient` instances.
+///
+/// Instances of the builder should be created by calling the `::builder()`
+/// method on the `StatsClient` struct.
+///
+/// # Example
+///
+/// ```
+/// use cadence::prelude::*;
+/// use cadence::{MetricError, StatsdClient, NopMetricSink};
+///
+/// fn my_error_handler(err: MetricError) {
+///     println!("Metric error! {}", err);
+/// }
+///
+/// let client = StatsdClient::builder("prefix", NopMetricSink)
+///     .with_error_handler(my_error_handler)
+///     .build();
+///
+/// client.count("something", 123);
+/// client.count_with_tags("some.counter", 42)
+///     .with_tag("region", "us-east-2")
+///     .send();
+/// ```
+pub struct StatsdClientBuilder {
+    prefix: String,
+    sink: Box<MetricSink + Sync + Send>,
+    errors: Box<Fn(MetricError) -> () + Sync + Send>
+}
+
+impl StatsdClientBuilder {
+    // Set the required fields and defaults for optional fields
+    fn new<T>(prefix: &str, sink: T) -> Self
+    where
+        T: MetricSink + Sync + Send + 'static,
+    {
+        StatsdClientBuilder {
+            // required
+            prefix: trim_key(prefix).to_owned(),
+            sink: Box::new(sink),
+
+            // optional with defaults
+            errors: Box::new(nop_error_handler),
+        }
+    }
+
+    /// Set an error handler to use for metrics sent via `MetricBuilder::send()`
+    ///
+    /// The error handler is only invoked when metrics are not able to be sent
+    /// correctly. Either due to invalid input, I/O errors encountered when trying
+    /// to send them via a `MetricSink`, or some other reason.
+    ///
+    /// The error handler should consume the error without panicking. The error
+    /// may be logged, printed to stderr, discarded, etc. - this is up to the
+    /// implementation.
+    pub fn with_error_handler<F>(mut self, errors: F) -> Self
+    where
+        F: Fn(MetricError) -> () + Sync + Send + 'static,
+    {
+        self.errors = Box::new(errors);
+        self
+    }
+
+    /// Construct a new `StatsdClient` instance based on current settings.
+    pub fn build(self) -> StatsdClient {
+        StatsdClient::from_builder(self)
+    }
+}
+
 /// Client for Statsd that implements various traits to record metrics.
 ///
 /// # Traits
@@ -308,11 +378,15 @@ pub trait MetricClient: Counted + Timed + Gauged + Metered + Histogrammed {}
 pub struct StatsdClient {
     prefix: String,
     sink: Arc<MetricSink + Sync + Send>,
+    errors: Arc<Fn(MetricError) -> () + Sync + Send>,
 }
 
 impl StatsdClient {
     /// Create a new client instance that will use the given prefix for
     /// all metrics emitted to the given `MetricSink` implementation.
+    ///
+    /// Note that this client will discard errors encountered when
+    /// sending metrics via the `MetricBuilder::send()` method.
     ///
     /// # No-op Example
     ///
@@ -353,20 +427,20 @@ impl StatsdClient {
     /// let sink = BufferedUdpMetricSink::from(host, socket).unwrap();
     /// let client = StatsdClient::from_sink(prefix, sink);
     /// ```
-    pub fn from_sink<T>(prefix: &str, sink: T) -> StatsdClient
+    pub fn from_sink<T>(prefix: &str, sink: T) -> Self
     where
         T: MetricSink + Sync + Send + 'static,
     {
-        StatsdClient {
-            prefix: trim_key(prefix).to_string(),
-            sink: Arc::new(sink),
-        }
+        Self::builder(prefix, sink).build()
     }
 
     /// Create a new client instance that will use the given prefix to send
     /// metrics to the given host over UDP using an appropriate sink.
     ///
     /// The created UDP socket will be put into non-blocking mode.
+    ///
+    /// Note that this client will discard errors encountered when
+    /// sending metrics via the `MetricBuilder::send()` method.
     ///
     /// # Example
     ///
@@ -387,14 +461,62 @@ impl StatsdClient {
     /// * It is unable to put the UDP socket into non-blocking mode.
     /// * It is unable to resolve the hostname of the metric server.
     /// * The host address is otherwise unable to be parsed.
-    pub fn from_udp_host<A>(prefix: &str, host: A) -> MetricResult<StatsdClient>
+    pub fn from_udp_host<A>(prefix: &str, host: A) -> MetricResult<Self>
     where
         A: ToSocketAddrs,
     {
         let socket = UdpSocket::bind("0.0.0.0:0")?;
         socket.set_nonblocking(true)?;
         let sink = UdpMetricSink::from(host, socket)?;
-        Ok(StatsdClient::from_sink(prefix, sink))
+        Ok(StatsdClient::builder(prefix, sink).build())
+    }
+
+    /// Create a new builder with the provided prefix and metric sink.
+    ///
+    /// A prefix and a metric sink are required to create a new client
+    /// instance. All other optional customizations can be set by calling
+    /// methods on the returned builder. Any customizations that aren't
+    /// set by the caller will use defaults.
+    ///
+    /// General defaults:
+    ///
+    /// * A no-op error handler will be used by default. Note that this
+    ///   only affects errors encountered when using the `MetricBuilder::send()`
+    ///   method (as opposed to `.try_send()` or any other method for sending
+    ///   metrics).
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use cadence::prelude::*;
+    /// use cadence::{StatsdClient, MetricError, NopMetricSink};
+    ///
+    /// fn my_handler(err: MetricError) {
+    ///     println!("Metric error: {}", err);
+    /// }
+    ///
+    /// let client = StatsdClient::builder("some.prefix", NopMetricSink)
+    ///     .with_error_handler(my_handler)
+    ///     .build();
+    ///
+    /// client.gauge_with_tags("some.key", 7)
+    ///    .with_tag("region", "us-west-1")
+    ///    .send();
+    /// ```
+    pub fn builder<T>(prefix: &str, sink: T) -> StatsdClientBuilder
+    where
+        T: MetricSink + Sync + Send + 'static,
+    {
+        StatsdClientBuilder::new(prefix, sink)
+    }
+
+    // Create a new StatsdClient by consuming the builder
+    fn from_builder(builder: StatsdClientBuilder) -> Self {
+        StatsdClient {
+            prefix: builder.prefix,
+            sink: Arc::from(builder.sink),
+            errors: Arc::from(builder.errors),
+        }
     }
 
     // Convert a metric to its Statsd string representation and then send
@@ -404,6 +526,11 @@ impl StatsdClient {
         let metric_string = metric.as_metric_str();
         self.sink.emit(metric_string)?;
         Ok(())
+    }
+
+    // Invoke the default or user supplied error handler for the given error.
+    pub(crate) fn consume_error(&self, err: MetricError) -> () {
+        (self.errors)(err);
     }
 }
 
@@ -431,7 +558,7 @@ impl Counted for StatsdClient {
     }
 
     fn count(&self, key: &str, count: i64) -> MetricResult<Counter> {
-        self.count_with_tags(key, count).send()
+        self.count_with_tags(key, count).try_send()
     }
 
     fn count_with_tags<'a>(&'a self, key: &'a str, count: i64) -> MetricBuilder<Counter> {
@@ -442,7 +569,7 @@ impl Counted for StatsdClient {
 
 impl Timed for StatsdClient {
     fn time(&self, key: &str, time: u64) -> MetricResult<Timer> {
-        self.time_with_tags(key, time).send()
+        self.time_with_tags(key, time).try_send()
     }
 
     fn time_with_tags<'a>(&'a self, key: &'a str, time: u64) -> MetricBuilder<Timer> {
@@ -451,7 +578,7 @@ impl Timed for StatsdClient {
     }
 
     fn time_duration(&self, key: &str, duration: Duration) -> MetricResult<Timer> {
-        self.time_duration_with_tags(key, duration).send()
+        self.time_duration_with_tags(key, duration).try_send()
     }
 
     fn time_duration_with_tags<'a>(
@@ -465,16 +592,17 @@ impl Timed for StatsdClient {
         let result = secs_as_ms
             .and_then(|v1| nanos_as_ms.and_then(|v2| v1.checked_add(v2)))
             .ok_or_else(|| MetricError::from((ErrorKind::InvalidInput, "u64 overflow")));
+
         match result {
             Ok(millis) => self.time_with_tags(key, millis),
-            Err(e) => MetricBuilder::from_error(e),
+            Err(e) => MetricBuilder::from_error(e, self),
         }
     }
 }
 
 impl Gauged for StatsdClient {
     fn gauge(&self, key: &str, value: u64) -> MetricResult<Gauge> {
-        self.gauge_with_tags(key, value).send()
+        self.gauge_with_tags(key, value).try_send()
     }
 
     fn gauge_with_tags<'a>(&'a self, key: &'a str, value: u64) -> MetricBuilder<Gauge> {
@@ -485,7 +613,7 @@ impl Gauged for StatsdClient {
 
 impl Metered for StatsdClient {
     fn mark(&self, key: &str) -> MetricResult<Meter> {
-        self.mark_with_tags(key).send()
+        self.mark_with_tags(key).try_send()
     }
 
     fn mark_with_tags<'a>(&'a self, key: &'a str) -> MetricBuilder<Meter> {
@@ -493,7 +621,7 @@ impl Metered for StatsdClient {
     }
 
     fn meter(&self, key: &str, value: u64) -> MetricResult<Meter> {
-        self.meter_with_tags(key, value).send()
+        self.meter_with_tags(key, value).try_send()
     }
 
     fn meter_with_tags<'a>(&'a self, key: &'a str, value: u64) -> MetricBuilder<Meter> {
@@ -504,7 +632,7 @@ impl Metered for StatsdClient {
 
 impl Histogrammed for StatsdClient {
     fn histogram(&self, key: &str, value: u64) -> MetricResult<Histogram> {
-        self.histogram_with_tags(key, value).send()
+        self.histogram_with_tags(key, value).try_send()
     }
 
     fn histogram_with_tags<'a>(&'a self, key: &'a str, value: u64) -> MetricBuilder<Histogram> {
@@ -523,14 +651,24 @@ fn trim_key(val: &str) -> &str {
     }
 }
 
+fn nop_error_handler(_err: MetricError) {
+    // nothing
+}
+
 #[cfg(test)]
 mod tests {
+    use std::cell::RefCell;
+    use std::io;
+    use std::sync::{Arc, Mutex};
+    use std::sync::atomic::{AtomicUsize, Ordering};
     use std::time::Duration;
     use std::u64;
+
     use super::{trim_key, Counted, Gauged, Histogrammed, Metered, MetricClient, StatsdClient,
                 Timed};
-    use sinks::NopMetricSink;
-    use types::{ErrorKind, Metric};
+
+    use sinks::{MetricSink, NopMetricSink};
+    use types::{ErrorKind, Metric, MetricError};
 
     #[test]
     fn test_trim_key_with_trailing_dot() {
@@ -548,7 +686,7 @@ mod tests {
         let res = client
             .count_with_tags("some.counter", 3)
             .with_tag("foo", "bar")
-            .send();
+            .try_send();
 
         assert_eq!(
             "prefix.some.counter:3|c|#foo:bar",
@@ -563,7 +701,7 @@ mod tests {
             .gauge_with_tags("some.gauge", 4)
             .with_tag("bucket", "A")
             .with_tag_value("file-server")
-            .send();
+            .try_send();
 
         assert_eq!(
             "prefix.some.gauge:4|g|#bucket:A,file-server",
@@ -578,7 +716,7 @@ mod tests {
             .meter_with_tags("some.meter", 64)
             .with_tag("segment", "142")
             .with_tag_value("beta")
-            .send();
+            .try_send();
 
         assert_eq!(
             "prefix.some.meter:64|m|#segment:142,beta",
@@ -593,7 +731,7 @@ mod tests {
             .histogram_with_tags("some.histo", 27)
             .with_tag("host", "www03.example.com")
             .with_tag_value("rc1")
-            .send();
+            .try_send();
 
         assert_eq!(
             "prefix.some.histo:27|h|#host:www03.example.com,rc1",
@@ -624,7 +762,7 @@ mod tests {
             .time_duration_with_tags("key", Duration::from_millis(157))
             .with_tag("foo", "bar")
             .with_tag_value("quux")
-            .send();
+            .try_send();
 
         assert_eq!(
             "prefix.key:157|ms|#foo:bar,quux",
@@ -639,10 +777,74 @@ mod tests {
             .time_duration_with_tags("key", Duration::from_secs(u64::MAX))
             .with_tag("foo", "bar")
             .with_tag_value("quux")
-            .send();
+            .try_send();
 
         assert!(res.is_err());
         assert_eq!(ErrorKind::InvalidInput, res.unwrap_err().kind());
+    }
+
+    #[test]
+    fn test_statsd_client_with_tags_send_success() {
+        struct StoringSink {
+            metrics: Arc<Mutex<RefCell<Vec<String>>>>
+        }
+
+        impl MetricSink for StoringSink {
+            fn emit(&self, metric: &str) -> io::Result<usize> {
+                let mutex = self.metrics.as_ref();
+                let cell = mutex.lock().unwrap();
+                cell.borrow_mut().push(metric.to_owned());
+                Ok(0)
+            }
+        }
+
+        fn panic_handler(err: MetricError) {
+            panic!("Metric send error: {}", err);
+        }
+
+        let metrics = Arc::new(Mutex::new(RefCell::new(Vec::new())));
+        let metrics_ref = Arc::clone(&metrics);
+        let sink = StoringSink { metrics: metrics_ref };
+        let client = StatsdClient::builder("prefix", sink)
+            .with_error_handler(panic_handler)
+            .build();
+
+        client.incr_with_tags("some.key")
+            .with_tag("test", "a")
+            .send();
+
+        let mutex = metrics.as_ref();
+        let cell = mutex.lock().unwrap();
+
+        assert_eq!(1, cell.borrow().len());
+    }
+
+    #[test]
+    fn test_statsd_client_with_tags_send_error() {
+        struct ErrorSink;
+
+        impl MetricSink for ErrorSink {
+            fn emit(&self, _metric: &str) -> io::Result<usize> {
+                Err(io::Error::from(io::ErrorKind::Other))
+            }
+        }
+
+        let count = Arc::new(AtomicUsize::new(0));
+        let count_ref = Arc::clone(&count);
+
+        let handler = move |_err: MetricError| {
+            count_ref.fetch_add(1, Ordering::Release);
+        };
+
+        let client = StatsdClient::builder("prefix", ErrorSink)
+            .with_error_handler(handler)
+            .build();
+
+        client.incr_with_tags("some.key")
+            .with_tag("tier", "web")
+            .send();
+
+        assert_eq!(1, count.load(Ordering::Acquire));
     }
 
     // The following tests really just ensure that we've actually

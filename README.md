@@ -243,6 +243,36 @@ match dao.get_user_by_id(123) {
 };
 ```
 
+### Quiet Metric Sending and Error Handling
+
+When sending metrics sometimes you don't really care about the `Result` of
+trying to send it or maybe you just don't want to deal with it inline with
+the rest of your code. In order to handle this, Cadence allows you to set a
+default error handler. This handler is invoked when there are errors sending
+metrics so that the calling code doesn't have to deal with them.
+
+An example of configuring an error handler and an example of when it might
+be invoked is given below.
+
+``` rust,no_run
+use cadence::prelude::*;
+use cadence::{MetricError, StatsdClient, NopMetricSink};
+
+fn my_error_handler(err: MetricError) {
+    println!("Metric error! {}", err);
+}
+
+let client = StatsdClient::builder("prefix", NopMetricSink)
+    .with_error_handler(my_error_handler)
+    .build();
+
+// When sending metrics via the `MetricBuilder` used for assembling tags,
+// callers may opt into sending metrics quietly via the `.send()` method
+// as opposed to the `.try_send()` method
+client.count_with_tags("some.counter", 42)
+    .with_tag("region", "us-east-2")
+    .send();
+```
 
 ### Custom Metric Sinks
 

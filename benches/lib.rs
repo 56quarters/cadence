@@ -41,7 +41,7 @@ fn test_benchmark_statsdclient_nop(b: &mut Bencher) {
 fn test_benchmark_statsdclient_nop_with_tags(b: &mut Bencher) {
     let client = new_nop_client();
     b.iter(|| {
-        let _ = client
+        client
             .count_with_tags("some.counter", 4)
             .with_tag("host", "app21.example.com")
             .with_tag("bucket", "3")
@@ -59,7 +59,7 @@ fn test_benchmark_statsdclient_udp(b: &mut Bencher) {
 fn test_benchmark_statsdclient_udp_with_tags(b: &mut Bencher) {
     let client = new_udp_client();
     b.iter(|| {
-        let _ = client
+        client
             .count_with_tags("some.counter", 4)
             .with_tag("host", "fs03.example.com")
             .with_tag("version", "123")
@@ -77,7 +77,7 @@ fn test_benchmark_statsdclient_buffered_udp(b: &mut Bencher) {
 fn test_benchmark_statsdclient_buffered_udp_with_tags(b: &mut Bencher) {
     let client = new_buffered_udp_client();
     b.iter(|| {
-        let _ = client
+        client
             .count_with_tags("some.counter", 4)
             .with_tag("user-type", "authenticated")
             .with_tag("bucket", "42")
@@ -95,7 +95,7 @@ fn test_benchmark_statsdclient_queuing_nop(b: &mut Bencher) {
 fn test_benchmark_statsdclient_queuing_nop_with_tags(b: &mut Bencher) {
     let client = new_queuing_nop_client();
     b.iter(|| {
-        let _ = client
+        client
             .count_with_tags("some.counter", 4)
             .with_tag("host", "web32.example.com")
             .with_tag("platform", "ng")
