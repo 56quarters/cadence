@@ -175,14 +175,23 @@ more information.
 
 ```rust,no_run
 use cadence::prelude::*;
-use cadence::{StatsdClient, NopMetricSink};
+use cadence::{Metric, StatsdClient, NopMetricSink};
 
 let client = StatsdClient::from_sink("my.prefix", NopMetricSink);
 
-client.count_with_tags("my.counter.thing", 29)
+let res = client.count_with_tags("my.counter", 29)
     .with_tag("host", "web03.example.com")
     .with_tag_value("beta-test")
-    .send();
+    .try_send();
+
+assert_eq!(
+    concat!(
+        "my.prefix.my.counter:29|c|#",
+        "host:web03.example.com,",
+        "beta-test"
+    ),
+    res.unwrap().as_metric_str()
+);
 ```
 
 ### `Counted`, `Timed`, `Gauged`, `Metered`, `Histogrammed`, and `MetricClient` Traits
