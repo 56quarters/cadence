@@ -536,7 +536,7 @@ impl StatsdClient {
 
 impl fmt::Debug for StatsdClient {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "StatsdClient {{ prefix: {:?}, sink: ... }}", self.prefix)
+        write!(f, "StatsdClient {{ prefix: {:?}, sink: ..., errors: ... }}", self.prefix)
     }
 }
 
