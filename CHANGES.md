@@ -1,6 +1,6 @@
 # Changelog
 
-## [v0.14.0](https://github.com/tshlabs/cadence/tree/0.14.0) - 2018-??-??
+## [v0.14.0](https://github.com/tshlabs/cadence/tree/0.14.0) - 2018-04-11
 * **Breaking change** - Rename the `MetricBuilder::send()` method to
   `MetricBuilder::try_send()` and create a new `.send()` method that discards
   successful results and invokes a custom handler for error results. Handlers
