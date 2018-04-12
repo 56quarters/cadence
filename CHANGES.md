@@ -4,7 +4,7 @@
 * **Breaking change** - Rename the `MetricBuilder::send()` method to
   `MetricBuilder::try_send()` and create a new `.send()` method that discards
   successful results and invokes a custom handler for error results. Handlers
-  can be set by using the `StatsdClient::from_sink_with_handler` constructor.
+  can be set by using a builder via the `StatsdClient::builder()` method.
   Per [#65](https://github.com/tshlabs/cadence/issues/65).
 
 ## [v0.13.2](https://github.com/tshlabs/cadence/tree/0.13.2) - 2018-03-13
