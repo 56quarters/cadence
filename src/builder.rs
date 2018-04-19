@@ -9,9 +9,9 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
+use client::StatsdClient;
 use std::fmt::{self, Write};
 use std::marker::PhantomData;
-use client::StatsdClient;
 use types::{Metric, MetricError, MetricResult};
 
 const DATADOG_TAGS_PREFIX: &str = "|#";
@@ -365,7 +365,7 @@ where
     ///    .send();
     /// ```
     pub fn send(self) -> () {
-        match self.repr{
+        match self.repr {
             BuilderRepr::Error(err, client) => client.consume_error(err),
             BuilderRepr::Success(_, client) => {
                 if let Err(e) = self.try_send() {
@@ -403,8 +403,8 @@ fn write_datadog_tags(metric: &mut String, tags: &[(Option<&str>, &str)]) {
 
 #[cfg(test)]
 mod tests {
-    use types::{Counter, Gauge, Histogram, Meter, Metric, Timer};
     use super::{write_datadog_tags, MetricFormatter};
+    use types::{Counter, Gauge, Histogram, Meter, Metric, Timer};
 
     #[test]
     fn test_metric_formatter_counter_no_tags() {
