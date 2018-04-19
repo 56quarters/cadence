@@ -31,18 +31,26 @@ use types::{Counter, ErrorKind, Gauge, Histogram, Meter, Metric, MetricError, Me
 /// extension to Statsd and may not be supported by your server.
 pub trait Counted {
     /// Increment the counter by `1`
-    fn incr(&self, key: &str) -> MetricResult<Counter>;
+    fn incr(&self, key: &str) -> MetricResult<Counter> {
+        self.count(key, 1)
+    }
 
     /// Increment the counter by `1` and return a `MetricBuilder` that can
     /// be used to add tags to the metric.
-    fn incr_with_tags<'a>(&'a self, key: &'a str) -> MetricBuilder<Counter>;
+    fn incr_with_tags<'a>(&'a self, key: &'a str) -> MetricBuilder<Counter> {
+        self.count_with_tags(key, 1)
+    }
 
     /// Decrement the counter by `1`
-    fn decr(&self, key: &str) -> MetricResult<Counter>;
+    fn decr(&self, key: &str) -> MetricResult<Counter> {
+        self.count(key, -1)
+    }
 
     /// Decrement the counter by `1` and return a `MetricBuilder that can
     /// be used to add tags to the metric.
-    fn decr_with_tags<'a>(&'a self, key: &'a str) -> MetricBuilder<Counter>;
+    fn decr_with_tags<'a>(&'a self, key: &'a str) -> MetricBuilder<Counter> {
+        self.count_with_tags(key, -1)
+    }
 
     /// Increment or decrement the counter by the given amount
     fn count(&self, key: &str, count: i64) -> MetricResult<Counter>;
@@ -125,11 +133,15 @@ pub trait Gauged {
 /// extension to Statsd and may not be supported by your server.
 pub trait Metered {
     /// Record a single metered event with the given key
-    fn mark(&self, key: &str) -> MetricResult<Meter>;
+    fn mark(&self, key: &str) -> MetricResult<Meter> {
+        self.meter(key, 1)
+    }
 
     /// Record a single metered event with the given key and return a
     /// `MetricBuilder` that can be used to add tags to the metric.
-    fn mark_with_tags<'a>(&'a self, key: &'a str) -> MetricBuilder<Meter>;
+    fn mark_with_tags<'a>(&'a self, key: &'a str) -> MetricBuilder<Meter> {
+        self.meter_with_tags(key, 1)
+    }
 
     /// Record a meter value with the given key
     fn meter(&self, key: &str, value: u64) -> MetricResult<Meter>;
@@ -541,22 +553,6 @@ impl fmt::Debug for StatsdClient {
 }
 
 impl Counted for StatsdClient {
-    fn incr(&self, key: &str) -> MetricResult<Counter> {
-        self.count(key, 1)
-    }
-
-    fn incr_with_tags<'a>(&'a self, key: &'a str) -> MetricBuilder<Counter> {
-        self.count_with_tags(key, 1)
-    }
-
-    fn decr(&self, key: &str) -> MetricResult<Counter> {
-        self.count(key, -1)
-    }
-
-    fn decr_with_tags<'a>(&'a self, key: &'a str) -> MetricBuilder<Counter> {
-        self.count_with_tags(key, -1)
-    }
-
     fn count(&self, key: &str, count: i64) -> MetricResult<Counter> {
         self.count_with_tags(key, count).try_send()
     }
@@ -612,14 +608,6 @@ impl Gauged for StatsdClient {
 }
 
 impl Metered for StatsdClient {
-    fn mark(&self, key: &str) -> MetricResult<Meter> {
-        self.mark_with_tags(key).try_send()
-    }
-
-    fn mark_with_tags<'a>(&'a self, key: &'a str) -> MetricBuilder<Meter> {
-        self.meter_with_tags(key, 1)
-    }
-
     fn meter(&self, key: &str, value: u64) -> MetricResult<Meter> {
         self.meter_with_tags(key, value).try_send()
     }
