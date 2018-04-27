@@ -291,7 +291,7 @@
 //! ### Custom Metric Sinks
 //!
 //! The Cadence `StatsdClient` uses implementations of the `MetricSink`
-//! trait to send metrics to a metric server. Most users of the Candence
+//! trait to send metrics to a metric server. Most users of the Cadence
 //! library probably want to use the `QueuingMetricSink` wrapping an instance
 //! of the `BufferedMetricSink`.
 //!
