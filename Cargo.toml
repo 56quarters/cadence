@@ -13,9 +13,15 @@ keywords = ["statsd", "metrics"]
 [dependencies]
 crossbeam = "0.2.10"
 
+[dev-dependencies]
+regex = "0.2"
+
 [lib]
 name = "cadence"
 path = "src/lib.rs"
 
 [badges]
 travis-ci = { repository = "tshlabs/cadence" }
+
+[features]
+datadog-extensions = []

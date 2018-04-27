@@ -195,7 +195,6 @@ pub trait Histogrammed {
 /// ```
 pub trait MetricClient: Counted + Timed + Gauged + Metered + Histogrammed {}
 
-
 /// Builder for creating and customizing `StatsdClient` instances.
 ///
 /// Instances of the builder should be created by calling the `::builder()`
@@ -388,7 +387,7 @@ impl StatsdClientBuilder {
 /// an `Arc`.
 #[derive(Clone)]
 pub struct StatsdClient {
-    prefix: String,
+    pub(crate) prefix: String,
     sink: Arc<MetricSink + Sync + Send>,
     errors: Arc<Fn(MetricError) -> () + Sync + Send>,
 }

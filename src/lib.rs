@@ -33,6 +33,8 @@
 //! * Support for alternate backends via the `MetricSink` trait.
 //! * Support for [Datadog](https://docs.datadoghq.com/developers/dogstatsd/) style metric tags.
 //! * A simple yet flexible API for sending metrics.
+//! * Optional support for [Datadog](https://docs.datadoghq.com/developers/dogstatsd/) sets,
+//! distributions and events via the `datadog-extensions` feature.
 //!
 //! ## Install
 //!
@@ -44,13 +46,15 @@
 //! cadence = "x.y.z"
 //! ```
 //!
-//! Then, link to it in your library or application.
+//! ### Install with Datadog Extensions
 //!
-//! ``` rust,no_run
-//! // bin.rs or lib.rs
-//! extern crate cadence;
+//! Pretty much the same as the default install. Just make sure you have enabled
+//! the `datadog-extensions` in your `Cargo.toml` file.
 //!
-//! // rest of your library or application
+//! ``` toml
+//! [dependencies.cadence]
+//! version = "x.y.z"
+//! features = ["datadog-extensions"]
 //! ```
 //!
 //! ## Usage
@@ -83,6 +87,32 @@
 //! client.time("some.methodCall", 42);
 //! client.gauge("some.thing", 7);
 //! client.meter("some.value", 5);
+//! ```
+//!
+//! ### Simple Usage with Datadog Extensions
+//!
+//! When the `datadog-extensions` feature is enabled, `StatsdClient` gains the
+//! ability to send sets and distributions metrics as well as the support for
+//! events. See [Datadog](https://docs.datadoghq.com/developers/dogstatsd/)
+//! for more information.
+//!
+//! ``` rust, ignore
+//! // Import the client.
+//! use cadence::prelude::*;
+//! use cadence::{StatsdClient, UdpMetricSink, DEFAULT_PORT};
+//!
+//! // Create client that will write to the given host over UDP.
+//! //
+//! // Note that you'll probably want to actually handle any errors creating
+//! // the client when you use it for real in your application. We're just
+//! // using .unwrap() here since this is an example!
+//! let host = ("metrics.example.com", DEFAULT_PORT);
+//! let client = StatsdClient::from_udp_host("my.metrics", host).unwrap();
+//!
+//! // Emit metrics!
+//! client.set("users.uniques", 42);
+//! client.distribution("mywebsite.page_render.time", 210);
+//! client.event("exception", "something bad happened");
 //! ```
 //!
 //! ### Buffered UDP Sink
@@ -346,9 +376,10 @@
 //! client.time("my.service.call", 214);
 //! client.incr("some.event");
 //! ```
-//!
-
 extern crate crossbeam;
+
+#[cfg(test)]
+extern crate regex;
 
 pub const DEFAULT_PORT: u16 = 8125;
 
@@ -369,3 +400,13 @@ mod client;
 mod io;
 mod sinks;
 mod types;
+
+#[cfg(feature = "datadog-extensions")]
+mod datadog;
+
+#[cfg(feature = "datadog-extensions")]
+pub use self::datadog::{
+    builder::{EventBuilder, EventAlertType, EventPriority},
+    client::{Setted, Distributed, Evented, DatadogMetricClient},
+    types::{Set, Distribution, Event},
+ };
