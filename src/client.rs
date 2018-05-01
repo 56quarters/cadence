@@ -15,7 +15,7 @@ use std::time::Duration;
 
 use builder::{MetricBuilder, MetricFormatter};
 use sinks::{MetricSink, UdpMetricSink};
-use types::{Counter, ErrorKind, Gauge, Histogram, Meter, Metric, MetricError, MetricResult, Timer};
+use types::{Counter, ErrorKind, Gauge, Histogram, Meter, Metric, MetricError, MetricResult, Timer, Set};
 
 /// Trait for incrementing and decrementing counters.
 ///
@@ -174,6 +174,22 @@ pub trait Histogrammed {
     fn histogram_with_tags<'a>(&'a self, key: &'a str, value: u64) -> MetricBuilder<Histogram>;
 }
 
+/// Trait for recording Datadog set values.
+///
+/// Sets count the number of unique elements in a group. You can use them to,
+/// for example, grouping the unique visitors to your site.
+///
+/// See the [Statsd spec](https://github.com/b/statsd_spec) for more
+/// information.
+pub trait Setted {
+    /// Record a single set value with the given key
+    fn set(&self, key: &str, value: i64) -> MetricResult<Set>;
+
+    /// Record a single set value with the given key and return a
+    /// `MetricBuilder` that can be used to add tags to the metric.
+    fn set_with_tags<'a>(&'a self, key: &'a str, value: i64) -> MetricBuilder<Set>;
+}
+
 /// Trait that encompasses all other traits for sending metrics.
 ///
 /// If you wish to use `StatsdClient` with a generic type or place a
@@ -192,8 +208,9 @@ pub trait Histogrammed {
 /// client.gauge("some.gauge", 8).unwrap();
 /// client.meter("some.meter", 13).unwrap();
 /// client.histogram("some.histogram", 4).unwrap();
+/// client.set("some.set", 5).unwrap();
 /// ```
-pub trait MetricClient: Counted + Timed + Gauged + Metered + Histogrammed {}
+pub trait MetricClient: Counted + Timed + Gauged + Metered + Histogrammed + Setted {}
 
 
 /// Builder for creating and customizing `StatsdClient` instances.
@@ -629,6 +646,17 @@ impl Histogrammed for StatsdClient {
     }
 }
 
+impl Setted for StatsdClient {
+    fn set(&self, key: &str, value: i64) -> MetricResult<Set> {
+        self.set_with_tags(key, value).try_send()
+    }
+
+    fn set_with_tags<'a>(&'a self, key: &'a str, value: i64) -> MetricBuilder<Set> {
+        let fmt = MetricFormatter::set(&self.prefix, key, value);
+        MetricBuilder::new(fmt, self)
+    }
+}
+
 impl MetricClient for StatsdClient {}
 
 fn trim_key(val: &str) -> &str {
@@ -653,7 +681,7 @@ mod tests {
     use std::u64;
 
     use super::{trim_key, Counted, Gauged, Histogrammed, Metered, MetricClient, StatsdClient,
-                Timed};
+                Timed, Setted};
 
     use sinks::{MetricSink, NopMetricSink};
     use types::{ErrorKind, Metric, MetricError};
@@ -835,6 +863,31 @@ mod tests {
         assert_eq!(1, count.load(Ordering::Acquire));
     }
 
+    #[test]
+    fn test_statsd_client_set_no_tags() {
+        let client = StatsdClient::from_sink("myapp", NopMetricSink);
+        let res = client.set("some.set", 3);
+
+        assert_eq!(
+            "myapp.some.set:3|s",
+            res.unwrap().as_metric_str()
+        );
+    }
+
+    #[test]
+    fn test_statsd_client_set_with_tags() {
+        let client = StatsdClient::from_sink("myapp", NopMetricSink);
+        let res = client
+            .set_with_tags("some.set", 3)
+            .with_tag("foo", "bar")
+            .try_send();
+
+        assert_eq!(
+            "myapp.some.set:3|s|#foo:bar",
+            res.unwrap().as_metric_str()
+        );
+    }
+
     // The following tests really just ensure that we've actually
     // implemented all the traits we're supposed to correctly. If
     // we hadn't, this wouldn't compile.
@@ -875,6 +928,13 @@ mod tests {
     }
 
     #[test]
+    fn test_statsd_client_as_setted() {
+        let client: Box<Setted> = Box::new(StatsdClient::from_sink("myapp", NopMetricSink));
+
+        client.set("some.set", 5).unwrap();
+    }
+
+    #[test]
     fn test_statsd_client_as_metric_client() {
         let client: Box<MetricClient> = Box::new(StatsdClient::from_sink("prefix", NopMetricSink));
 
@@ -883,5 +943,6 @@ mod tests {
         client.gauge("some.gauge", 4).unwrap();
         client.meter("some.meter", 29).unwrap();
         client.histogram("some.histogram", 32).unwrap();
+        client.set("some.set", 5).unwrap();
     }
 }

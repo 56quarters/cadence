@@ -25,4 +25,4 @@
 //! client.histogram("some.histogram", 89).unwrap();
 //! ```
 
-pub use client::{Counted, Gauged, Histogrammed, Metered, MetricClient, Timed};
+pub use client::{Counted, Gauged, Histogrammed, Setted, Metered, MetricClient, Timed};

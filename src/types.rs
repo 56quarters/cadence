@@ -158,6 +158,32 @@ impl Metric for Histogram {
     }
 }
 
+/// Sets count the number of unique elements in a group.
+///
+/// See the `Setted` trait for more information.
+#[derive(PartialEq, Eq, Debug, Hash, Clone)]
+pub struct Set {
+    repr: String,
+}
+
+impl Set {
+    pub fn new(prefix: &str, key: &str, value: i64) -> Set {
+        MetricFormatter::set(prefix, key, value).build()
+    }
+}
+
+impl From<String> for Set {
+    fn from(s: String) -> Self {
+        Set { repr: s }
+    }
+}
+
+impl Metric for Set {
+    fn as_metric_str(&self) -> &str {
+        &self.repr
+    }
+}
+
 /// Potential categories an error from this library falls into.
 #[derive(PartialEq, Eq, Debug, Hash, Clone, Copy)]
 pub enum ErrorKind {
@@ -236,7 +262,7 @@ mod tests {
 
     use std::io;
     use std::error::Error;
-    use super::{Counter, ErrorKind, Gauge, Histogram, Meter, Metric, MetricError, Timer};
+    use super::{Counter, ErrorKind, Gauge, Histogram, Meter, Metric, MetricError, Timer, Set};
 
     #[test]
     fn test_counter_to_metric_string() {
@@ -266,6 +292,12 @@ mod tests {
     fn test_histogram_to_metric_string() {
         let histogram = Histogram::new("my.app", "test.histogram", 45);
         assert_eq!("my.app.test.histogram:45|h", histogram.as_metric_str());
+    }
+
+    #[test]
+    fn test_set_to_metric_string() {
+        let set = Set::new("my.app", "test.set", 4);
+        assert_eq!("my.app.test.set:4|s", set.as_metric_str());
     }
 
     #[test]
