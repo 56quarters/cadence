@@ -174,10 +174,10 @@ pub trait Histogrammed {
     fn histogram_with_tags<'a>(&'a self, key: &'a str, value: u64) -> MetricBuilder<Histogram>;
 }
 
-/// Trait for recording Datadog set values.
+/// Trait for recording set values.
 ///
 /// Sets count the number of unique elements in a group. You can use them to,
-/// for example, grouping the unique visitors to your site.
+/// for example, count the unique visitors to your site.
 ///
 /// See the [Statsd spec](https://github.com/b/statsd_spec) for more
 /// information.

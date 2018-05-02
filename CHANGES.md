@@ -1,5 +1,10 @@
 # Changelog
 
+## [v0.15.0](https://github.com/tshlabs/cadence/tree/0.14.0) - 2018-??-??
+* **Breaking change** - Add support for `Set` metric types. Sets can be used
+  to count the number of unique occurences of an event. Per
+  [#62](https://github.com/tshlabs/cadence/pull/72).
+
 ## [v0.14.0](https://github.com/tshlabs/cadence/tree/0.14.0) - 2018-04-11
 * **Breaking change** - Rename the `MetricBuilder::send()` method to
   `MetricBuilder::try_send()` and create a new `.send()` method that discards

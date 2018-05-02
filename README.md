@@ -338,6 +338,7 @@ let client = StatsdClient::from_sink("my.prefix", sink);
 client.count("my.counter.thing", 29);
 client.time("my.service.call", 214);
 client.incr("some.event");
+client.set("users.uniques", 42);
 ```
 
 ## Documentation
