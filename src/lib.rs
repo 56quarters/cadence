@@ -29,9 +29,11 @@
 //!
 //! ## Features
 //!
-//! * Support for emitting counters, timers, histograms, gauges, and meters to Statsd over UDP.
+//! * Support for emitting counters, timers, histograms, gauges, meters, and sets to
+//!   Statsd over UDP.
 //! * Support for alternate backends via the `MetricSink` trait.
-//! * Support for [Datadog](https://docs.datadoghq.com/developers/dogstatsd/) style metric tags.
+//! * Support for [Datadog](https://docs.datadoghq.com/developers/dogstatsd/) style metric
+//!   tags.
 //! * A simple yet flexible API for sending metrics.
 //!
 //! ## Install
