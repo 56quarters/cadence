@@ -40,6 +40,7 @@ enum MetricType {
     Gauge,
     Meter,
     Histogram,
+    Set
 }
 
 impl fmt::Display for MetricType {
@@ -50,6 +51,7 @@ impl fmt::Display for MetricType {
             MetricType::Gauge => "g".fmt(f),
             MetricType::Meter => "m".fmt(f),
             MetricType::Histogram => "h".fmt(f),
+            MetricType::Set => "s".fmt(f),
         }
     }
 }
@@ -89,6 +91,10 @@ where
 
     pub(crate) fn histogram(prefix: &'a str, key: &'a str, val: u64) -> Self {
         Self::from_u64(prefix, key, val, MetricType::Histogram)
+    }
+
+    pub(crate) fn set(prefix: &'a str, key: &'a str, val: i64) -> Self {
+        Self::from_i64(prefix, key, val, MetricType::Set)
     }
 
     fn from_u64(prefix: &'a str, key: &'a str, val: u64, type_: MetricType) -> Self {
