@@ -46,6 +46,12 @@ use std::io;
 /// some.histogram:4|h
 /// ```
 ///
+/// ## Set
+///
+/// ``` text
+/// some.set:2|s
+/// ```
+///
 /// See the [Statsd spec](https://github.com/b/statsd_spec) for more
 /// information.
 pub trait MetricSink {
