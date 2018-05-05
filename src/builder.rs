@@ -9,7 +9,7 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-use client::StatsdClient;
+use client::{MetricBackend, StatsdClient};
 use std::fmt::{self, Write};
 use std::marker::PhantomData;
 use types::{Metric, MetricError, MetricResult};

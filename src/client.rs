@@ -1,6 +1,6 @@
 // Cadence - An extensible Statsd client for Rust!
 //
-// Copyright 2015-2017 TSH Labs
+// Copyright 2015-2018 TSH Labs
 //
 // Licensed under the Apache License, Version 2.0 <LICENSE-APACHE or
 // http://www.apache.org/licenses/LICENSE-2.0> or the MIT license
@@ -212,6 +212,96 @@ pub trait Setted {
 /// ```
 pub trait MetricClient: Counted + Timed + Gauged + Metered + Histogrammed + Setted {}
 
+/// Typically internal methods for sending metrics and handling errors.
+///
+/// This trait exposes methods of the client that would normally be internal
+/// but may be useful for consumers of the library to extend it in unforseen
+/// ways.
+///
+/// This trait is not exposed in the `prelude` module since it isn't required
+/// to use the client for sending metrics. It is only exposed in the `ext`
+/// module which is used to encompass extension points for the library.
+///
+/// # Example
+///
+/// ```
+/// use cadence::{Metric, MetricResult, StatsdClient, NopMetricSink};
+/// use cadence::ext::MetricBackend;
+///
+/// struct CustomMetric {
+///     repr: String,
+/// }
+///
+/// impl Metric for CustomMetric {
+///     fn as_metric_str(&self) -> &str {
+///         &self.repr
+///     }
+/// }
+///
+/// impl From<String> for CustomMetric {
+///     fn from(v: String) -> Self {
+///         CustomMetric { repr: v }
+///     }
+/// }
+///
+/// struct MyCustomClient {
+///     prefix: String,
+///     wrapped: StatsdClient,
+/// }
+///
+/// impl MyCustomClient {
+///     fn new(prefix: &str, client: StatsdClient) -> Self {
+///         MyCustomClient {
+///             prefix: prefix.to_string(),
+///             wrapped: client,
+///         }
+///     }
+///
+///     fn send_event(&self, key: &str, val: i64) -> MetricResult<CustomMetric> {
+///         let metric = CustomMetric::from(format!("{}.{}:{}|e", self.prefix, key, val));
+///         self.wrapped.send_metric(&metric)?;
+///         Ok(metric)
+///     }
+///
+///     fn send_event_quietly(&self, key: &str, val: i64) {
+///         if let Err(e) = self.send_event(key, val) {
+///             self.wrapped.consume_error(e);
+///         }
+///     }
+/// }
+///
+/// let prefix = "some.prefix";
+/// let inner = StatsdClient::from_sink(&prefix, NopMetricSink);
+/// let custom = MyCustomClient::new(&prefix, inner);
+///
+/// custom.send_event("some.event", 123).unwrap();
+/// custom.send_event_quietly("some.event", 456);
+/// ```
+pub trait MetricBackend {
+    /// Send a full formed `Metric` implementation via the underlying `MetricSink`
+    ///
+    /// Obtain a `&str` representation of a metric, encode it as UTF-8 bytes, and
+    /// send it to the underlying `MetricSink`, verbatim. Note that the metric is
+    /// expected to be full formed already, including any prefix or tags.
+    ///
+    /// Note that if you simply want to emit standard metrics, you don't need to
+    /// use this method. This is only useful if you are extending Cadence with a
+    /// custom metric type or something similar.
+    fn send_metric<M>(&self, metric: &M) -> MetricResult<()>
+    where
+        M: Metric;
+
+    /// Consume a possible error from attempting to send a metric.
+    ///
+    /// When callers have elected to quietly send metrics via the `MetricBuilder::send()`
+    /// method, this method will be invoked if an error is encountered. By default the
+    /// handler is a no-op, meaning that errors are discarded.
+    ///
+    /// Note that if you simply want to emit standard metrics, you don't need to
+    /// use this method. This is only useful if you are extending Cadence with a
+    /// custom metric type or something similar.
+    fn consume_error(&self, err: MetricError) -> ();
+}
 
 /// Builder for creating and customizing `StatsdClient` instances.
 ///
@@ -547,18 +637,19 @@ impl StatsdClient {
             errors: Arc::from(builder.errors),
         }
     }
+}
 
-    // Convert a metric to its Statsd string representation and then send
-    // it as UTF-8 bytes to the metric sink. Convert any I/O errors from the
-    // sink to a MetricResult.
-    pub(crate) fn send_metric<M: Metric>(&self, metric: &M) -> MetricResult<()> {
+impl MetricBackend for StatsdClient {
+    fn send_metric<M>(&self, metric: &M) -> MetricResult<()>
+    where
+        M: Metric
+    {
         let metric_string = metric.as_metric_str();
         self.sink.emit(metric_string)?;
         Ok(())
     }
 
-    // Invoke the default or user supplied error handler for the given error.
-    pub(crate) fn consume_error(&self, err: MetricError) -> () {
+    fn consume_error(&self, err: MetricError) -> () {
         (self.errors)(err);
     }
 }
