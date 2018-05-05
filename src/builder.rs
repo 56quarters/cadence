@@ -410,7 +410,7 @@ fn write_datadog_tags(metric: &mut String, tags: &[(Option<&str>, &str)]) {
 #[cfg(test)]
 mod tests {
     use super::{write_datadog_tags, MetricFormatter};
-    use types::{Counter, Gauge, Histogram, Meter, Metric, Timer};
+    use types::{Counter, Gauge, Histogram, Meter, Metric, Set, Timer};
 
     #[test]
     fn test_metric_formatter_counter_no_tags() {
@@ -529,6 +529,32 @@ mod tests {
                 "source=search"
             ),
             histogram.as_metric_str()
+        );
+    }
+
+    #[test]
+    fn test_metric_formatter_set_no_tags() {
+        let fmt = MetricFormatter::set("prefix", "users.uniques", 44);
+        let set: Set = fmt.build();
+
+        assert_eq!("prefix.users.uniques:44|s", set.as_metric_str());
+    }
+
+    #[test]
+    fn test_metric_formatter_set_with_tags() {
+        let mut fmt = MetricFormatter::set("prefix", "users.uniques", 44);
+        fmt.with_tag("user-type", "authenticated");
+        fmt.with_tag_value("source=search");
+
+        let set: Set = fmt.build();
+
+        assert_eq!(
+            concat!(
+                "prefix.users.uniques:44|s|#",
+                "user-type:authenticated,",
+                "source=search"
+            ),
+            set.as_metric_str()
         );
     }
 
