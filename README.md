@@ -289,7 +289,7 @@ client.count_with_tags("some.counter", 42)
 
 The Cadence `StatsdClient` uses implementations of the `MetricSink`
 trait to send metrics to a metric server. Most users of the Cadence
-library probably want to use the `AsyncMetricSink` wrapping an instance
+library probably want to use the `QueuingMetricSink` wrapping an instance
 of the `BufferedMetricSink`.
 
 However, maybe you want to do something not covered by an existing sink.
