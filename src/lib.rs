@@ -1,6 +1,6 @@
 // Cadence - An extensible Statsd client for Rust!
 //
-// Copyright 2015-2017 TSH Labs
+// Copyright 2015-2018 TSH Labs
 //
 // Licensed under the Apache License, Version 2.0 <LICENSE-APACHE or
 // http://www.apache.org/licenses/LICENSE-2.0> or the MIT license
@@ -367,6 +367,7 @@ pub use self::types::{Counter, ErrorKind, Gauge, Histogram, Meter, Metric, Metri
                       MetricResult, Set, Timer};
 
 pub mod prelude;
+pub mod ext;
 mod builder;
 mod client;
 mod io;
