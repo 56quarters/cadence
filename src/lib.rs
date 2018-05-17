@@ -357,19 +357,23 @@ pub const DEFAULT_PORT: u16 = 8125;
 
 pub use self::builder::MetricBuilder;
 
-pub use self::client::{Counted, Gauged, Histogrammed, Metered, MetricClient, Setted, StatsdClient,
-                       StatsdClientBuilder, Timed};
+pub use self::client::{
+    Counted, Gauged, Histogrammed, Metered, MetricClient, Setted, StatsdClient,
+    StatsdClientBuilder, Timed,
+};
 
-pub use self::sinks::{BufferedUdpMetricSink, MetricSink, NopMetricSink, QueuingMetricSink,
-                      UdpMetricSink};
+pub use self::sinks::{
+    BufferedUdpMetricSink, MetricSink, NopMetricSink, QueuingMetricSink, UdpMetricSink,
+};
 
-pub use self::types::{Counter, ErrorKind, Gauge, Histogram, Meter, Metric, MetricError,
-                      MetricResult, Set, Timer};
+pub use self::types::{
+    Counter, ErrorKind, Gauge, Histogram, Meter, Metric, MetricError, MetricResult, Set, Timer,
+};
 
-pub mod prelude;
-pub mod ext;
 mod builder;
 mod client;
+pub mod ext;
 mod io;
+pub mod prelude;
 mod sinks;
 mod types;

@@ -7,8 +7,10 @@ use test::Bencher;
 use std::net::UdpSocket;
 
 use cadence::prelude::*;
-use cadence::{BufferedUdpMetricSink, Counter, Gauge, Histogram, Meter, NopMetricSink,
-              QueuingMetricSink, StatsdClient, Timer, DEFAULT_PORT};
+use cadence::{
+    BufferedUdpMetricSink, Counter, Gauge, Histogram, Meter, NopMetricSink, QueuingMetricSink,
+    StatsdClient, Timer, DEFAULT_PORT,
+};
 
 fn new_nop_client() -> StatsdClient {
     StatsdClient::from_sink("client.bench", NopMetricSink)

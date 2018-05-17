@@ -10,10 +10,10 @@
 
 extern crate cadence;
 
-use std::sync::Arc;
-use std::thread;
 use cadence::prelude::*;
 use cadence::{NopMetricSink, StatsdClient};
+use std::sync::Arc;
+use std::thread;
 
 pub trait RequestHandler {
     fn handle(&self) -> Result<(), String>;

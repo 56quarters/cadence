@@ -11,9 +11,9 @@
 
 extern crate cadence;
 
-use std::net::UdpSocket;
 use cadence::prelude::*;
 use cadence::{BufferedUdpMetricSink, QueuingMetricSink, StatsdClient, DEFAULT_PORT};
+use std::net::UdpSocket;
 
 fn main() {
     let sock = UdpSocket::bind("0.0.0.0:0").unwrap();

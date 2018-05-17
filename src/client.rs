@@ -15,7 +15,9 @@ use std::time::Duration;
 
 use builder::{MetricBuilder, MetricFormatter};
 use sinks::{MetricSink, UdpMetricSink};
-use types::{Counter, ErrorKind, Gauge, Histogram, Meter, Metric, MetricError, MetricResult, Timer, Set};
+use types::{
+    Counter, ErrorKind, Gauge, Histogram, Meter, Metric, MetricError, MetricResult, Set, Timer,
+};
 
 /// Trait for incrementing and decrementing counters.
 ///
@@ -330,7 +332,7 @@ pub trait MetricBackend {
 pub struct StatsdClientBuilder {
     prefix: String,
     sink: Box<MetricSink + Sync + Send>,
-    errors: Box<Fn(MetricError) -> () + Sync + Send>
+    errors: Box<Fn(MetricError) -> () + Sync + Send>,
 }
 
 impl StatsdClientBuilder {
@@ -642,7 +644,7 @@ impl StatsdClient {
 impl MetricBackend for StatsdClient {
     fn send_metric<M>(&self, metric: &M) -> MetricResult<()>
     where
-        M: Metric
+        M: Metric,
     {
         let metric_string = metric.as_metric_str();
         self.sink.emit(metric_string)?;
@@ -656,7 +658,11 @@ impl MetricBackend for StatsdClient {
 
 impl fmt::Debug for StatsdClient {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "StatsdClient {{ prefix: {:?}, sink: ..., errors: ... }}", self.prefix)
+        write!(
+            f,
+            "StatsdClient {{ prefix: {:?}, sink: ..., errors: ... }}",
+            self.prefix
+        )
     }
 }
 
@@ -766,13 +772,14 @@ fn nop_error_handler(_err: MetricError) {
 mod tests {
     use std::cell::RefCell;
     use std::io;
-    use std::sync::{Arc, Mutex};
     use std::sync::atomic::{AtomicUsize, Ordering};
+    use std::sync::{Arc, Mutex};
     use std::time::Duration;
     use std::u64;
 
-    use super::{trim_key, Counted, Gauged, Histogrammed, Metered, MetricClient, StatsdClient,
-                Timed, Setted};
+    use super::{
+        trim_key, Counted, Gauged, Histogrammed, Metered, MetricClient, Setted, StatsdClient, Timed,
+    };
 
     use sinks::{MetricSink, NopMetricSink};
     use types::{ErrorKind, Metric, MetricError};
@@ -893,7 +900,7 @@ mod tests {
     #[test]
     fn test_statsd_client_with_tags_send_success() {
         struct StoringSink {
-            metrics: Arc<Mutex<RefCell<Vec<String>>>>
+            metrics: Arc<Mutex<RefCell<Vec<String>>>>,
         }
 
         impl MetricSink for StoringSink {
@@ -911,12 +918,15 @@ mod tests {
 
         let metrics = Arc::new(Mutex::new(RefCell::new(Vec::new())));
         let metrics_ref = Arc::clone(&metrics);
-        let sink = StoringSink { metrics: metrics_ref };
+        let sink = StoringSink {
+            metrics: metrics_ref,
+        };
         let client = StatsdClient::builder("prefix", sink)
             .with_error_handler(panic_handler)
             .build();
 
-        client.incr_with_tags("some.key")
+        client
+            .incr_with_tags("some.key")
             .with_tag("test", "a")
             .send();
 
@@ -947,7 +957,8 @@ mod tests {
             .with_error_handler(handler)
             .build();
 
-        client.incr_with_tags("some.key")
+        client
+            .incr_with_tags("some.key")
             .with_tag("tier", "web")
             .send();
 
@@ -959,10 +970,7 @@ mod tests {
         let client = StatsdClient::from_sink("myapp", NopMetricSink);
         let res = client.set("some.set", 3);
 
-        assert_eq!(
-            "myapp.some.set:3|s",
-            res.unwrap().as_metric_str()
-        );
+        assert_eq!("myapp.some.set:3|s", res.unwrap().as_metric_str());
     }
 
     #[test]
@@ -973,10 +981,7 @@ mod tests {
             .with_tag("foo", "bar")
             .try_send();
 
-        assert_eq!(
-            "myapp.some.set:3|s|#foo:bar",
-            res.unwrap().as_metric_str()
-        );
+        assert_eq!("myapp.some.set:3|s|#foo:bar", res.unwrap().as_metric_str());
     }
 
     // The following tests really just ensure that we've actually

@@ -260,9 +260,9 @@ pub type MetricResult<T> = Result<T, MetricError>;
 #[cfg(test)]
 mod tests {
 
-    use std::io;
+    use super::{Counter, ErrorKind, Gauge, Histogram, Meter, Metric, MetricError, Set, Timer};
     use std::error::Error;
-    use super::{Counter, ErrorKind, Gauge, Histogram, Meter, Metric, MetricError, Timer, Set};
+    use std::io;
 
     #[test]
     fn test_counter_to_metric_string() {

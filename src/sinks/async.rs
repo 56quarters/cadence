@@ -11,10 +11,10 @@
 // We actually need the Mutex since we use it with a Condvar
 #![cfg_attr(feature = "cargo-clippy", allow(mutex_atomic))]
 
-use std::io;
 use std::fmt;
-use std::sync::{Arc, Condvar, Mutex};
+use std::io;
 use std::sync::atomic::{AtomicUsize, Ordering};
+use std::sync::{Arc, Condvar, Mutex};
 use std::thread;
 
 use crossbeam::sync::MsQueue;
@@ -336,12 +336,12 @@ where
 
 #[cfg(test)]
 mod tests {
-    use std::io;
-    use std::sync::{Arc, Mutex};
-    use std::sync::atomic::{AtomicBool, Ordering};
-    use std::thread;
-    use sinks::core::MetricSink;
     use super::{QueuingMetricSink, Worker};
+    use sinks::core::MetricSink;
+    use std::io;
+    use std::sync::atomic::{AtomicBool, Ordering};
+    use std::sync::{Arc, Mutex};
+    use std::thread;
 
     #[test]
     fn test_worker_submit_processes_event() {

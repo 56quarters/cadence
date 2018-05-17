@@ -1,13 +1,15 @@
 extern crate cadence;
 
 use std::net::UdpSocket;
+use std::sync::Arc;
 use std::thread;
 use std::time::Duration;
-use std::sync::Arc;
 
 use cadence::prelude::*;
-use cadence::{BufferedUdpMetricSink, Counter, Gauge, Histogram, Meter, NopMetricSink,
-              QueuingMetricSink, StatsdClient, Timer, DEFAULT_PORT};
+use cadence::{
+    BufferedUdpMetricSink, Counter, Gauge, Histogram, Meter, NopMetricSink, QueuingMetricSink,
+    StatsdClient, Timer, DEFAULT_PORT,
+};
 
 fn new_nop_client(prefix: &str) -> StatsdClient {
     StatsdClient::from_sink(prefix, NopMetricSink)

@@ -234,8 +234,8 @@ impl MetricSink for BufferedUdpMetricSink {
 
 #[cfg(test)]
 mod tests {
-    use std::net::UdpSocket;
     use super::{get_addr, BufferedUdpMetricSink, MetricSink, UdpMetricSink};
+    use std::net::UdpSocket;
 
     #[test]
     fn test_get_addr_bad_address() {

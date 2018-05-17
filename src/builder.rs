@@ -40,7 +40,7 @@ enum MetricType {
     Gauge,
     Meter,
     Histogram,
-    Set
+    Set,
 }
 
 impl fmt::Display for MetricType {

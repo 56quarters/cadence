@@ -142,8 +142,8 @@ impl Write for UdpWriteAdapter {
 mod tests {
     use super::MultiLineWriter;
 
-    use std::str;
     use std::io::Write;
+    use std::str;
 
     #[test]
     fn test_write_needs_flush() {
