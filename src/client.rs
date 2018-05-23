@@ -55,7 +55,9 @@ pub trait Counted {
     }
 
     /// Increment or decrement the counter by the given amount
-    fn count(&self, key: &str, count: i64) -> MetricResult<Counter>;
+    fn count(&self, key: &str, count: i64) -> MetricResult<Counter> {
+        self.count_with_tags(key, count).try_send()
+    }
 
     /// Increment or decrement the counter by the given amount and return
     /// a `MetricBuilder` that can be used to add tags to the metric.
@@ -75,7 +77,9 @@ pub trait Counted {
 /// extension to Statsd and may not be supported by your server.
 pub trait Timed {
     /// Record a timing in milliseconds with the given key
-    fn time(&self, key: &str, time: u64) -> MetricResult<Timer>;
+    fn time(&self, key: &str, time: u64) -> MetricResult<Timer> {
+        self.time_with_tags(key, time).try_send()
+    }
 
     /// Record a timing in milliseconds with the given key and return a
     /// `MetricBuilder` that can be used to add tags to the metric.
@@ -85,7 +89,9 @@ pub trait Timed {
     ///
     /// The duration will be truncated to millisecond precision. If the
     /// duration cannot be represented as a `u64` an error will be returned.
-    fn time_duration(&self, key: &str, duration: Duration) -> MetricResult<Timer>;
+    fn time_duration(&self, key: &str, duration: Duration) -> MetricResult<Timer> {
+        self.time_duration_with_tags(key, duration).try_send()
+    }
 
     /// Record a timing in milliseconds with the given key and return a
     /// `MetricBuilder` that can be used to add tags to the metric.
@@ -113,7 +119,9 @@ pub trait Timed {
 /// extension to Statsd and may not be supported by your server.
 pub trait Gauged {
     /// Record a gauge value with the given key
-    fn gauge(&self, key: &str, value: u64) -> MetricResult<Gauge>;
+    fn gauge(&self, key: &str, value: u64) -> MetricResult<Gauge> {
+        self.gauge_with_tags(key, value).try_send()
+    }
 
     /// Record a gauge value with the given key and return a `MetricBuilder`
     /// that can be used to add tags to the metric.
@@ -146,7 +154,9 @@ pub trait Metered {
     }
 
     /// Record a meter value with the given key
-    fn meter(&self, key: &str, value: u64) -> MetricResult<Meter>;
+    fn meter(&self, key: &str, value: u64) -> MetricResult<Meter> {
+        self.meter_with_tags(key, value).try_send()
+    }
 
     /// Record a meter value with the given key and return a `MetricBuilder`
     /// that can be used to add tags to the metric.
@@ -169,7 +179,9 @@ pub trait Metered {
 /// Statsd and may not be supported by your server.
 pub trait Histogrammed {
     /// Record a single histogram value with the given key
-    fn histogram(&self, key: &str, value: u64) -> MetricResult<Histogram>;
+    fn histogram(&self, key: &str, value: u64) -> MetricResult<Histogram> {
+        self.histogram_with_tags(key, value).try_send()
+    }
 
     /// Record a single histogram value with the given key and return a
     /// `MetricBuilder` that can be used to add tags to the metric.
@@ -185,7 +197,9 @@ pub trait Histogrammed {
 /// information.
 pub trait Setted {
     /// Record a single set value with the given key
-    fn set(&self, key: &str, value: i64) -> MetricResult<Set>;
+    fn set(&self, key: &str, value: i64) -> MetricResult<Set> {
+        self.set_with_tags(key, value).try_send()
+    }
 
     /// Record a single set value with the given key and return a
     /// `MetricBuilder` that can be used to add tags to the metric.
@@ -343,7 +357,7 @@ impl StatsdClientBuilder {
     {
         StatsdClientBuilder {
             // required
-            prefix: trim_key(prefix).to_owned(),
+            prefix: prefix.trim_right_matches('.').to_owned(),
             sink: Box::new(sink),
 
             // optional with defaults
@@ -667,10 +681,6 @@ impl fmt::Debug for StatsdClient {
 }
 
 impl Counted for StatsdClient {
-    fn count(&self, key: &str, count: i64) -> MetricResult<Counter> {
-        self.count_with_tags(key, count).try_send()
-    }
-
     fn count_with_tags<'a>(&'a self, key: &'a str, count: i64) -> MetricBuilder<Counter> {
         let fmt = MetricFormatter::counter(&self.prefix, key, count);
         MetricBuilder::new(fmt, self)
@@ -678,17 +688,9 @@ impl Counted for StatsdClient {
 }
 
 impl Timed for StatsdClient {
-    fn time(&self, key: &str, time: u64) -> MetricResult<Timer> {
-        self.time_with_tags(key, time).try_send()
-    }
-
     fn time_with_tags<'a>(&'a self, key: &'a str, time: u64) -> MetricBuilder<Timer> {
         let fmt = MetricFormatter::timer(&self.prefix, key, time);
         MetricBuilder::new(fmt, self)
-    }
-
-    fn time_duration(&self, key: &str, duration: Duration) -> MetricResult<Timer> {
-        self.time_duration_with_tags(key, duration).try_send()
     }
 
     fn time_duration_with_tags<'a>(
@@ -711,10 +713,6 @@ impl Timed for StatsdClient {
 }
 
 impl Gauged for StatsdClient {
-    fn gauge(&self, key: &str, value: u64) -> MetricResult<Gauge> {
-        self.gauge_with_tags(key, value).try_send()
-    }
-
     fn gauge_with_tags<'a>(&'a self, key: &'a str, value: u64) -> MetricBuilder<Gauge> {
         let fmt = MetricFormatter::gauge(&self.prefix, key, value);
         MetricBuilder::new(fmt, self)
@@ -722,10 +720,6 @@ impl Gauged for StatsdClient {
 }
 
 impl Metered for StatsdClient {
-    fn meter(&self, key: &str, value: u64) -> MetricResult<Meter> {
-        self.meter_with_tags(key, value).try_send()
-    }
-
     fn meter_with_tags<'a>(&'a self, key: &'a str, value: u64) -> MetricBuilder<Meter> {
         let fmt = MetricFormatter::meter(&self.prefix, key, value);
         MetricBuilder::new(fmt, self)
@@ -733,10 +727,6 @@ impl Metered for StatsdClient {
 }
 
 impl Histogrammed for StatsdClient {
-    fn histogram(&self, key: &str, value: u64) -> MetricResult<Histogram> {
-        self.histogram_with_tags(key, value).try_send()
-    }
-
     fn histogram_with_tags<'a>(&'a self, key: &'a str, value: u64) -> MetricBuilder<Histogram> {
         let fmt = MetricFormatter::histogram(&self.prefix, key, value);
         MetricBuilder::new(fmt, self)
@@ -744,10 +734,6 @@ impl Histogrammed for StatsdClient {
 }
 
 impl Setted for StatsdClient {
-    fn set(&self, key: &str, value: i64) -> MetricResult<Set> {
-        self.set_with_tags(key, value).try_send()
-    }
-
     fn set_with_tags<'a>(&'a self, key: &'a str, value: i64) -> MetricBuilder<Set> {
         let fmt = MetricFormatter::set(&self.prefix, key, value);
         MetricBuilder::new(fmt, self)
@@ -755,14 +741,6 @@ impl Setted for StatsdClient {
 }
 
 impl MetricClient for StatsdClient {}
-
-fn trim_key(val: &str) -> &str {
-    if val.ends_with('.') {
-        val.trim_right_matches('.')
-    } else {
-        val
-    }
-}
 
 fn nop_error_handler(_err: MetricError) {
     // nothing
@@ -778,21 +756,11 @@ mod tests {
     use std::u64;
 
     use super::{
-        trim_key, Counted, Gauged, Histogrammed, Metered, MetricClient, Setted, StatsdClient, Timed,
+        Counted, Gauged, Histogrammed, Metered, MetricClient, Setted, StatsdClient, Timed,
     };
 
     use sinks::{MetricSink, NopMetricSink};
     use types::{ErrorKind, Metric, MetricError};
-
-    #[test]
-    fn test_trim_key_with_trailing_dot() {
-        assert_eq!("some.prefix", trim_key("some.prefix."));
-    }
-
-    #[test]
-    fn test_trim_key_no_trailing_dot() {
-        assert_eq!("some.prefix", trim_key("some.prefix"));
-    }
 
     #[test]
     fn test_statsd_client_count_with_tags() {
