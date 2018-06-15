@@ -4,7 +4,7 @@
 // license: you are granted a perpetual, irrevocable license to copy, modify,
 // publish, and distribute this file as you see fit.
 
-// This example show how you might configure the Cadence client for maximum
+// This example shows how you might configure the Cadence client for maximum
 // isolation and performance. The buffered UDP sink accumulates multiple metrics
 // in a buffer before writing to the network. The queuing sink runs the wrapped
 // sink in a separate thread ensuring it doesn't interfere with your application.
