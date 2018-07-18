@@ -351,6 +351,8 @@
 //! ```
 //!
 
+#![forbid(unsafe_code)]
+
 extern crate crossbeam;
 
 pub const DEFAULT_PORT: u16 = 8125;
