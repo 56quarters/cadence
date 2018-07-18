@@ -743,6 +743,7 @@ impl Setted for StatsdClient {
 
 impl MetricClient for StatsdClient {}
 
+#[cfg_attr(feature = "cargo-clippy", allow(needless_pass_by_value))]
 fn nop_error_handler(_err: MetricError) {
     // nothing
 }
