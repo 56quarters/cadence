@@ -1,6 +1,6 @@
 # Changelog
 
-## [v0.15.1](https://github.com/tshlabs/cadence/tree/0.15.0) - 2018-07-19
+## [v0.15.1](https://github.com/tshlabs/cadence/tree/0.15.1) - 2018-07-19
 * Update Cadence crate to forbid any uses of `unsafe {}` code.
 * Minor documentation improvements.
 
