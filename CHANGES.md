@@ -1,5 +1,9 @@
 # Changelog
 
+## [v0.15.1](https://github.com/tshlabs/cadence/tree/0.15.0) - 2018-07-19
+* Update Cadence crate to forbid any uses of `unsafe {}` code.
+* Minor documentation improvements.
+
 ## [v0.15.0](https://github.com/tshlabs/cadence/tree/0.15.0) - 2018-07-12
 * **Breaking change** - Add support for `Set` metric types. Sets can be used
   to count the number of unique occurences of an event. Per
