@@ -8,7 +8,7 @@ use std::net::UdpSocket;
 
 use cadence::prelude::*;
 use cadence::{
-    BufferedUdpMetricSink, Counter, Gauge, Histogram, Meter, NopMetricSink, QueuingMetricSink,
+    BufferedUdpMetricSink, Counter, Gauge, Histogram, Meter, Set, NopMetricSink, QueuingMetricSink,
     StatsdClient, Timer, DEFAULT_PORT,
 };
 
@@ -128,4 +128,9 @@ fn test_benchmark_new_meter_obj(b: &mut Bencher) {
 #[bench]
 fn test_benchmark_new_histogram_obj(b: &mut Bencher) {
     b.iter(|| Histogram::new("prefix", "some.histogram", 5));
+}
+
+#[bench]
+fn test_benchmark_new_set_obj(b: &mut Bencher) {
+    b.iter(|| Set::new("prefix", "some.set", 8));
 }
