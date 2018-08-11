@@ -13,21 +13,11 @@ use std::io::{BufWriter, Write};
 use std::net::{SocketAddr, UdpSocket};
 use std::str;
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 struct WriterMetrics {
     inner_write: u64,
     buf_write: u64,
     flushed: u64,
-}
-
-impl WriterMetrics {
-    fn new() -> Self {
-        WriterMetrics {
-            inner_write: 0,
-            buf_write: 0,
-            flushed: 0,
-        }
-    }
 }
 
 /// Buffered implementation of the `Write` trait that appends a
@@ -56,7 +46,7 @@ impl<T: Write> MultiLineWriter<T> {
         MultiLineWriter {
             written: 0,
             capacity: cap,
-            metrics: WriterMetrics::new(),
+            metrics: WriterMetrics::default(),
             inner: BufWriter::with_capacity(cap, inner),
             line_ending: Vec::from(end.as_bytes()),
         }
@@ -122,8 +112,8 @@ pub(crate) struct UdpWriteAdapter {
 impl UdpWriteAdapter {
     pub(crate) fn new(addr: SocketAddr, socket: UdpSocket) -> UdpWriteAdapter {
         UdpWriteAdapter {
-            addr: addr,
-            socket: socket,
+            addr,
+            socket,
         }
     }
 }

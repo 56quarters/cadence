@@ -50,7 +50,7 @@ fn get_addr<A: ToSocketAddrs>(addr: A) -> MetricResult<SocketAddr> {
 /// called, in the thread of the caller.
 #[derive(Debug)]
 pub struct UdpMetricSink {
-    sink_addr: SocketAddr,
+    addr: SocketAddr,
     socket: UdpSocket,
 }
 
@@ -98,21 +98,21 @@ impl UdpMetricSink {
     ///
     /// * It is unable to resolve the hostname of the metric server.
     /// * The host address is otherwise unable to be parsed
-    pub fn from<A>(sink_addr: A, socket: UdpSocket) -> MetricResult<UdpMetricSink>
+    pub fn from<A>(to_addr: A, socket: UdpSocket) -> MetricResult<UdpMetricSink>
     where
         A: ToSocketAddrs,
     {
-        let addr = get_addr(sink_addr)?;
+        let addr = get_addr(to_addr)?;
         Ok(UdpMetricSink {
-            sink_addr: addr,
-            socket: socket,
+            addr,
+            socket,
         })
     }
 }
 
 impl MetricSink for UdpMetricSink {
     fn emit(&self, metric: &str) -> io::Result<usize> {
-        self.socket.send_to(metric.as_bytes(), &self.sink_addr)
+        self.socket.send_to(metric.as_bytes(), &self.addr)
     }
 }
 

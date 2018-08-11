@@ -98,7 +98,7 @@ impl QueuingMetricSink {
         let context = Arc::new(WorkerContext::new(worker));
         spawn_worker_in_thread(Arc::clone(&context));
 
-        QueuingMetricSink { context: context }
+        QueuingMetricSink { context }
     }
 
     /// Return the number of times the wrapped sink or underlying worker thread
@@ -171,7 +171,7 @@ where
 {
     fn new(worker: Worker<T>) -> WorkerContext<T> {
         WorkerContext {
-            worker: worker,
+            worker,
             stats: WorkerStats::new(),
         }
     }
@@ -214,7 +214,7 @@ where
 {
     fn new(context: &'a Arc<WorkerContext<T>>) -> Sentinel<'a, T> {
         Sentinel {
-            context: context,
+            context,
             active: true,
         }
     }
