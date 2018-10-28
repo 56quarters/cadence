@@ -250,15 +250,14 @@ where
 /// locking.
 ///
 /// However, in order to enable easier testing, after it stops receiving
-/// messages the `.run()` method will use a `Mutex` to set a "stopped" flag
-/// to allow callers waiting on a conditional variable (callers using
+/// messages the `.run()` method will use an atomic "stopped" flag to
+/// allow callers waiting on a conditional variable (callers using
 /// `.stop_and_wait()`) to wake up after the worker finally stops.
 ///
 /// If you're just trying to make use of this worker you don't need to
 /// worry about this, just call `.submit()`, `.run()`, and `.stop()`.
-/// But, if you're wondering why this is mixing lock-free data structures
-/// with locking and is generally more complicated that it seems like
-/// it should be: testing is the reason.
+/// But, if you're wondering why the stopped flag and methods to wait
+/// for it or inspect it even exist: testing is the reason.
 struct Worker<T>
 where
     T: Send + 'static,
