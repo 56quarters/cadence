@@ -316,7 +316,7 @@ pub trait MetricBackend {
     /// Note that if you simply want to emit standard metrics, you don't need to
     /// use this method. This is only useful if you are extending Cadence with a
     /// custom metric type or something similar.
-    fn consume_error(&self, err: MetricError) -> ();
+    fn consume_error(&self, err: MetricError);
 }
 
 /// Builder for creating and customizing `StatsdClient` instances.
@@ -666,7 +666,7 @@ impl MetricBackend for StatsdClient {
         Ok(())
     }
 
-    fn consume_error(&self, err: MetricError) -> () {
+    fn consume_error(&self, err: MetricError) {
         (self.errors)(err);
     }
 }

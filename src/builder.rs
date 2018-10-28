@@ -99,22 +99,22 @@ where
 
     fn from_u64(prefix: &'a str, key: &'a str, val: u64, type_: MetricType) -> Self {
         MetricFormatter {
-            metric: PhantomData,
-            prefix: prefix,
-            key: key,
+            prefix,
+            key,
+            type_,
             val: MetricValue::Unsigned(val),
-            type_: type_,
+            metric: PhantomData,
             tags: None,
         }
     }
 
     fn from_i64(prefix: &'a str, key: &'a str, val: i64, type_: MetricType) -> Self {
         MetricFormatter {
-            metric: PhantomData,
-            prefix: prefix,
-            key: key,
+            prefix,
+            key,
+            type_,
             val: MetricValue::Signed(val),
-            type_: type_,
+            metric: PhantomData,
             tags: None,
         }
     }
@@ -370,7 +370,7 @@ where
     ///    .with_tag("region", "us-west-1")
     ///    .send();
     /// ```
-    pub fn send(self) -> () {
+    pub fn send(self) {
         match self.repr {
             BuilderRepr::Error(err, client) => client.consume_error(err),
             BuilderRepr::Success(_, client) => {
