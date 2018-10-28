@@ -10,6 +10,7 @@
 
 use std::fmt;
 use std::net::{ToSocketAddrs, UdpSocket};
+use std::panic::RefUnwindSafe;
 use std::sync::Arc;
 use std::time::Duration;
 
@@ -345,15 +346,15 @@ pub trait MetricBackend {
 /// ```
 pub struct StatsdClientBuilder {
     prefix: String,
-    sink: Box<MetricSink + Sync + Send>,
-    errors: Box<Fn(MetricError) -> () + Sync + Send>,
+    sink: Box<MetricSink + Sync + Send + RefUnwindSafe>,
+    errors: Box<Fn(MetricError) -> () + Sync + Send + RefUnwindSafe>,
 }
 
 impl StatsdClientBuilder {
     // Set the required fields and defaults for optional fields
     fn new<T>(prefix: &str, sink: T) -> Self
     where
-        T: MetricSink + Sync + Send + 'static,
+        T: MetricSink + Sync + Send + RefUnwindSafe + 'static,
     {
         StatsdClientBuilder {
             // required
@@ -376,7 +377,7 @@ impl StatsdClientBuilder {
     /// implementation.
     pub fn with_error_handler<F>(mut self, errors: F) -> Self
     where
-        F: Fn(MetricError) -> () + Sync + Send + 'static,
+        F: Fn(MetricError) -> () + Sync + Send + RefUnwindSafe + 'static,
     {
         self.errors = Box::new(errors);
         self
@@ -437,6 +438,7 @@ impl StatsdClientBuilder {
 /// idea is to share this between threads.
 ///
 /// ``` no_run
+/// use std::panic::RefUnwindSafe;
 /// use std::net::UdpSocket;
 /// use std::sync::Arc;
 /// use std::thread;
@@ -444,7 +446,7 @@ impl StatsdClientBuilder {
 /// use cadence::{StatsdClient, BufferedUdpMetricSink, DEFAULT_PORT};
 ///
 /// struct MyRequestHandler {
-///     metrics: Arc<MetricClient + Send + Sync>,
+///     metrics: Arc<MetricClient + Send + Sync + RefUnwindSafe>,
 /// }
 ///
 /// impl MyRequestHandler {
@@ -513,8 +515,8 @@ impl StatsdClientBuilder {
 #[derive(Clone)]
 pub struct StatsdClient {
     prefix: String,
-    sink: Arc<MetricSink + Sync + Send>,
-    errors: Arc<Fn(MetricError) -> () + Sync + Send>,
+    sink: Arc<MetricSink + Sync + Send + RefUnwindSafe>,
+    errors: Arc<Fn(MetricError) -> () + Sync + Send + RefUnwindSafe>,
 }
 
 impl StatsdClient {
@@ -565,7 +567,7 @@ impl StatsdClient {
     /// ```
     pub fn from_sink<T>(prefix: &str, sink: T) -> Self
     where
-        T: MetricSink + Sync + Send + 'static,
+        T: MetricSink + Sync + Send + RefUnwindSafe + 'static,
     {
         Self::builder(prefix, sink).build()
     }
@@ -641,7 +643,7 @@ impl StatsdClient {
     /// ```
     pub fn builder<T>(prefix: &str, sink: T) -> StatsdClientBuilder
     where
-        T: MetricSink + Sync + Send + 'static,
+        T: MetricSink + Sync + Send + RefUnwindSafe + 'static,
     {
         StatsdClientBuilder::new(prefix, sink)
     }
@@ -752,6 +754,7 @@ fn nop_error_handler(_err: MetricError) {
 mod tests {
     use std::cell::RefCell;
     use std::io;
+    use std::panic::RefUnwindSafe;
     use std::sync::atomic::{AtomicUsize, Ordering};
     use std::sync::{Arc, Mutex};
     use std::time::Duration;
@@ -761,7 +764,7 @@ mod tests {
         Counted, Gauged, Histogrammed, Metered, MetricClient, Setted, StatsdClient, Timed,
     };
 
-    use sinks::{MetricSink, NopMetricSink};
+    use sinks::{MetricSink, NopMetricSink, QueuingMetricSink};
     use types::{ErrorKind, Metric, MetricError};
 
     #[test]
@@ -1003,6 +1006,20 @@ mod tests {
     #[test]
     fn test_statsd_client_as_metric_client() {
         let client: Box<MetricClient> = Box::new(StatsdClient::from_sink("prefix", NopMetricSink));
+
+        client.count("some.counter", 3).unwrap();
+        client.time("some.timer", 198).unwrap();
+        client.gauge("some.gauge", 4).unwrap();
+        client.meter("some.meter", 29).unwrap();
+        client.histogram("some.histogram", 32).unwrap();
+        client.set("some.set", 5).unwrap();
+    }
+
+    #[test]
+    fn test_statsd_client_as_thread_and_panic_safe() {
+        let client: Box<MetricClient + Send + Sync + RefUnwindSafe> = Box::new(
+            StatsdClient::from_sink("prefix", QueuingMetricSink::from(NopMetricSink)),
+        );
 
         client.count("some.counter", 3).unwrap();
         client.time("some.timer", 198).unwrap();
