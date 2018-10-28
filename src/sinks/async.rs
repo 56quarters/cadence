@@ -8,13 +8,10 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-// We actually need the Mutex since we use it with a Condvar
-#![cfg_attr(feature = "cargo-clippy", allow(mutex_atomic))]
-
 use std::fmt;
 use std::io;
-use std::sync::atomic::{AtomicUsize, Ordering};
-use std::sync::{Arc, Condvar, Mutex};
+use std::sync::atomic::{spin_loop_hint, AtomicUsize, AtomicBool, Ordering};
+use std::sync::Arc;
 use std::thread;
 
 use crossbeam::sync::MsQueue;
@@ -268,8 +265,7 @@ where
 {
     task: Box<Fn(T) -> () + Sync + Send + 'static>,
     queue: MsQueue<Option<T>>,
-    stopped: Mutex<bool>,
-    cond: Condvar,
+    stopped: AtomicBool,
 }
 
 impl<T> Worker<T>
@@ -283,8 +279,7 @@ where
         Worker {
             task: Box::new(task),
             queue: MsQueue::new(),
-            stopped: Mutex::new(false),
-            cond: Condvar::new(),
+            stopped: AtomicBool::new(false),
         }
     }
 
@@ -298,30 +293,31 @@ where
         }
 
         // Set the "stopped" flag so that callers using the `stop_and_wait`
-        // method will wake up and see that we've stopped processing entries
-        // in the queue. This is only for the benefit of unit testing.
-        let mut stopped = self.stopped.lock().unwrap();
-        *stopped = true;
-        self.cond.notify_all();
+        // method will see that we've stopped processing entries in the queue.
+        // This is only for the benefit of unit testing.
+        self.stopped.store(true, Ordering::Release);
     }
 
     fn stop(&self) {
         self.queue.push(None);
     }
 
+    // Note that this method is only for unit testing and contains a rudimentary
+    // spin loop which may just burn CPU on some platforms. Do not use this outside
+    // of testing.
     #[allow(dead_code)]
     fn stop_and_wait(&self) {
-        let mut stopped = self.stopped.lock().unwrap();
         self.stop();
 
-        while !*stopped {
-            stopped = self.cond.wait(stopped).unwrap();
+        while !self.stopped.load(Ordering::Acquire) {
+            spin_loop_hint();
         }
     }
 
+    // Check if this worker has stopped yet. This is only for unit tests.
     #[allow(dead_code)]
     fn is_stopped(&self) -> bool {
-        *self.stopped.lock().unwrap()
+        self.stopped.load(Ordering::Acquire)
     }
 }
 
