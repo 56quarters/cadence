@@ -10,7 +10,7 @@
 
 use std::fmt;
 use std::io;
-use std::sync::atomic::{spin_loop_hint, AtomicUsize, AtomicBool, Ordering};
+use std::sync::atomic::{AtomicUsize, AtomicBool, Ordering};
 use std::sync::Arc;
 use std::thread;
 
@@ -301,15 +301,14 @@ where
         self.queue.push(None);
     }
 
-    // Note that this method is only for unit testing and contains a rudimentary
-    // spin loop which may just burn CPU on some platforms. Do not use this outside
-    // of testing.
+    // Note that this method is only for unit testing and just yields to the
+    // OS scheduler in a loop until the worker has stopped completely.
     #[allow(dead_code)]
     fn stop_and_wait(&self) {
         self.stop();
 
         while !self.stopped.load(Ordering::Acquire) {
-            spin_loop_hint();
+            thread::yield_now();
         }
     }
 
