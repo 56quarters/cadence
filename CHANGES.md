@@ -1,5 +1,13 @@
 # Changelog
 
+## [v0.16.0](https://github.com/tshlabs/cadence/tree/0.16.0) - 2018-??-??
+* **Breaking change** - Require that all sinks and error handlers used with
+  `StatsdClient` are panic safe, that is, they implement `RefUnwindSafe` per
+  [#77](https://github.com/tshlabs/cadence/issues/77). Note that all sinks
+  included with Cadence are panic safe so this shouldn't be much of a change
+  for many users. See also [Rust #54768](https://github.com/rust-lang/rust/issues/54768)
+  for more information about the reasoning for the change.
+
 ## [v0.15.1](https://github.com/tshlabs/cadence/tree/0.15.1) - 2018-07-19
 * Update Cadence crate to forbid any uses of `unsafe {}` code.
 * Minor documentation improvements.
