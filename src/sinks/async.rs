@@ -11,7 +11,7 @@
 use std::fmt;
 use std::io;
 use std::panic::{AssertUnwindSafe, RefUnwindSafe};
-use std::sync::atomic::{AtomicUsize, AtomicBool, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 
 use std::sync::Arc;
 use std::thread;
@@ -335,6 +335,7 @@ mod tests {
     use super::{QueuingMetricSink, Worker};
     use sinks::core::MetricSink;
     use std::io;
+    use std::panic;
     use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
     use std::sync::{Arc, Mutex};
     use std::thread;
@@ -481,8 +482,7 @@ mod tests {
         struct PanickingMetricSink;
 
         impl MetricSink for PanickingMetricSink {
-            #[allow(unused_variables)]
-            fn emit(&self, metric: &str) -> io::Result<usize> {
+            fn emit(&self, _m: &str) -> io::Result<usize> {
                 panic!("This thread is supposed to panic");
             }
         }
@@ -510,7 +510,7 @@ mod tests {
             fn new(metrics: Arc<Mutex<Vec<String>>>) -> Self {
                 SometimesPanickingMetricSink {
                     metrics,
-                    counter: AtomicUsize::new(0)
+                    counter: AtomicUsize::new(0),
                 }
             }
         }
@@ -518,7 +518,7 @@ mod tests {
         impl MetricSink for SometimesPanickingMetricSink {
             fn emit(&self, m: &str) -> io::Result<usize> {
                 let val = self.counter.fetch_add(1, Ordering::Acquire);
-                if  val == 0 {
+                if val == 0 {
                     panic!("This thread is supposed to panic");
                 }
 
@@ -539,5 +539,29 @@ mod tests {
         assert_eq!(1, queuing.panics());
         assert_eq!("foo.counter:5|c".to_string(), store.lock().unwrap()[0]);
         assert_eq!("foo.timer:34|ms".to_string(), store.lock().unwrap()[1]);
+    }
+
+    // Make sure that our queuing sink is unwind safe (it has the auto trait) and
+    // that it handles any expected panics on its own, resulting in calling code not
+    // seeing any panics.
+    #[test]
+    fn test_queuing_sink_panic_handler() {
+        struct PanickingMetricSink;
+
+        impl MetricSink for PanickingMetricSink {
+            fn emit(&self, _m: &str) -> io::Result<usize> {
+                panic!("This thread is supposed to panic");
+            }
+        }
+
+        let queuing = QueuingMetricSink::from(PanickingMetricSink);
+        let res = panic::catch_unwind(move || {
+            queuing.emit("foo.counter:4|c").unwrap();
+            queuing.emit("foo.counter:5|c").unwrap();
+            queuing.emit("foo.timer:34|ms").unwrap();
+            queuing.context.worker.stop_and_wait();
+        });
+
+        assert!(res.is_ok());
     }
 }
