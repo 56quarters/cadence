@@ -23,10 +23,10 @@ use sinks::core::MetricSink;
 /// Implementation of a `MetricSink` that wraps another implementation
 /// and uses it to emit metrics asynchronously, in another thread.
 ///
-/// Metics submitted to this sink are queued and sent to the wrapped sink
+/// Metrics submitted to this sink are queued and sent to the wrapped sink
 /// that is running in a separate thread. The wrapped implementation can
-/// be any thread safe (`Sync` + `Send`) `MetricSink`. Results from the
-/// wrapped implementation will be discarded.
+/// be any thread (`Sync` + `Send`) and panic (`RefUnwindSafe`) safe
+/// `MetricSink`. Results from thew rapped implementation will be discarded.
 ///
 /// The thread used for network operations (actually sending the metrics
 /// using the wrapped sink) is created and started when the `QueuingMetricSink`
@@ -67,7 +67,8 @@ impl QueuingMetricSink {
     ///
     /// The `.emit()` method of the wrapped sink will be executed in a
     /// different thread after being passed to it via a queue. The wrapped
-    /// sink should be thread safe (`Send + Sync`).
+    /// sink should be thread safe (`Send + Sync`) and panic safe
+    /// (`RefUnwindSafe`).
     ///
     /// The thread in which the wrapped sink runs is created when the
     /// `QueuingMetricSink` is created and stopped when the queuing sink
