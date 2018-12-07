@@ -47,7 +47,7 @@ cadence = "x.y.z"
 
 Then, link to it in your library or application.
 
-``` rust,no_run
+``` rust
 // bin.rs or lib.rs
 extern crate cadence;
 
@@ -66,7 +66,7 @@ Simple usage of Cadence is shown below. In this example, we just import
 the client, create an instance that will write to some imaginary metrics
 server, and send a few metrics.
 
-``` rust,no_run
+``` rust
 // Import the client.
 use cadence::prelude::*;
 use cadence::{StatsdClient, UdpMetricSink, DEFAULT_PORT};
@@ -98,7 +98,7 @@ buffers multiple metrics before sending them in a single network
 operation. For this, there's `BufferedUdpMetricSink`. An example of
 using this sink is given below.
 
-``` rust,no_run
+``` rust
 use std::net::UdpSocket;
 use cadence::prelude::*;
 use cadence::{StatsdClient, BufferedUdpMetricSink, DEFAULT_PORT};
@@ -146,7 +146,7 @@ An example of using the `QueuingMetricSink` to wrap a buffered UDP
 metric sink is given below. This is the preferred way to use Cadence
 in production.
 
-``` rust,no_run
+``` rust
 use std::net::UdpSocket;
 use cadence::prelude::*;
 use cadence::{StatsdClient, QueuingMetricSink, BufferedUdpMetricSink,
@@ -175,7 +175,7 @@ protocol and so may not be supported by all servers.
 See the [Datadog docs](https://docs.datadoghq.com/developers/dogstatsd/) for
 more information.
 
-```rust,no_run
+```rust
 use cadence::prelude::*;
 use cadence::{Metric, StatsdClient, NopMetricSink};
 
@@ -210,7 +210,7 @@ pointer.
 Each of these traits are exported in the prelude module. They are also
 available in the main module but aren't typically used like that.
 
-``` rust,no_run
+``` rust
 use cadence::prelude::*;
 use cadence::{StatsdClient, UdpMetricSink, DEFAULT_PORT};
 
@@ -265,7 +265,7 @@ metrics so that the calling code doesn't have to deal with them.
 An example of configuring an error handler and an example of when it might
 be invoked is given below.
 
-``` rust,no_run
+``` rust
 use cadence::prelude::*;
 use cadence::{MetricError, StatsdClient, NopMetricSink};
 
@@ -295,7 +295,7 @@ of the `BufferedMetricSink`.
 However, maybe you want to do something not covered by an existing sink.
 An example of creating a custom sink is below.
 
-``` rust,no_run
+``` rust
 use std::io;
 use cadence::prelude::*;
 use cadence::{StatsdClient, MetricSink, DEFAULT_PORT};
@@ -324,7 +324,7 @@ over a UDP socket. If you need to customize the socket, for example you
 want to use the socket in blocking mode but set a write timeout, you can
 do that as demonstrated below.
 
-``` rust,no_run
+``` rust
 use std::net::UdpSocket;
 use std::time::Duration;
 use cadence::prelude::*;
