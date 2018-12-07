@@ -1,6 +1,6 @@
 # Changelog
 
-## [v0.16.0](https://github.com/tshlabs/cadence/tree/0.16.0) - 2018-??-??
+## [v0.16.0](https://github.com/tshlabs/cadence/tree/0.16.0) - 2018-12-07
 * **Breaking change** - Require that all sinks and error handlers used with
   `StatsdClient` are panic safe, that is, they implement `RefUnwindSafe` per
   [#77](https://github.com/tshlabs/cadence/issues/77). Note that all sinks
