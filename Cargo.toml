@@ -11,7 +11,7 @@ license = "Apache-2.0/MIT"
 keywords = ["statsd", "metrics"]
 
 [dependencies]
-crossbeam = "0.3.2"
+crossbeam-channel = "0.3.8"
 
 [lib]
 name = "cadence"
