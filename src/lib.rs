@@ -353,7 +353,7 @@
 
 #![forbid(unsafe_code)]
 
-extern crate crossbeam;
+extern crate crossbeam_channel;
 
 pub const DEFAULT_PORT: u16 = 8125;
 

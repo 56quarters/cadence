@@ -10,13 +10,13 @@
 
 use std::fmt;
 use std::io;
-use std::panic::{AssertUnwindSafe, RefUnwindSafe};
+use std::panic::RefUnwindSafe;
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 
 use std::sync::Arc;
 use std::thread;
 
-use crossbeam::sync::MsQueue;
+use crossbeam_channel::{self, Receiver, Sender};
 
 use sinks::core::MetricSink;
 
@@ -26,7 +26,7 @@ use sinks::core::MetricSink;
 /// Metrics submitted to this sink are queued and sent to the wrapped sink
 /// that is running in a separate thread. The wrapped implementation can
 /// be any thread (`Sync` + `Send`) and panic (`RefUnwindSafe`) safe
-/// `MetricSink`. Results from thew rapped implementation will be discarded.
+/// `MetricSink`. Results from the wrapped implementation will be discarded.
 ///
 /// The thread used for network operations (actually sending the metrics
 /// using the wrapped sink) is created and started when the `QueuingMetricSink`
@@ -240,15 +240,15 @@ where
     }
 }
 
-/// Worker to repeatedly run a method consuming entries in a queue.
+/// Worker to repeatedly run a method consuming entries via a channel.
 ///
 /// The `.run()` method of the worker is intended to be in a separate
 /// thread (thread B). Meanwhile, the `.submit()`, `.stop()`,
 /// `.stop_and_wait()`, and `.is_stopped()` methods are meant to be called
 /// from the main thread (thread A).
 ///
-/// This worker is stopped by receiving a "poison pill" message on the
-/// queue that it is consuming messages from. Thus, calls to `.submit()`,
+/// This worker is stopped by receiving a "poison pill" message in the
+/// channel that it is consuming messages from. Thus, calls to `.submit()`,
 /// consuming messages in '.run()`, and `.stop()` typically involve no
 /// locking.
 ///
@@ -266,7 +266,8 @@ where
     T: Send + 'static,
 {
     task: Box<Fn(T) -> () + Sync + Send + RefUnwindSafe + 'static>,
-    queue: AssertUnwindSafe<MsQueue<Option<T>>>,
+    sender: Sender<Option<T>>,
+    receiver: Receiver<Option<T>>,
     stopped: AtomicBool,
 }
 
@@ -278,35 +279,48 @@ where
     where
         F: Fn(T) -> () + Sync + Send + RefUnwindSafe + 'static,
     {
+        let (tx, rx) = crossbeam_channel::unbounded();
+
         Worker {
             task: Box::new(task),
-            queue: AssertUnwindSafe(MsQueue::new()),
+            sender: tx,
+            receiver: rx,
             stopped: AtomicBool::new(false),
         }
     }
 
     fn submit(&self, v: T) {
-        self.queue.push(Some(v));
+        // Errors are ignored since the channel cannot be full and
+        // disconnection means senders and receivers have been dropped
+        // (which means we're shutting down and nothing could be sending
+        // anything else via this channel anyway).
+        let _ = self.sender.try_send(Some(v));
     }
 
     fn run(&self) {
-        while let Some(v) = self.queue.pop() {
-            (self.task)(v);
+        for opt in self.receiver.iter() {
+            if let Some(v) = opt {
+                (self.task)(v);
+            } else {
+                break;
+            }
         }
 
         // Set the "stopped" flag so that callers using the `stop_and_wait`
-        // method will see that we've stopped processing entries in the queue.
+        // method will see that we've stopped processing entries in the channel.
         // This is only for the benefit of unit testing.
         self.stopped.store(true, Ordering::Release);
     }
 
     fn stop(&self) {
-        self.queue.push(None);
+        // Send a `None` poison pill value to stop the run loop.
+        let _ = self.sender.try_send(None);
     }
 
-    // Note that this method is only for unit testing and just yields to the
-    // OS scheduler in a loop until the worker has stopped completely.
-    #[allow(dead_code)]
+    // Stop reading events from the channel and wait for the "stopped" flag
+    // to be set. Note that this repeatedly yields the current thread and is
+    // only intended for unit testing.
+    #[cfg(test)]
     fn stop_and_wait(&self) {
         self.stop();
 
@@ -315,8 +329,14 @@ where
         }
     }
 
-    // Check if this worker has stopped yet. This is only for unit tests.
-    #[allow(dead_code)]
+    // Is the channel used between threads empty, i.e. are all values processed?
+    #[cfg(test)]
+    fn is_empty(&self) -> bool {
+        self.receiver.is_empty()
+    }
+
+    // Has this worker stopped running?
+    #[cfg(test)]
     fn is_stopped(&self) -> bool {
         self.stopped.load(Ordering::Acquire)
     }
@@ -395,8 +415,8 @@ mod tests {
         assert!(worker.is_stopped());
     }
 
-    // Make sure the worker and its queue are in the expected state
-    // when the producer size of the queue panics.
+    // Make sure the worker and its channel are in the expected state
+    // when the producer size of the channel panics.
     #[test]
     fn test_worker_panic_on_submit_side() {
         let worker = Arc::new(Worker::new(move |_: String| {}));
@@ -405,7 +425,7 @@ mod tests {
 
         #[allow(unreachable_code)]
         let t1 = thread::spawn(move || {
-            worker_ref1.submit(panic!("This thread is supposed to panic"))
+            worker_ref1.submit(panic!("This thread is supposed to panic"));
         });
 
         let t2 = thread::spawn(move || {
@@ -418,11 +438,11 @@ mod tests {
         assert!(t2.join().is_ok());
 
         assert!(worker.is_stopped());
-        assert!(worker.queue.is_empty());
+        assert!(worker.is_empty());
     }
 
-    // Make sure the worker and its queue are in the expected state
-    // when the consumer side of the queue panics.
+    // Make sure the worker and its channel are in the expected state
+    // when the consumer side of the channel panics.
     #[test]
     fn test_worker_panic_on_run_side() {
         let worker = Arc::new(Worker::new(move |_: String| { panic!("This thread is supposed to panic"); }));
@@ -441,7 +461,7 @@ mod tests {
         assert!(t2.join().is_err());
 
         assert!(!worker.is_stopped());
-        assert!(worker.queue.is_empty());
+        assert!(worker.is_empty());
     }
 
     #[test]
@@ -499,7 +519,7 @@ mod tests {
 
     // Make sure that subsequent metrics make it to the wrapped sink even when
     // the wrapped sink panics. This ensures that the thread running the sink
-    // is restarted correctly and the worker and queue are in the correct state.
+    // is restarted correctly and the worker and channel are in the correct state.
     #[test]
     fn test_queuing_sink_emit_recover_from_panics() {
         struct SometimesPanickingMetricSink {
