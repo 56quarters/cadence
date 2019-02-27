@@ -14,4 +14,4 @@
 //! a Statsd server but needing more control over how the metrics are
 //! built and formatted can make use these extension points.
 
-pub use client::MetricBackend;
+pub use crate::client::MetricBackend;

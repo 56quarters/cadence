@@ -13,9 +13,9 @@ use std::io::Write;
 use std::net::{SocketAddr, ToSocketAddrs, UdpSocket};
 use std::sync::Mutex;
 
-use io::{MultiLineWriter, UdpWriteAdapter};
-use sinks::core::MetricSink;
-use types::{ErrorKind, MetricError, MetricResult};
+use crate::io::{MultiLineWriter, UdpWriteAdapter};
+use crate::sinks::core::MetricSink;
+use crate::types::{ErrorKind, MetricError, MetricResult};
 
 // Default size of the buffer for buffered metric sinks. This
 // is a rather conservative value, picked to make sure the entire
@@ -29,7 +29,7 @@ const DEFAULT_BUFFER_SIZE: usize = 512;
 /// error if the address could not be parsed.
 // Public portion of the API (the sink constructors) is pass by value so
 // there's no point in changing this to be pass by reference yet.
-#[cfg_attr(feature = "cargo-clippy", allow(needless_pass_by_value))]
+#[allow(clippy::needless_pass_by_value)]
 fn get_addr<A: ToSocketAddrs>(addr: A) -> MetricResult<SocketAddr> {
     match addr.to_socket_addrs()?.next() {
         Some(addr) => Ok(addr),

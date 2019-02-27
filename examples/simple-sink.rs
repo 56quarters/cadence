@@ -8,8 +8,6 @@
 // give you any isolation (network calls are done in the calling thread)
 // and does not offer the performance of the buffering sink.
 
-extern crate cadence;
-
 use cadence::prelude::*;
 use cadence::{StatsdClient, UdpMetricSink, DEFAULT_PORT};
 use std::net::UdpSocket;

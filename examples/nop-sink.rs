@@ -8,8 +8,6 @@
 // that just discards all metrics. This might be useful if you want to disable
 // metric collection for some reason.
 
-extern crate cadence;
-
 use cadence::prelude::*;
 use cadence::{NopMetricSink, StatsdClient};
 

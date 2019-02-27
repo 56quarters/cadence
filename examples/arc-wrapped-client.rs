@@ -8,8 +8,6 @@
 // application by wrapping it in an Arc pointer. This allows you to access the
 // client from multiple threads.
 
-extern crate cadence;
-
 use cadence::prelude::*;
 use cadence::{NopMetricSink, StatsdClient};
 use std::sync::Arc;
@@ -20,7 +18,7 @@ pub trait RequestHandler {
 }
 
 pub struct ThreadedHandler {
-    metrics: Arc<MetricClient + Send + Sync>,
+    metrics: Arc<dyn MetricClient + Send + Sync>,
 }
 
 impl ThreadedHandler {

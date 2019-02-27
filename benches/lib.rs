@@ -1,5 +1,5 @@
 #![feature(test)]
-extern crate cadence;
+
 extern crate test;
 
 use test::Bencher;
@@ -29,8 +29,8 @@ fn new_buffered_udp_client() -> StatsdClient {
 }
 
 fn new_queuing_nop_client() -> StatsdClient {
-    let async = QueuingMetricSink::from(NopMetricSink);
-    StatsdClient::from_sink("client.bench", async)
+    let queuing = QueuingMetricSink::from(NopMetricSink);
+    StatsdClient::from_sink("client.bench", queuing)
 }
 
 #[bench]

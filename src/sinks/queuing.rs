@@ -18,7 +18,7 @@ use std::thread;
 
 use crossbeam_channel::{self, Receiver, Sender};
 
-use sinks::core::MetricSink;
+use crate::sinks::core::MetricSink;
 
 /// Implementation of a `MetricSink` that wraps another implementation
 /// and uses it to emit metrics asynchronously, in another thread.
@@ -265,7 +265,7 @@ struct Worker<T>
 where
     T: Send + 'static,
 {
-    task: Box<Fn(T) -> () + Sync + Send + RefUnwindSafe + 'static>,
+    task: Box<dyn Fn(T) -> () + Sync + Send + RefUnwindSafe + 'static>,
     sender: Sender<Option<T>>,
     receiver: Receiver<Option<T>>,
     stopped: AtomicBool,
@@ -346,7 +346,7 @@ impl<T> fmt::Debug for Worker<T>
 where
     T: Send + 'static,
 {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "Worker {{ ... }}")
     }
 }
@@ -354,7 +354,7 @@ where
 #[cfg(test)]
 mod tests {
     use super::{QueuingMetricSink, Worker};
-    use sinks::core::MetricSink;
+    use crate::sinks::core::MetricSink;
     use std::io;
     use std::panic;
     use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};

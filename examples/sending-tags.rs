@@ -8,8 +8,6 @@
 // either with a method the returns the result of sending them, or with a
 // method the delegates any errors to a predefined error handler.
 
-extern crate cadence;
-
 use cadence::prelude::*;
 use cadence::{MetricError, NopMetricSink, StatsdClient};
 
