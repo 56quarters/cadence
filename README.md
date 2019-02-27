@@ -19,7 +19,7 @@ your Rust server application.
 
 For example, if you are running a Rust web service you might want to record:
 
-* Number of succesful requests
+* Number of successful requests
 * Number of error requests
 * Time taken for each request
 
@@ -402,3 +402,32 @@ at your option.
 Unless you explicitly state otherwise, any contribution intentionally submitted
 for inclusion in the work by you shall be dual licensed as above, without any
 additional terms or conditions.
+
+## Language Support
+
+Cadence supports building with a range of Rust language versions.
+
+### Guaranteed to Build
+
+The latest version of Cadence is tested against and will always build
+correctly with
+
+* The current `stable` version.
+* The previous two stable versions, `stable - 1` and `stable - 2`.
+
+### Best Effort Build
+
+The latest version of Cadence is tested against and will *usually* build
+correctly with
+
+* The next two oldest stable versions, `stable - 3` and `stable - 4`.
+
+Support for these versions may be dropped for a release in order to take
+advantage of a feature available in newer versions of Rust.
+
+### Known to Work
+
+* Stable versions as far back as `1.26` are known to work with Cadence
+  `0.17.0`. Building with this version (and any versions older than 
+  `stable - 4`) is not supported and may break at any time. See
+  [#80](https://github.com/tshlabs/cadence/issues/80).

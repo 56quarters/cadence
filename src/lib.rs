@@ -21,7 +21,7 @@
 //!
 //! For example, if you are running a Rust web service you might want to record:
 //!
-//! * Number of succesful requests
+//! * Number of successful requests
 //! * Number of error requests
 //! * Time taken for each request
 //!
