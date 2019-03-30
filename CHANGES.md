@@ -1,6 +1,6 @@
 # Changelog
 
-## [v0.17.0](https://github.com/tshlabs/cadence/tree/0.17.0) - 2019-??-??
+## [v0.17.0](https://github.com/tshlabs/cadence/tree/0.17.0) - 2019-03-30
 * Replace internal use of crossbeam `MsQueue` with channels from the 
   `crossbeam_channel` crate per [#79](https://github.com/tshlabs/cadence/issues/79).
   This change improves performance of the `QueuingMetricSink`, reducing
