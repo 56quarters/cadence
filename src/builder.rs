@@ -130,11 +130,15 @@ where
     }
 
     fn write_base_metric(&self, out: &mut String) {
-        let _ = write!(
-            out,
-            "{}.{}:{}|{}",
-            self.prefix, self.key, self.val, self.type_
-        );
+        if self.prefix.is_empty() {
+            let _ = write!(out, "{}:{}|{}", self.key, self.val, self.type_);
+        } else {
+            let _ = write!(
+                out,
+                "{}.{}:{}|{}",
+                self.prefix, self.key, self.val, self.type_
+            );
+        }
     }
 
     fn write_tags(&self, out: &mut String) {
@@ -155,13 +159,13 @@ where
         // large range of values that will actually be seen in practice. Plus, using
         // a constant is faster than computing the `val.log(10)` of our value which
         // we would need to know exactly how many digits it takes up.
-        let size = self.prefix.len() + 1 /* . */ + self.key.len()
+        let size = self.prefix.len() + self.key.len()
             + 1 /* : */ + 10 /* see above */ + 1 /* | */ + 2 /* type */;
-
+        let prefix = if self.prefix.is_empty() { 0 } else { 1 }; /* dot after prefix, if any */
         if let Some(tags) = self.tags.as_ref() {
-            size + datadog_tags_size_hint(tags)
+            prefix + size + datadog_tags_size_hint(tags)
         } else {
-            size
+            prefix + size
         }
     }
 
@@ -384,7 +388,8 @@ where
 
 fn datadog_tags_size_hint(tags: &[(Option<&str>, &str)]) -> usize {
     // enough space for prefix, tags/: separators and commas
-    let kv_size: usize = tags.iter()
+    let kv_size: usize = tags
+        .iter()
         .map(|tag| {
             tag.0.map_or(0, |k| k.len() + 1) // +1 for : separator
                 + tag.1.len()
@@ -449,6 +454,14 @@ mod tests {
     }
 
     #[test]
+    fn test_metric_formatter_timer_no_tags_or_prefix() {
+        let fmt = MetricFormatter::timer("", "some.method", 21);
+        let timer: Timer = fmt.build();
+
+        assert_eq!("some.method:21|ms", timer.as_metric_str());
+    }
+
+    #[test]
     fn test_metric_formatter_timer_with_tags() {
         let mut fmt = MetricFormatter::timer("prefix", "some.method", 21);
         fmt.with_tag("app", "metrics");
@@ -480,6 +493,20 @@ mod tests {
 
         assert_eq!(
             "prefix.num.failures:7|g|#window:300,best-effort",
+            gauge.as_metric_str()
+        );
+    }
+
+    #[test]
+    fn test_metric_formatter_gauge_with_tags_no_prefix() {
+        let mut fmt = MetricFormatter::gauge("", "num.failures", 7);
+        fmt.with_tag("window", "300");
+        fmt.with_tag_value("best-effort");
+
+        let gauge: Gauge = fmt.build();
+
+        assert_eq!(
+            "num.failures:7|g|#window:300,best-effort",
             gauge.as_metric_str()
         );
     }
