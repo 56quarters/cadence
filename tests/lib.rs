@@ -38,35 +38,35 @@ fn new_queuing_buffered_udp_client(prefix: &str) -> StatsdClient {
 #[test]
 fn test_statsd_client_incr() {
     let client = new_nop_client("client.test");
-    let expected = Counter::new("client.test", "counter.key", 1);
+    let expected = Counter::new("client.test.", "counter.key", 1);
     assert_eq!(expected, client.incr("counter.key").unwrap());
 }
 
 #[test]
 fn test_statsd_client_decr() {
     let client = new_nop_client("client.test");
-    let expected = Counter::new("client.test", "counter.key", -1);
+    let expected = Counter::new("client.test.", "counter.key", -1);
     assert_eq!(expected, client.decr("counter.key").unwrap());
 }
 
 #[test]
 fn test_statsd_client_count() {
     let client = new_nop_client("client.test");
-    let expected = Counter::new("client.test", "counter.key", 42);
+    let expected = Counter::new("client.test.", "counter.key", 42);
     assert_eq!(expected, client.count("counter.key", 42).unwrap());
 }
 
 #[test]
 fn test_statsd_client_time() {
     let client = new_nop_client("client.test");
-    let expected = Timer::new("client.test", "timer.key", 25);
+    let expected = Timer::new("client.test.", "timer.key", 25);
     assert_eq!(expected, client.time("timer.key", 25).unwrap());
 }
 
 #[test]
 fn test_statsd_client_time_duration() {
     let client = new_nop_client("client.test");
-    let expected = Timer::new("client.test", "timer.key", 35);
+    let expected = Timer::new("client.test.", "timer.key", 35);
     assert_eq!(
         expected,
         client
@@ -78,28 +78,28 @@ fn test_statsd_client_time_duration() {
 #[test]
 fn test_statsd_client_gauge() {
     let client = new_nop_client("client.test");
-    let expected = Gauge::new("client.test", "gauge.key", 5);
+    let expected = Gauge::new("client.test.", "gauge.key", 5);
     assert_eq!(expected, client.gauge("gauge.key", 5).unwrap());
 }
 
 #[test]
 fn test_statsd_client_mark() {
     let client = new_nop_client("client.test");
-    let expected = Meter::new("client.test", "meter.key", 1);
+    let expected = Meter::new("client.test.", "meter.key", 1);
     assert_eq!(expected, client.mark("meter.key").unwrap());
 }
 
 #[test]
 fn test_statsd_client_meter() {
     let client = new_nop_client("client.test");
-    let expected = Meter::new("client.test", "meter.key", 7);
+    let expected = Meter::new("client.test.", "meter.key", 7);
     assert_eq!(expected, client.meter("meter.key", 7).unwrap());
 }
 
 #[test]
 fn test_statsd_client_histogram() {
     let client = new_nop_client("client.test");
-    let expected = Histogram::new("client.test", "histogram.key", 20);
+    let expected = Histogram::new("client.test.", "histogram.key", 20);
     assert_eq!(expected, client.histogram("histogram.key", 20).unwrap());
 }
 

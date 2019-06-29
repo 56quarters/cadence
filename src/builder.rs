@@ -130,15 +130,11 @@ where
     }
 
     fn write_base_metric(&self, out: &mut String) {
-        if self.prefix.is_empty() {
-            let _ = write!(out, "{}:{}|{}", self.key, self.val, self.type_);
-        } else {
-            let _ = write!(
-                out,
-                "{}.{}:{}|{}",
-                self.prefix, self.key, self.val, self.type_
-            );
-        }
+        let _ = write!(
+            out,
+            "{}{}:{}|{}",
+            self.prefix, self.key, self.val, self.type_
+        );
     }
 
     fn write_tags(&self, out: &mut String) {
@@ -161,11 +157,10 @@ where
         // we would need to know exactly how many digits it takes up.
         let size = self.prefix.len() + self.key.len()
             + 1 /* : */ + 10 /* see above */ + 1 /* | */ + 2 /* type */;
-        let prefix = if self.prefix.is_empty() { 0 } else { 1 }; /* dot after prefix, if any */
         if let Some(tags) = self.tags.as_ref() {
-            prefix + size + datadog_tags_size_hint(tags)
+            size + datadog_tags_size_hint(tags)
         } else {
-            prefix + size
+            size
         }
     }
 
@@ -419,7 +414,7 @@ mod tests {
 
     #[test]
     fn test_metric_formatter_counter_no_tags() {
-        let fmt = MetricFormatter::counter("prefix", "some.key", 4);
+        let fmt = MetricFormatter::counter("prefix.", "some.key", 4);
         let counter: Counter = fmt.build();
 
         assert_eq!("prefix.some.key:4|c", counter.as_metric_str());
@@ -427,7 +422,7 @@ mod tests {
 
     #[test]
     fn test_metric_formatter_counter_with_tags() {
-        let mut fmt = MetricFormatter::counter("prefix", "some.key", 4);
+        let mut fmt = MetricFormatter::counter("prefix.", "some.key", 4);
         fmt.with_tag("host", "app03.example.com");
         fmt.with_tag("bucket", "2");
         fmt.with_tag_value("beta");
@@ -447,23 +442,15 @@ mod tests {
 
     #[test]
     fn test_metric_formatter_timer_no_tags() {
-        let fmt = MetricFormatter::timer("prefix", "some.method", 21);
+        let fmt = MetricFormatter::timer("prefix.", "some.method", 21);
         let timer: Timer = fmt.build();
 
         assert_eq!("prefix.some.method:21|ms", timer.as_metric_str());
     }
 
     #[test]
-    fn test_metric_formatter_timer_no_tags_or_prefix() {
-        let fmt = MetricFormatter::timer("", "some.method", 21);
-        let timer: Timer = fmt.build();
-
-        assert_eq!("some.method:21|ms", timer.as_metric_str());
-    }
-
-    #[test]
     fn test_metric_formatter_timer_with_tags() {
-        let mut fmt = MetricFormatter::timer("prefix", "some.method", 21);
+        let mut fmt = MetricFormatter::timer("prefix.", "some.method", 21);
         fmt.with_tag("app", "metrics");
         fmt.with_tag_value("async");
 
@@ -477,7 +464,7 @@ mod tests {
 
     #[test]
     fn test_metric_formatter_gauge_no_tags() {
-        let fmt = MetricFormatter::gauge("prefix", "num.failures", 7);
+        let fmt = MetricFormatter::gauge("prefix.", "num.failures", 7);
         let gauge: Gauge = fmt.build();
 
         assert_eq!("prefix.num.failures:7|g", gauge.as_metric_str());
@@ -485,7 +472,7 @@ mod tests {
 
     #[test]
     fn test_metric_formatter_gauge_with_tags() {
-        let mut fmt = MetricFormatter::gauge("prefix", "num.failures", 7);
+        let mut fmt = MetricFormatter::gauge("prefix.", "num.failures", 7);
         fmt.with_tag("window", "300");
         fmt.with_tag_value("best-effort");
 
@@ -498,22 +485,8 @@ mod tests {
     }
 
     #[test]
-    fn test_metric_formatter_gauge_with_tags_no_prefix() {
-        let mut fmt = MetricFormatter::gauge("", "num.failures", 7);
-        fmt.with_tag("window", "300");
-        fmt.with_tag_value("best-effort");
-
-        let gauge: Gauge = fmt.build();
-
-        assert_eq!(
-            "num.failures:7|g|#window:300,best-effort",
-            gauge.as_metric_str()
-        );
-    }
-
-    #[test]
     fn test_metric_formatter_meter_no_tags() {
-        let fmt = MetricFormatter::meter("prefix", "user.logins", 3);
+        let fmt = MetricFormatter::meter("prefix.", "user.logins", 3);
         let meter: Meter = fmt.build();
 
         assert_eq!("prefix.user.logins:3|m", meter.as_metric_str());
@@ -521,7 +494,7 @@ mod tests {
 
     #[test]
     fn test_metric_formatter_meter_with_tags() {
-        let mut fmt = MetricFormatter::meter("prefix", "user.logins", 3);
+        let mut fmt = MetricFormatter::meter("prefix.", "user.logins", 3);
         fmt.with_tag("user-type", "verified");
         fmt.with_tag_value("bucket1");
 
@@ -535,7 +508,7 @@ mod tests {
 
     #[test]
     fn test_metric_formatter_histogram_no_tags() {
-        let fmt = MetricFormatter::histogram("prefix", "num.results", 44);
+        let fmt = MetricFormatter::histogram("prefix.", "num.results", 44);
         let histogram: Histogram = fmt.build();
 
         assert_eq!("prefix.num.results:44|h", histogram.as_metric_str());
@@ -543,7 +516,7 @@ mod tests {
 
     #[test]
     fn test_metric_formatter_histogram_with_tags() {
-        let mut fmt = MetricFormatter::histogram("prefix", "num.results", 44);
+        let mut fmt = MetricFormatter::histogram("prefix.", "num.results", 44);
         fmt.with_tag("user-type", "authenticated");
         fmt.with_tag_value("source=search");
 
@@ -561,7 +534,7 @@ mod tests {
 
     #[test]
     fn test_metric_formatter_set_no_tags() {
-        let fmt = MetricFormatter::set("prefix", "users.uniques", 44);
+        let fmt = MetricFormatter::set("prefix.", "users.uniques", 44);
         let set: Set = fmt.build();
 
         assert_eq!("prefix.users.uniques:44|s", set.as_metric_str());
@@ -569,7 +542,7 @@ mod tests {
 
     #[test]
     fn test_metric_formatter_set_with_tags() {
-        let mut fmt = MetricFormatter::set("prefix", "users.uniques", 44);
+        let mut fmt = MetricFormatter::set("prefix.", "users.uniques", 44);
         fmt.with_tag("user-type", "authenticated");
         fmt.with_tag_value("source=search");
 
