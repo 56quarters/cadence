@@ -358,7 +358,7 @@ impl StatsdClientBuilder {
     {
         StatsdClientBuilder {
             // required
-            prefix: prefix.trim_right_matches('.').to_owned(),
+            prefix: Self::get_formatted_prefix(prefix),
             sink: Box::new(sink),
 
             // optional with defaults
@@ -386,6 +386,14 @@ impl StatsdClientBuilder {
     /// Construct a new `StatsdClient` instance based on current settings.
     pub fn build(self) -> StatsdClient {
         StatsdClient::from_builder(self)
+    }
+
+    fn get_formatted_prefix(prefix: &str) -> String {
+        if prefix.is_empty() {
+            String::new()
+        } else {
+            format!("{}.", prefix.trim_right_matches('.'))
+        }
     }
 }
 
@@ -616,6 +624,11 @@ impl StatsdClient {
     /// methods on the returned builder. Any customizations that aren't
     /// set by the caller will use defaults.
     ///
+    /// Note, though a metric prefix is required, you may pass an empty
+    /// string as a prefix. In this case, the metrics emitted will use only
+    /// the bare keys supplied when you call the various methods to emit
+    /// metrics.
+    ///
     /// General defaults:
     ///
     /// * A no-op error handler will be used by default. Note that this
@@ -766,6 +779,14 @@ mod tests {
 
     use sinks::{MetricSink, NopMetricSink, QueuingMetricSink};
     use types::{ErrorKind, Metric, MetricError};
+
+    #[test]
+    fn test_statsd_client_empty_prefix() {
+        let client = StatsdClient::from_sink("", NopMetricSink);
+        let res = client.count("some.method", 1);
+
+        assert_eq!("some.method:1|c", res.unwrap().as_metric_str());
+    }
 
     #[test]
     fn test_statsd_client_count_with_tags() {
