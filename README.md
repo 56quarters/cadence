@@ -196,7 +196,7 @@ assert_eq!(
 );
 ```
 
-### `Counted`, `Timed`, `Gauged`, `Metered`, `Histogrammed`, `Setted`, and `MetricClient` Traits
+### Implemented Traits
 
 Each of the methods that the Cadence `StatsdClient` struct uses to send
 metrics are implemented as a trait. There is also a trait that combines
