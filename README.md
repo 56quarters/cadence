@@ -405,7 +405,7 @@ additional terms or conditions.
 
 ## Language Support
 
-Cadence supports building with a range of Rust language versions.
+Cadence (latest master) supports building with a range of `1.31+` versions.
 
 ### Guaranteed to Build
 
@@ -427,7 +427,7 @@ advantage of a feature available in newer versions of Rust.
 
 ### Known to Work
 
-* Stable versions as far back as `1.26` are known to work with Cadence
-  `0.17.0`. Building with this version (and any versions older than 
+* Stable versions as far back as `1.31` are known to work with Cadence
+  `0.18.0`. Building with this version (and any versions older than
   `stable - 4`) is not supported and may break at any time. See
   [#80](https://github.com/tshlabs/cadence/issues/80).

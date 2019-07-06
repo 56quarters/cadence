@@ -1,5 +1,17 @@
 # Changelog
 
+## [v0.18.0](https://github.com/tshlabs/cadence/tree/0.18.0) - 2019-??-??
+* Allow empty strings to be use for metric prefixes. Previously, this would
+  result in metrics with a leading `.`, now an empty prefix results in just
+  the bare metric key.
+* **Breaking change** - Update Cadence to build with Rust 2018 per
+  [#82](https://github.com/tshlabs/cadence/issues/82). Note that Cadence should
+  still work fine with Rust 2015 code bases as well as Rust 2018 code bases. This
+  is marked as a breaking change but will likely not require changes for most
+  users. See the
+  [Rust edition docs](https://doc.rust-lang.org/edition-guide/rust-2018/index.html)
+  for more information.
+
 ## [v0.17.1](https://github.com/tshlabs/cadence/tree/0.17.1) - 2019-03-30
 * Replace internal use of crossbeam `MsQueue` with channels from the 
   `crossbeam_channel` crate per [#79](https://github.com/tshlabs/cadence/issues/79).
