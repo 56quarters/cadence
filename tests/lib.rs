@@ -1,5 +1,3 @@
-extern crate cadence;
-
 use std::net::UdpSocket;
 use std::sync::Arc;
 use std::thread;

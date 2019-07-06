@@ -353,8 +353,6 @@
 
 #![forbid(unsafe_code)]
 
-extern crate crossbeam_channel;
-
 pub const DEFAULT_PORT: u16 = 8125;
 
 pub use self::builder::MetricBuilder;

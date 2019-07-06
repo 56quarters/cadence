@@ -9,6 +9,7 @@ repository = "https://github.com/tshlabs/cadence.git"
 readme = "README.md"
 license = "Apache-2.0/MIT"
 keywords = ["statsd", "metrics"]
+edition = "2018"
 
 [dependencies]
 crossbeam-channel = "0.3.8"

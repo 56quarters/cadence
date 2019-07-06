@@ -9,8 +9,6 @@
 // in a buffer before writing to the network. The queuing sink runs the wrapped
 // sink in a separate thread ensuring it doesn't interfere with your application.
 
-extern crate cadence;
-
 use cadence::prelude::*;
 use cadence::{BufferedUdpMetricSink, QueuingMetricSink, StatsdClient, DEFAULT_PORT};
 use std::net::UdpSocket;

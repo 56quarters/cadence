@@ -10,8 +10,6 @@
 // the advantage of using the trait `MetricClient` instead of the concrete type
 // but it's pretty simple.
 
-extern crate cadence;
-
 use cadence::prelude::*;
 use cadence::{NopMetricSink, StatsdClient};
 use std::thread;
