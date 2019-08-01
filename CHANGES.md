@@ -1,6 +1,6 @@
 # Changelog
 
-## [v0.18.0](https://github.com/tshlabs/cadence/tree/0.18.0) - 2019-??-??
+## [v0.18.0](https://github.com/tshlabs/cadence/tree/0.18.0) - 2019-07-31
 * Allow empty strings to be use for metric prefixes. Previously, this would
   result in metrics with a leading `.`, now an empty prefix results in just
   the bare metric key.
