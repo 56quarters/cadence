@@ -10,12 +10,13 @@
 
 use std::fmt;
 use std::net::{ToSocketAddrs, UdpSocket};
+use std::os::unix::net::UnixStream;
 use std::panic::RefUnwindSafe;
 use std::sync::Arc;
 use std::time::Duration;
 
 use crate::builder::{MetricBuilder, MetricFormatter};
-use crate::sinks::{MetricSink, UdpMetricSink};
+use crate::sinks::{MetricSink, UdpMetricSink, UdsMetricSink};
 use crate::types::{
     Counter, ErrorKind, Gauge, Histogram, Meter, Metric, MetricError, MetricResult, Set, Timer,
 };
