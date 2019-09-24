@@ -8,10 +8,12 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-mod queuing;
 mod core;
+mod queuing;
 mod udp;
+mod uds;
 
-pub use crate::sinks::queuing::QueuingMetricSink;
 pub use crate::sinks::core::{MetricSink, NopMetricSink};
+pub use crate::sinks::queuing::QueuingMetricSink;
 pub use crate::sinks::udp::{BufferedUdpMetricSink, UdpMetricSink};
+pub use crate::sinks::uds::{BufferedUdsMetricSink, UdsMetricSink};

@@ -324,7 +324,7 @@
 //! client.incr("some.other.counter");
 //! ```
 //!
-//! ### Custom UDP Socket
+//! ### Custom UDP or UDS Socket
 //!
 //! Most users of the Cadence `StatsdClient` will be using it to send metrics
 //! over a UDP socket. If you need to customize the socket, for example you
@@ -350,6 +350,24 @@
 //! client.set("users.uniques", 42);
 //! ```
 //!
+//! Cadence also supports using UDS with the `UdsMetricSink`:
+//!
+//!
+//! ``` rust,no_run
+//! use std::os::unix::net::UnixStream;
+//! use cadence::prelude::*;
+//! use cadence::{StatsdClient, UdsMetricSink};
+//!
+//! let socket = UnixStream::connect("/tmp/sock").unwrap();
+//! socket.set_nonblocking(true).unwrap();
+//! let sink = UdsMetricSink::from(socket);
+//! let client = StatsdClient::from_sink("my.prefix", sink);
+//!
+//! client.count("my.counter.thing", 29);
+//! client.time("my.service.call", 214);
+//! client.incr("some.event");
+//! client.set("users.uniques", 42);
+//! ```
 
 #![forbid(unsafe_code)]
 
@@ -363,7 +381,8 @@ pub use self::client::{
 };
 
 pub use self::sinks::{
-    BufferedUdpMetricSink, MetricSink, NopMetricSink, QueuingMetricSink, UdpMetricSink,
+    BufferedUdpMetricSink, BufferedUdsMetricSink, MetricSink, NopMetricSink, QueuingMetricSink,
+    UdpMetricSink, UdsMetricSink,
 };
 
 pub use self::types::{
