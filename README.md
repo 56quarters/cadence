@@ -346,13 +346,13 @@ client.set("users.uniques", 42);
 Cadence also supports using UDS with the `UdsMetricSink`:
 
 ``` rust
-use std::os::unix::net::UnixStream;
+use std::os::unix::net::UnixDatagram;
 use cadence::prelude::*;
 use cadence::{StatsdClient, UdsMetricSink};
 
-let socket = UnixStream::connect("/tmp/sock").unwrap();
+let socket = UnixDatagram::unbound();
 socket.set_nonblocking(true).unwrap();
-let sink = UdsMetricSink::from(socket);
+let sink = UdsMetricSink::from(socket, "/tmp/sock");
 let client = StatsdClient::from_sink("my.prefix", sink);
 
 client.count("my.counter.thing", 29);
