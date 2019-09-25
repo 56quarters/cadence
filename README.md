@@ -350,7 +350,8 @@ use std::os::unix::net::UnixDatagram;
 use cadence::prelude::*;
 use cadence::{StatsdClient, UdsMetricSink};
 
-let socket = UnixDatagram::bind("/tmp/sock").unwrap();
+let socket = UnixDatagram::unbound();
+socket.connect("/tmp/sock").unwrap();
 socket.set_nonblocking(true).unwrap();
 let sink = UdsMetricSink::from(socket);
 let client = StatsdClient::from_sink("my.prefix", sink);

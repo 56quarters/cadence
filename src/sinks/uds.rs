@@ -46,7 +46,8 @@ impl UdsMetricSink {
     /// use std::os::unix::net::UnixDatagram;
     /// use cadence::UdsMetricSink;
     ///
-    /// let socket = UnixDatagram::bind("/tmp/sock").unwrap();
+    /// let socket = UnixDatagram::unbound().unwrap();
+    /// socket.connect("/tmp/sock").unwrap();
     /// let sink = UdsMetricSink::from(socket);
     /// ```
     ///
@@ -55,15 +56,12 @@ impl UdsMetricSink {
     ///
     /// # Non-blocking Example
     ///
-    /// Note that putting the UDS socket into non-blocking mode is the
-    /// default when sink and socket are automatically created with the
-    /// `StatsdClient::from_uds_path` method.
-    ///
     /// ```no_run
     /// use std::os::unix::net::UnixDatagram;
     /// use cadence::UdsMetricSink;
     ///
-    /// let socket = UnixDatagram::bind("/tmp/sock").unwrap();
+    /// let socket = UnixDatagram::unbound().unwrap();
+    /// socket.connect("/tmp/sock").unwrap();
     /// socket.set_nonblocking(true).unwrap();
     /// let sink = UdsMetricSink::from(socket);
     /// ```
@@ -116,7 +114,8 @@ impl BufferedUdsMetricSink {
     /// use std::os::unix::net::UnixDatagram;
     /// use cadence::BufferedUdsMetricSink;
     ///
-    /// let socket = UnixDatagram::bind("/tmp/sock").unwrap();
+    /// let socket = UnixDatagram::unbound().unwrap();
+    /// socket.connect("/tmp/sock").unwrap();
     /// let sink = BufferedUdsMetricSink::from(socket);
     /// ```
     pub fn from(socket: UnixDatagram) -> BufferedUdsMetricSink {
@@ -142,7 +141,8 @@ impl BufferedUdsMetricSink {
     /// use std::os::unix::net::UnixDatagram;
     /// use cadence::BufferedUdsMetricSink;
     ///
-    /// let socket = UnixDatagram::bind("/tmp/sock").unwrap();
+    /// let socket = UnixDatagram::unbound().unwrap();
+    /// socket.connect("/tmp/sock").unwrap();
     /// let sink = BufferedUdsMetricSink::with_capacity(socket, 1432);
     /// ```
     pub fn with_capacity(socket: UnixDatagram, cap: usize) -> BufferedUdsMetricSink {
@@ -172,7 +172,7 @@ mod tests {
     }
 
     #[test]
-    fn test_non_blocking_udp_metric_sink() {
+    fn test_non_blocking_uds_metric_sink() {
         let (socket, _recv) = UnixDatagram::pair().unwrap();
         socket.set_nonblocking(true).unwrap();
         let sink = UdsMetricSink::from(socket);
@@ -180,7 +180,7 @@ mod tests {
     }
 
     #[test]
-    fn test_buffered_udp_metric_sink() {
+    fn test_buffered_uds_metric_sink() {
         let (socket, _recv) = UnixDatagram::pair().unwrap();
         // Set the capacity of the buffer such that we know it will
         // be flushed as a response to the metrics we're writing.
