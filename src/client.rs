@@ -10,13 +10,12 @@
 
 use std::fmt;
 use std::net::{ToSocketAddrs, UdpSocket};
-use std::os::unix::net::UnixStream;
 use std::panic::RefUnwindSafe;
 use std::sync::Arc;
 use std::time::Duration;
 
 use crate::builder::{MetricBuilder, MetricFormatter};
-use crate::sinks::{MetricSink, UdpMetricSink, UdsMetricSink};
+use crate::sinks::{MetricSink, UdpMetricSink};
 use crate::types::{
     Counter, ErrorKind, Gauge, Histogram, Meter, Metric, MetricError, MetricResult, Set, Timer,
 };
@@ -187,7 +186,11 @@ pub trait Histogrammed {
 
     /// Record a single histogram value with the given key and return a
     /// `MetricBuilder` that can be used to add tags to the metric.
-    fn histogram_with_tags<'a>(&'a self, key: &'a str, value: u64) -> MetricBuilder<'_, '_, Histogram>;
+    fn histogram_with_tags<'a>(
+        &'a self,
+        key: &'a str,
+        value: u64,
+    ) -> MetricBuilder<'_, '_, Histogram>;
 }
 
 /// Trait for recording set values.
@@ -744,7 +747,11 @@ impl Metered for StatsdClient {
 }
 
 impl Histogrammed for StatsdClient {
-    fn histogram_with_tags<'a>(&'a self, key: &'a str, value: u64) -> MetricBuilder<'_, '_, Histogram> {
+    fn histogram_with_tags<'a>(
+        &'a self,
+        key: &'a str,
+        value: u64,
+    ) -> MetricBuilder<'_, '_, Histogram> {
         let fmt = MetricFormatter::histogram(&self.prefix, key, value);
         MetricBuilder::new(fmt, self)
     }
@@ -1013,7 +1020,8 @@ mod tests {
 
     #[test]
     fn test_statsd_client_as_histogrammed() {
-        let client: Box<dyn Histogrammed> = Box::new(StatsdClient::from_sink("prefix", NopMetricSink));
+        let client: Box<dyn Histogrammed> =
+            Box::new(StatsdClient::from_sink("prefix", NopMetricSink));
 
         client.histogram("some.histogram", 4).unwrap();
     }
@@ -1027,7 +1035,8 @@ mod tests {
 
     #[test]
     fn test_statsd_client_as_metric_client() {
-        let client: Box<dyn MetricClient> = Box::new(StatsdClient::from_sink("prefix", NopMetricSink));
+        let client: Box<dyn MetricClient> =
+            Box::new(StatsdClient::from_sink("prefix", NopMetricSink));
 
         client.count("some.counter", 3).unwrap();
         client.time("some.timer", 198).unwrap();
