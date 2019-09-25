@@ -10,13 +10,12 @@
 
 use std::fmt;
 use std::net::{ToSocketAddrs, UdpSocket};
-use std::os::unix::net::UnixStream;
 use std::panic::RefUnwindSafe;
 use std::sync::Arc;
 use std::time::Duration;
 
 use crate::builder::{MetricBuilder, MetricFormatter};
-use crate::sinks::{MetricSink, UdpMetricSink, UdsMetricSink};
+use crate::sinks::{MetricSink, UdpMetricSink};
 use crate::types::{
     Counter, ErrorKind, Gauge, Histogram, Meter, Metric, MetricError, MetricResult, Set, Timer,
 };
@@ -608,6 +607,7 @@ impl StatsdClient {
     /// * It is unable to put the UDP socket into non-blocking mode.
     /// * It is unable to resolve the hostname of the metric server.
     /// * The host address is otherwise unable to be parsed.
+    #[deprecated(since = "0.19.0", note = "Superseded by ::from_sink() and ::builder()")]
     pub fn from_udp_host<A>(prefix: &str, host: A) -> MetricResult<Self>
     where
         A: ToSocketAddrs,

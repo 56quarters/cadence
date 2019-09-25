@@ -13,6 +13,7 @@ fn new_nop_client(prefix: &str) -> StatsdClient {
     StatsdClient::from_sink(prefix, NopMetricSink)
 }
 
+#[allow(warnings)]
 fn new_udp_client(prefix: &str) -> StatsdClient {
     let addr = ("127.0.0.1", DEFAULT_PORT);
     StatsdClient::from_udp_host(prefix, addr).unwrap()
