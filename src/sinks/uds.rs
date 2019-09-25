@@ -72,6 +72,8 @@ impl UdsMetricSink {
 
 impl MetricSink for UdsMetricSink {
     fn emit(&self, metric: &str) -> io::Result<usize> {
+        // TODO: We should reconnect if the socket is ever disconnected.
+        // Example similar issue: https://github.com/brightcove/hot-shots/issues/114
         self.socket.send(metric.as_bytes())
     }
 }
