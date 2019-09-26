@@ -79,7 +79,7 @@ impl MetricSink for UdsMetricSink {
     }
 }
 
-/// Adapter for writing to a `UdsSocket` via the `Write` trait
+/// Adapter for writing to a `UnixDatagram` socket via the `Write` trait
 #[derive(Debug)]
 pub(crate) struct UdsWriteAdapter {
     socket: UnixDatagram,
@@ -213,6 +213,7 @@ mod tests {
     #[test]
     fn test_non_blocking_uds_metric_sink() {
         let socket = UnixDatagram::unbound().unwrap();
+        socket.set_nonblocking(true).unwrap();
         let tmp_dir = TempDir::new("testing").unwrap();
         let file_path = tmp_dir.path().join("tmp.sock");
         // Create a listener.
