@@ -9,9 +9,10 @@
 use std::io;
 use std::io::Write;
 use std::os::unix::net::UnixDatagram;
+use std::path::{Path, PathBuf};
 use std::sync::Mutex;
 
-use crate::io::{MultiLineWriter, UdsWriteAdapter};
+use crate::io::MultiLineWriter;
 use crate::sinks::core::MetricSink;
 
 // Default size of the buffer for buffered metric sinks. This
@@ -32,6 +33,7 @@ const DEFAULT_BUFFER_SIZE: usize = 512;
 #[derive(Debug)]
 pub struct UdsMetricSink {
     socket: UnixDatagram,
+    path: PathBuf,
 }
 
 impl UdsMetricSink {
@@ -47,8 +49,7 @@ impl UdsMetricSink {
     /// use cadence::UdsMetricSink;
     ///
     /// let socket = UnixDatagram::unbound().unwrap();
-    /// socket.connect("/tmp/sock").unwrap();
-    /// let sink = UdsMetricSink::from(socket);
+    /// let sink = UdsMetricSink::from(socket, "/tmp/sock");
     /// ```
     ///
     /// To send metrics over a non-blocking socket, simply put the socket
@@ -61,20 +62,46 @@ impl UdsMetricSink {
     /// use cadence::UdsMetricSink;
     ///
     /// let socket = UnixDatagram::unbound().unwrap();
-    /// socket.connect("/tmp/sock").unwrap();
     /// socket.set_nonblocking(true).unwrap();
-    /// let sink = UdsMetricSink::from(socket);
+    /// let sink = UdsMetricSink::from(socket, "/tmp/sock");
     /// ```
-    pub fn from(socket: UnixDatagram) -> UdsMetricSink {
-        UdsMetricSink { socket: socket }
+    pub fn from<P: AsRef<Path>>(socket: UnixDatagram, path: P) -> UdsMetricSink {
+        UdsMetricSink {
+            socket: socket,
+            path: path.as_ref().to_path_buf(),
+        }
     }
 }
 
 impl MetricSink for UdsMetricSink {
     fn emit(&self, metric: &str) -> io::Result<usize> {
-        // TODO: We should reconnect if the socket is ever disconnected.
-        // Example similar issue: https://github.com/brightcove/hot-shots/issues/114
-        self.socket.send(metric.as_bytes())
+        self.socket.send_to(metric.as_bytes(), self.path.as_path())
+    }
+}
+
+/// Adapter for writing to a `UdsSocket` via the `Write` trait
+#[derive(Debug)]
+pub(crate) struct UdsWriteAdapter {
+    socket: UnixDatagram,
+    path: PathBuf,
+}
+
+impl UdsWriteAdapter {
+    fn new<P: AsRef<Path>>(socket: UnixDatagram, path: P) -> UdsWriteAdapter {
+        UdsWriteAdapter {
+            socket: socket,
+            path: path.as_ref().to_path_buf(),
+        }
+    }
+}
+
+impl Write for UdsWriteAdapter {
+    fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
+        self.socket.send_to(buf, self.path.as_path())
+    }
+
+    fn flush(&mut self) -> io::Result<()> {
+        Ok(())
     }
 }
 
@@ -117,11 +144,10 @@ impl BufferedUdsMetricSink {
     /// use cadence::BufferedUdsMetricSink;
     ///
     /// let socket = UnixDatagram::unbound().unwrap();
-    /// socket.connect("/tmp/sock").unwrap();
-    /// let sink = BufferedUdsMetricSink::from(socket);
+    /// let sink = BufferedUdsMetricSink::from(socket, "/tmp/sock");
     /// ```
-    pub fn from(socket: UnixDatagram) -> BufferedUdsMetricSink {
-        Self::with_capacity(socket, DEFAULT_BUFFER_SIZE)
+    pub fn from<P: AsRef<Path>>(socket: UnixDatagram, path: P) -> BufferedUdsMetricSink {
+        Self::with_capacity(socket, path, DEFAULT_BUFFER_SIZE)
     }
 
     /// Construct a new `BufferedUdsMetricSink` instance with a custom
@@ -144,12 +170,18 @@ impl BufferedUdsMetricSink {
     /// use cadence::BufferedUdsMetricSink;
     ///
     /// let socket = UnixDatagram::unbound().unwrap();
-    /// socket.connect("/tmp/sock").unwrap();
-    /// let sink = BufferedUdsMetricSink::with_capacity(socket, 1432);
+    /// let sink = BufferedUdsMetricSink::with_capacity(socket, "/tmp/sock", 1432);
     /// ```
-    pub fn with_capacity(socket: UnixDatagram, cap: usize) -> BufferedUdsMetricSink {
+    pub fn with_capacity<P: AsRef<Path>>(
+        socket: UnixDatagram,
+        path: P,
+        cap: usize,
+    ) -> BufferedUdsMetricSink {
         BufferedUdsMetricSink {
-            buffer: Mutex::new(MultiLineWriter::new(cap, UdsWriteAdapter::new(socket))),
+            buffer: Mutex::new(MultiLineWriter::new(
+                cap,
+                UdsWriteAdapter::new(socket, path),
+            )),
         }
     }
 }
@@ -165,28 +197,40 @@ impl MetricSink for BufferedUdsMetricSink {
 mod tests {
     use super::{BufferedUdsMetricSink, MetricSink, UdsMetricSink};
     use std::os::unix::net::UnixDatagram;
+    use tempdir::TempDir;
 
     #[test]
     fn test_uds_metric_sink() {
-        let (socket, _recv) = UnixDatagram::pair().unwrap();
-        let sink = UdsMetricSink::from(socket);
+        let socket = UnixDatagram::unbound().unwrap();
+        let tmp_dir = TempDir::new("testing").unwrap();
+        let file_path = tmp_dir.path().join("tmp.sock");
+        // Create a listener.
+        let _listener = UnixDatagram::bind(&file_path);
+        let sink = UdsMetricSink::from(socket, file_path);
         assert_eq!(7, sink.emit("buz:1|m").unwrap());
     }
 
     #[test]
     fn test_non_blocking_uds_metric_sink() {
-        let (socket, _recv) = UnixDatagram::pair().unwrap();
-        socket.set_nonblocking(true).unwrap();
-        let sink = UdsMetricSink::from(socket);
+        let socket = UnixDatagram::unbound().unwrap();
+        let tmp_dir = TempDir::new("testing").unwrap();
+        let file_path = tmp_dir.path().join("tmp.sock");
+        // Create a listener.
+        let _listener = UnixDatagram::bind(&file_path);
+        let sink = UdsMetricSink::from(socket, file_path);
         assert_eq!(7, sink.emit("baz:1|m").unwrap());
     }
 
     #[test]
     fn test_buffered_uds_metric_sink() {
-        let (socket, _recv) = UnixDatagram::pair().unwrap();
+        let socket = UnixDatagram::unbound().unwrap();
+        let tmp_dir = TempDir::new("testing").unwrap();
+        let file_path = tmp_dir.path().join("tmp.sock");
+        // Create a listener.
+        let _listener = UnixDatagram::bind(&file_path);
         // Set the capacity of the buffer such that we know it will
         // be flushed as a response to the metrics we're writing.
-        let sink = BufferedUdsMetricSink::with_capacity(socket, 16);
+        let sink = BufferedUdsMetricSink::with_capacity(socket, file_path, 16);
 
         // Note that we're including an extra byte in the expected
         // number written since each metric is followed by a '\n' at

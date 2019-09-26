@@ -11,7 +11,6 @@
 use std::io;
 use std::io::{BufWriter, Write};
 use std::net::{SocketAddr, UdpSocket};
-use std::os::unix::net::UnixDatagram;
 use std::str;
 
 #[derive(Debug, Default)]
@@ -112,35 +111,16 @@ pub(crate) struct UdpWriteAdapter {
 
 impl UdpWriteAdapter {
     pub(crate) fn new(addr: SocketAddr, socket: UdpSocket) -> UdpWriteAdapter {
-        UdpWriteAdapter { addr, socket }
+        UdpWriteAdapter {
+            addr,
+            socket,
+        }
     }
 }
 
 impl Write for UdpWriteAdapter {
     fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
         self.socket.send_to(buf, &self.addr)
-    }
-
-    fn flush(&mut self) -> io::Result<()> {
-        Ok(())
-    }
-}
-
-/// Adapter for writing to a `UdsSocket` via the `Write` trait
-#[derive(Debug)]
-pub(crate) struct UdsWriteAdapter {
-    socket: UnixDatagram,
-}
-
-impl UdsWriteAdapter {
-    pub(crate) fn new(socket: UnixDatagram) -> UdsWriteAdapter {
-        UdsWriteAdapter { socket }
-    }
-}
-
-impl Write for UdsWriteAdapter {
-    fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
-        self.socket.send(buf)
     }
 
     fn flush(&mut self) -> io::Result<()> {

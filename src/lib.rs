@@ -359,9 +359,8 @@
 //! use cadence::{StatsdClient, UdsMetricSink};
 //!
 //! let socket = UnixDatagram::unbound().unwrap();
-//! socket.connect("/tmp/sock").unwrap();
 //! socket.set_nonblocking(true).unwrap();
-//! let sink = UdsMetricSink::from(socket);
+//! let sink = UdsMetricSink::from(socket, "/tmp/sock");
 //! let client = StatsdClient::from_sink("my.prefix", sink);
 //!
 //! client.count("my.counter.thing", 29);
