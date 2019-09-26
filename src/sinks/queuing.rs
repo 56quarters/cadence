@@ -445,7 +445,9 @@ mod tests {
     // when the consumer side of the channel panics.
     #[test]
     fn test_worker_panic_on_run_side() {
-        let worker = Arc::new(Worker::new(move |_: String| { panic!("This thread is supposed to panic"); }));
+        let worker = Arc::new(Worker::new(move |_: String| {
+            panic!("This thread is supposed to panic");
+        }));
         let worker_ref1 = worker.clone();
         let worker_ref2 = worker.clone();
 

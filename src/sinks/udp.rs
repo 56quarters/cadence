@@ -103,10 +103,7 @@ impl UdpMetricSink {
         A: ToSocketAddrs,
     {
         let addr = get_addr(to_addr)?;
-        Ok(UdpMetricSink {
-            addr,
-            socket,
-        })
+        Ok(UdpMetricSink { addr, socket })
     }
 }
 

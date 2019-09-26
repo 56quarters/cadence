@@ -241,7 +241,6 @@ impl error::Error for MetricError {
             _ => None,
         }
     }
-
 }
 
 impl From<io::Error> for MetricError {

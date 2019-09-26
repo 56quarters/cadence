@@ -10,9 +10,9 @@
 // except according to those terms.
 
 use crate::client::{MetricBackend, StatsdClient};
+use crate::types::{Metric, MetricError, MetricResult};
 use std::fmt::{self, Write};
 use std::marker::PhantomData;
-use crate::types::{Metric, MetricError, MetricResult};
 
 const DATADOG_TAGS_PREFIX: &str = "|#";
 

@@ -48,12 +48,18 @@ impl MetricTagDecorator {
     }
 
     /// Create a new decorator from the provided client and tags.
-    pub fn from_tags_str(client: Arc<dyn MetricClient + Send + Sync>, tags: Vec<(&str, &str)>) -> Self {
+    pub fn from_tags_str(
+        client: Arc<dyn MetricClient + Send + Sync>,
+        tags: Vec<(&str, &str)>,
+    ) -> Self {
         Self::from_tags_string(client, Self::to_vec_strings(tags.iter()))
     }
 
     /// Create a new decorator from the provided client and tags.
-    pub fn from_tags_slice(client: Arc<dyn MetricClient + Send + Sync>, tags: &[(&str, &str)]) -> Self {
+    pub fn from_tags_slice(
+        client: Arc<dyn MetricClient + Send + Sync>,
+        tags: &[(&str, &str)],
+    ) -> Self {
         Self::from_tags_string(client, Self::to_vec_strings(tags.iter()))
     }
 
@@ -136,7 +142,11 @@ impl Metered for MetricTagDecorator {
 }
 
 impl Histogrammed for MetricTagDecorator {
-    fn histogram_with_tags<'a>(&'a self, key: &'a str, value: u64) -> MetricBuilder<'_, '_, Histogram> {
+    fn histogram_with_tags<'a>(
+        &'a self,
+        key: &'a str,
+        value: u64,
+    ) -> MetricBuilder<'_, '_, Histogram> {
         let mut builder = self.client.histogram_with_tags(key, value);
         for (tkey, tval) in self.tags.iter() {
             builder = builder.with_tag(tkey, tval);
@@ -161,7 +171,11 @@ impl MetricClient for MetricTagDecorator {}
 
 impl fmt::Debug for MetricTagDecorator {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "MetricTagDecorator {{ client: ..., tags: {:?} }}", self.tags)
+        write!(
+            f,
+            "MetricTagDecorator {{ client: ..., tags: {:?} }}",
+            self.tags
+        )
     }
 }
 
@@ -197,13 +211,14 @@ fn main() {
         // a unique thread. Next, create a new decorator for metrics emitted from
         // that thread that includes the thread ID as a tag for those metrics.
         let thread_id = threads.fetch_add(1, Ordering::Acquire);
-        let worker_metrics = view1.with_tags_string(
-            vec![("thread".to_string(), thread_id.to_string())]
-        );
+        let worker_metrics =
+            view1.with_tags_string(vec![("thread".to_string(), thread_id.to_string())]);
 
         thread::spawn(move || {
             worker_metrics.incr("some.other.event").unwrap();
             worker_metrics.incr("some.other.error").unwrap();
-        }).join().unwrap();
+        })
+        .join()
+        .unwrap();
     }
 }
