@@ -8,7 +8,7 @@ use std::net::UdpSocket;
 
 use cadence::prelude::*;
 use cadence::{
-    BufferedUdpMetricSink, Counter, Gauge, Histogram, Meter, Set, NopMetricSink, QueuingMetricSink,
+    BufferedUdpMetricSink, Counter, Gauge, Histogram, Meter, NopMetricSink, QueuingMetricSink, Set,
     StatsdClient, Timer, DEFAULT_PORT,
 };
 

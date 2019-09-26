@@ -5,8 +5,8 @@ use std::time::Duration;
 
 use cadence::prelude::*;
 use cadence::{
-    BufferedUdpMetricSink, Counter, Gauge, Histogram, Meter, NopMetricSink,
-    QueuingMetricSink, StatsdClient, Timer, DEFAULT_PORT,
+    BufferedUdpMetricSink, Counter, Gauge, Histogram, Meter, NopMetricSink, QueuingMetricSink,
+    StatsdClient, Timer, DEFAULT_PORT,
 };
 
 fn new_nop_client(prefix: &str) -> StatsdClient {

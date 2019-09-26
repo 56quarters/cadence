@@ -111,10 +111,7 @@ pub(crate) struct UdpWriteAdapter {
 
 impl UdpWriteAdapter {
     pub(crate) fn new(addr: SocketAddr, socket: UdpSocket) -> UdpWriteAdapter {
-        UdpWriteAdapter {
-            addr,
-            socket,
-        }
+        UdpWriteAdapter { addr, socket }
     }
 }
 
