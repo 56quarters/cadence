@@ -9,17 +9,18 @@ use std::net::UdpSocket;
 use cadence::prelude::*;
 use cadence::{
     BufferedUdpMetricSink, Counter, Gauge, Histogram, Meter, NopMetricSink, QueuingMetricSink, Set,
-    StatsdClient, Timer, DEFAULT_PORT,
+    StatsdClient, Timer, UdpMetricSink, DEFAULT_PORT,
 };
 
 fn new_nop_client() -> StatsdClient {
     StatsdClient::from_sink("client.bench", NopMetricSink)
 }
 
-#[allow(warnings)]
 fn new_udp_client() -> StatsdClient {
     let host = ("127.0.0.1", DEFAULT_PORT);
-    StatsdClient::from_udp_host("client.bench", host).unwrap()
+    let socket = UdpSocket::bind("0.0.0.0:0").unwrap();
+    let sink = UdpMetricSink::from(host, socket).unwrap();
+    StatsdClient::from_sink("client.bench", sink)
 }
 
 fn new_buffered_udp_client() -> StatsdClient {

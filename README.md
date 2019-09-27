@@ -317,7 +317,7 @@ client.time("my.method.time", 25);
 client.incr("some.other.counter");
 ```
 
-### Custom UDP or UDS Socket
+### Custom UDP or Unix Socket
 
 Most users of the Cadence `StatsdClient` will be using it to send metrics
 over a UDP socket. If you need to customize the socket, for example you
@@ -343,16 +343,16 @@ client.incr("some.event");
 client.set("users.uniques", 42);
 ```
 
-Cadence also supports using UDS with the `UdsMetricSink`:
+Cadence also supports using Unix sockets with the `UnixMetricSink` or `BufferedUnixMetricSink`:
 
 ``` rust
 use std::os::unix::net::UnixDatagram;
 use cadence::prelude::*;
-use cadence::{StatsdClient, UdsMetricSink};
+use cadence::{StatsdClient, BufferedUnixMetricSink};
 
-let socket = UnixDatagram::unbound();
+let socket = UnixDatagram::unbound().unwrap();
 socket.set_nonblocking(true).unwrap();
-let sink = UdsMetricSink::from(socket, "/tmp/sock");
+let sink = BufferedUnixMetricSink::from("/run/statsd.sock", socket);
 let client = StatsdClient::from_sink("my.prefix", sink);
 
 client.count("my.counter.thing", 29);
@@ -361,6 +361,7 @@ client.incr("some.event");
 client.set("users.uniques", 42);
 ```
 
+NOTE: This feature is only available on Unix platforms (Linux, BSD, MacOS).
 
 ## Documentation
 
@@ -424,7 +425,7 @@ additional terms or conditions.
 
 ## Language Support
 
-Cadence (latest master) supports building with a range of `1.31+` versions.
+Cadence (latest master) supports building with a range of `1.32+` versions.
 
 ### Guaranteed to Build
 
@@ -446,7 +447,10 @@ advantage of a feature available in newer versions of Rust.
 
 ### Known to Work
 
+* Stable versions as far back as `1.32` are known to work with Cadence
+  `0.19.0`. Building with this version (and any versions older than
+  `stable - 4`) is not supported and may break at any time.
+
 * Stable versions as far back as `1.31` are known to work with Cadence
   `0.18.0`. Building with this version (and any versions older than
-  `stable - 4`) is not supported and may break at any time. See
-  [#80](https://github.com/tshlabs/cadence/issues/80).
+  `stable - 4`) is not supported and may break at any time.

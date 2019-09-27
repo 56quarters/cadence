@@ -324,7 +324,7 @@
 //! client.incr("some.other.counter");
 //! ```
 //!
-//! ### Custom UDP or UDS Socket
+//! ### Custom UDP or Unix Socket
 //!
 //! Most users of the Cadence `StatsdClient` will be using it to send metrics
 //! over a UDP socket. If you need to customize the socket, for example you
@@ -350,17 +350,16 @@
 //! client.set("users.uniques", 42);
 //! ```
 //!
-//! Cadence also supports using UDS with the `UdsMetricSink`:
-//!
+//! Cadence also supports using Unix sockets with the `UdsMetricSink`  or `BufferedUnixMetricSink`:
 //!
 //! ``` rust,no_run
 //! use std::os::unix::net::UnixDatagram;
 //! use cadence::prelude::*;
-//! use cadence::{StatsdClient, UdsMetricSink};
+//! use cadence::{StatsdClient, BufferedUnixMetricSink};
 //!
 //! let socket = UnixDatagram::unbound().unwrap();
 //! socket.set_nonblocking(true).unwrap();
-//! let sink = UdsMetricSink::from(socket, "/tmp/sock");
+//! let sink = BufferedUnixMetricSink::from("/run/statsd.sock", socket);
 //! let client = StatsdClient::from_sink("my.prefix", sink);
 //!
 //! client.count("my.counter.thing", 29);
@@ -368,6 +367,9 @@
 //! client.incr("some.event");
 //! client.set("users.uniques", 42);
 //! ```
+//!
+//! NOTE: This feature is only available on Unix platforms (Linux, BSD, MacOS).
+//!
 
 #![forbid(unsafe_code)]
 
@@ -381,8 +383,7 @@ pub use self::client::{
 };
 
 pub use self::sinks::{
-    BufferedUdpMetricSink, BufferedUdsMetricSink, MetricSink, NopMetricSink, QueuingMetricSink,
-    UdpMetricSink, UdsMetricSink,
+    BufferedUdpMetricSink, MetricSink, NopMetricSink, QueuingMetricSink, UdpMetricSink,
 };
 
 pub use self::types::{
@@ -396,3 +397,12 @@ mod io;
 pub mod prelude;
 mod sinks;
 mod types;
+
+// Utilities for running integration tests with Unix datagram sockets.
+#[cfg(unix)]
+#[doc(hidden)]
+pub mod test;
+
+// Sinks for sending metrics over Unix datagram sockets
+#[cfg(unix)]
+pub use crate::sinks::{BufferedUnixMetricSink, UnixMetricSink};

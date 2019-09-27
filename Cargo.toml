@@ -14,9 +14,6 @@ edition = "2018"
 [dependencies]
 crossbeam-channel = "0.3.8"
 
-[dev-dependencies]
-tempdir = "0.3.7"
-
 [lib]
 name = "cadence"
 path = "src/lib.rs"

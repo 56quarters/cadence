@@ -11,9 +11,13 @@
 mod core;
 mod queuing;
 mod udp;
-mod uds;
 
 pub use crate::sinks::core::{MetricSink, NopMetricSink};
 pub use crate::sinks::queuing::QueuingMetricSink;
 pub use crate::sinks::udp::{BufferedUdpMetricSink, UdpMetricSink};
-pub use crate::sinks::uds::{BufferedUdsMetricSink, UdsMetricSink};
+
+#[cfg(target_family = "unix")]
+mod unix;
+
+#[cfg(target_family = "unix")]
+pub use crate::sinks::unix::{BufferedUnixMetricSink, UnixMetricSink};

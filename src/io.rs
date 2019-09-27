@@ -10,7 +10,6 @@
 
 use std::io;
 use std::io::{BufWriter, Write};
-use std::net::{SocketAddr, UdpSocket};
 use std::str;
 
 #[derive(Debug, Default)]
@@ -102,29 +101,6 @@ impl<T: Write> Write for MultiLineWriter<T> {
         self.metrics.flushed += 1;
         self.inner.flush()?;
         self.written = 0;
-        Ok(())
-    }
-}
-
-/// Adapter for writing to a `UdpSocket` via the `Write` trait
-#[derive(Debug)]
-pub(crate) struct UdpWriteAdapter {
-    addr: SocketAddr,
-    socket: UdpSocket,
-}
-
-impl UdpWriteAdapter {
-    pub(crate) fn new(addr: SocketAddr, socket: UdpSocket) -> UdpWriteAdapter {
-        UdpWriteAdapter { addr, socket }
-    }
-}
-
-impl Write for UdpWriteAdapter {
-    fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
-        self.socket.send_to(buf, &self.addr)
-    }
-
-    fn flush(&mut self) -> io::Result<()> {
         Ok(())
     }
 }
