@@ -72,10 +72,14 @@ impl<T: Write> Write for MultiLineWriter<T> {
             self.metrics.inner_write += 1;
             // If the user has given us a value bigger than our buffer
             // to write, bypass the buffer and write directly to the Write
-            // implementation that our BufWriter is wrapping.
-            let write1 = self.inner.get_mut().write(buf)?;
-            let write2 = self.inner.get_mut().write(&self.line_ending)?;
-            Ok(write1 + write2)
+            // implementation that our BufWriter is wrapping. Note that we
+            // don't write a trailing newline in this case. The reasoning
+            // is that the newlines are separators for putting multiple
+            // "things" into a single write call to the underlying impl
+            // (probably a UDP socket). Thus, there's no value in adding
+            // a newline when we're only writing a single large value to
+            // the underlying impl. See https://github.com/tshlabs/cadence/issues/87
+            Ok(self.inner.get_mut().write(buf)?)
         } else {
             if left < required {
                 self.flush()?;
@@ -184,18 +188,15 @@ mod tests {
         let written_after_write2 = buffered.get_ref().len();
         let in_buffer_after_write2 = buffered.written;
 
-        assert_eq!(30, write1);
-        assert_eq!(30, written_after_write1);
+        assert_eq!(29, write1);
+        assert_eq!(29, written_after_write1);
         assert_eq!(0, in_buffer_after_write1);
 
         assert_eq!(8, write2);
-        assert_eq!(30, written_after_write2);
+        assert_eq!(29, written_after_write2);
         assert_eq!(8, in_buffer_after_write2);
     }
 
-    // Make sure that writing an 8 byte payload to a buffer with only
-    // 8 bytes of capacity results in using the "direct write" code
-    // path since we need to take the trailing newline into account
     #[test]
     fn test_buffer_write_equal_capacity() {
         let mut buffered = MultiLineWriter::new(8, vec![]);
@@ -204,8 +205,8 @@ mod tests {
         let written = str::from_utf8(&buffered.get_ref()).unwrap();
         let buf_metrics = buffered.get_metrics();
 
-        assert_eq!("foo:42|c\n", written);
-        assert_eq!(9, bytes_written, "expected {} bytes", 9);
+        assert_eq!("foo:42|c", written);
+        assert_eq!(8, bytes_written, "expected {} bytes", 8);
         assert_eq!(1, buf_metrics.inner_write, "expected inner_write = {}", 1);
         assert_eq!(0, buf_metrics.buf_write, "expected buf_write = {}", 0);
         assert_eq!(0, buf_metrics.flushed, "expected flushed = {}", 0);
