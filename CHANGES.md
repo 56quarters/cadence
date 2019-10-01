@@ -1,5 +1,19 @@
 # Changelog
 
+## [v0.19.0](https://github.com/tshlabs/cadence/tree/0.19.0) - 2019-??-??
+* Fix cases where sending large payloads (a single metric larger than a UDP
+  packet while using the buffered UDP sink) caused an extra UDP packet to be
+  sent containing only a newline per [#87](https://github.com/tshlabs/cadence/issues/87).
+* Add support for emitting metrics over a Unix socket via the new `UnixMetricSink`
+  and `BufferedUnixMetricSink` per [#86](https://github.com/tshlabs/cadence/pull/86)
+  thanks to Daniel Smith.
+* Deprecate the `StatsdClient::from_udp_host` constructor which will be removed
+  in a future release. Users are encouraged to use the `::from_sink()` and `::builder()`
+  constructors instead.
+* All Cadence examples (in the `examples` directory) are now available under
+  the [CC0](https://creativecommons.org/publicdomain/zero/1.0/legalcode.txt)
+  agreement (basically public domain even in countries with no such concept).
+
 ## [v0.18.0](https://github.com/tshlabs/cadence/tree/0.18.0) - 2019-07-31
 * Allow empty strings to be use for metric prefixes. Previously, this would
   result in metrics with a leading `.`, now an empty prefix results in just

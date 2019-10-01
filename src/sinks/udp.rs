@@ -13,7 +13,7 @@ use std::io::Write;
 use std::net::{SocketAddr, ToSocketAddrs, UdpSocket};
 use std::sync::Mutex;
 
-use crate::io::{MultiLineWriter, UdpWriteAdapter};
+use crate::io::MultiLineWriter;
 use crate::sinks::core::MetricSink;
 use crate::types::{ErrorKind, MetricError, MetricResult};
 
@@ -110,6 +110,29 @@ impl UdpMetricSink {
 impl MetricSink for UdpMetricSink {
     fn emit(&self, metric: &str) -> io::Result<usize> {
         self.socket.send_to(metric.as_bytes(), &self.addr)
+    }
+}
+
+/// Adapter for writing to a `UdpSocket` via the `Write` trait
+#[derive(Debug)]
+pub(crate) struct UdpWriteAdapter {
+    addr: SocketAddr,
+    socket: UdpSocket,
+}
+
+impl UdpWriteAdapter {
+    pub(crate) fn new(addr: SocketAddr, socket: UdpSocket) -> UdpWriteAdapter {
+        UdpWriteAdapter { addr, socket }
+    }
+}
+
+impl Write for UdpWriteAdapter {
+    fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
+        self.socket.send_to(buf, &self.addr)
+    }
+
+    fn flush(&mut self) -> io::Result<()> {
+        Ok(())
     }
 }
 
