@@ -16,8 +16,8 @@ pub use crate::sinks::core::{MetricSink, NopMetricSink};
 pub use crate::sinks::queuing::QueuingMetricSink;
 pub use crate::sinks::udp::{BufferedUdpMetricSink, UdpMetricSink};
 
-#[cfg(target_family = "unix")]
+#[cfg(unix)]
 mod unix;
 
-#[cfg(target_family = "unix")]
+#[cfg(unix)]
 pub use crate::sinks::unix::{BufferedUnixMetricSink, UnixMetricSink};
