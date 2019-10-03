@@ -48,7 +48,7 @@
 //!
 //! Then, link to it in your library or application.
 //!
-//! ``` rust,no_run
+//! ```rust,no_run
 //! // bin.rs or lib.rs
 //! extern crate cadence;
 //!
@@ -67,8 +67,8 @@
 //! the client, create an instance that will write to some imaginary metrics
 //! server, and send a few metrics.
 //!
-//! ``` rust,no_run
-//! // Import the client.
+//! ```rust,no_run
+//! use std::net::UdpSocket;
 //! use cadence::prelude::*;
 //! use cadence::{StatsdClient, UdpMetricSink, DEFAULT_PORT};
 //!
@@ -78,7 +78,9 @@
 //! // the client when you use it for real in your application. We're just
 //! // using .unwrap() here since this is an example!
 //! let host = ("metrics.example.com", DEFAULT_PORT);
-//! let client = StatsdClient::from_udp_host("my.metrics", host).unwrap();
+//! let socket = UdpSocket::bind("0.0.0.0:0").unwrap();
+//! let sink = UdpMetricSink::from(host, socket).unwrap();
+//! let client = StatsdClient::from_sink("my.metrics", sink);
 //!
 //! // Emit metrics!
 //! client.incr("some.counter");
@@ -99,7 +101,7 @@
 //! operation. For this, there's `BufferedUdpMetricSink`. An example of
 //! using this sink is given below.
 //!
-//! ``` rust,no_run
+//! ```rust,no_run
 //! use std::net::UdpSocket;
 //! use cadence::prelude::*;
 //! use cadence::{StatsdClient, BufferedUdpMetricSink, DEFAULT_PORT};
@@ -147,7 +149,7 @@
 //! metric sink is given below. This is the preferred way to use Cadence
 //! in production.
 //!
-//! ``` rust,no_run
+//! ```rust,no_run
 //! use std::net::UdpSocket;
 //! use cadence::prelude::*;
 //! use cadence::{StatsdClient, QueuingMetricSink, BufferedUdpMetricSink,
@@ -211,10 +213,10 @@
 //! Each of these traits are exported in the prelude module. They are also
 //! available in the main module but aren't typically used like that.
 //!
-//! ``` rust,no_run
+//! ```rust,no_run
+//! use std::net::UdpSocket;
 //! use cadence::prelude::*;
 //! use cadence::{StatsdClient, UdpMetricSink, DEFAULT_PORT};
-//!
 //!
 //! pub struct User {
 //!     id: u64,
@@ -227,7 +229,7 @@
 //! // uses a metric client to keep track of the number of times the
 //! // 'getUserById' method gets called.
 //! pub struct MyUserDao {
-//!     metrics: Box<MetricClient>
+//!     metrics: Box<dyn MetricClient>
 //! }
 //!
 //!
@@ -247,7 +249,9 @@
 //!
 //! // Create a new Statsd client that writes to "metrics.example.com"
 //! let host = ("metrics.example.com", DEFAULT_PORT);
-//! let metrics = StatsdClient::from_udp_host("counter.example", host).unwrap();
+//! let socket = UdpSocket::bind("0.0.0.0:0").unwrap();
+//! let sink = UdpMetricSink::from(host, socket).unwrap();
+//! let metrics = StatsdClient::from_sink("counter.example", sink);
 //!
 //! // Create a new instance of the DAO that will use the client
 //! let dao = MyUserDao::new(metrics);
@@ -300,7 +304,7 @@
 //! However, maybe you want to do something not covered by an existing sink.
 //! An example of creating a custom sink is below.
 //!
-//! ``` rust,no_run
+//! ```rust,no_run
 //! use std::io;
 //! use cadence::prelude::*;
 //! use cadence::{StatsdClient, MetricSink, DEFAULT_PORT};
@@ -331,7 +335,7 @@
 //! want to use the socket in blocking mode but set a write timeout, you can
 //! do that as demonstrated below.
 //!
-//! ``` rust,no_run
+//! ```rust,no_run
 //! use std::net::UdpSocket;
 //! use std::time::Duration;
 //! use cadence::prelude::*;
@@ -352,7 +356,7 @@
 //!
 //! Cadence also supports using Unix sockets with the `UdsMetricSink`  or `BufferedUnixMetricSink`:
 //!
-//! ``` rust,no_run
+//! ```rust,no_run
 //! use std::os::unix::net::UnixDatagram;
 //! use cadence::prelude::*;
 //! use cadence::{StatsdClient, BufferedUnixMetricSink};

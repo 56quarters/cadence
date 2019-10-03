@@ -66,18 +66,19 @@ Simple usage of Cadence is shown below. In this example, we just import
 the client, create an instance that will write to some imaginary metrics
 server, and send a few metrics.
 
-``` rust
-// Import the client.
+```rust
+use std::net::UdpSocket;
 use cadence::prelude::*;
 use cadence::{StatsdClient, UdpMetricSink, DEFAULT_PORT};
-
 // Create client that will write to the given host over UDP.
 //
 // Note that you'll probably want to actually handle any errors creating
 // the client when you use it for real in your application. We're just
 // using .unwrap() here since this is an example!
 let host = ("metrics.example.com", DEFAULT_PORT);
-let client = StatsdClient::from_udp_host("my.metrics", host).unwrap();
+let socket = UdpSocket::bind("0.0.0.0:0").unwrap();
+let sink = UdpMetricSink::from(host, socket).unwrap();
+let client = StatsdClient::from_sink("my.metrics", sink);
 
 // Emit metrics!
 client.incr("some.counter");
@@ -98,7 +99,7 @@ buffers multiple metrics before sending them in a single network
 operation. For this, there's `BufferedUdpMetricSink`. An example of
 using this sink is given below.
 
-``` rust
+```rust
 use std::net::UdpSocket;
 use cadence::prelude::*;
 use cadence::{StatsdClient, BufferedUdpMetricSink, DEFAULT_PORT};
@@ -146,7 +147,7 @@ An example of using the `QueuingMetricSink` to wrap a buffered UDP
 metric sink is given below. This is the preferred way to use Cadence
 in production.
 
-``` rust
+```rust
 use std::net::UdpSocket;
 use cadence::prelude::*;
 use cadence::{StatsdClient, QueuingMetricSink, BufferedUdpMetricSink,
@@ -210,7 +211,7 @@ pointer.
 Each of these traits are exported in the prelude module. They are also
 available in the main module but aren't typically used like that.
 
-``` rust
+```rust
 use cadence::prelude::*;
 use cadence::{StatsdClient, UdpMetricSink, DEFAULT_PORT};
 
@@ -224,7 +225,7 @@ pub struct User {
 // uses a metric client to keep track of the number of times the
 // 'getUserById' method gets called.
 pub struct MyUserDao {
-    metrics: Box<MetricClient>
+    metrics: Box<dyn MetricClient>
 }
 
 impl MyUserDao {
@@ -242,7 +243,9 @@ impl MyUserDao {
 
 // Create a new Statsd client that writes to "metrics.example.com"
 let host = ("metrics.example.com", DEFAULT_PORT);
-let metrics = StatsdClient::from_udp_host("counter.example", host).unwrap();
+let socket = UdpSocket::bind("0.0.0.0:0").unwrap();
+let sink = UdpMetricSink::from(host, socket).unwrap();
+let metrics = StatsdClient::from_sink("counter.example", sink);
 
 // Create a new instance of the DAO that will use the client
 let dao = MyUserDao::new(metrics);
