@@ -1,6 +1,6 @@
 # Changelog
 
-## [v0.19.0](https://github.com/tshlabs/cadence/tree/0.19.0) - 2019-??-??
+## [v0.19.0](https://github.com/tshlabs/cadence/tree/0.19.0) - 2019-10-06
 * Fix cases where sending large payloads (a single metric larger than a UDP
   packet while using the buffered UDP sink) caused an extra UDP packet to be
   sent containing only a newline per [#87](https://github.com/tshlabs/cadence/issues/87).
