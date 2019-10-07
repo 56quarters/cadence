@@ -164,7 +164,10 @@ impl BufferedUnixMetricSink {
     /// let socket = UnixDatagram::unbound().unwrap();
     /// let sink = BufferedUnixMetricSink::from("/run/statsd.sock", socket);
     /// ```
-    pub fn from<P: AsRef<Path>>(path: P, socket: UnixDatagram) -> BufferedUnixMetricSink {
+    pub fn from<P>(path: P, socket: UnixDatagram) -> BufferedUnixMetricSink
+    where
+        P: AsRef<Path>,
+    {
         Self::with_capacity(path, socket, DEFAULT_BUFFER_SIZE)
     }
 
@@ -188,11 +191,10 @@ impl BufferedUnixMetricSink {
     /// let socket = UnixDatagram::unbound().unwrap();
     /// let sink = BufferedUnixMetricSink::with_capacity("/run/statsd.sock", socket, 1432);
     /// ```
-    pub fn with_capacity<P: AsRef<Path>>(
-        path: P,
-        socket: UnixDatagram,
-        cap: usize,
-    ) -> BufferedUnixMetricSink {
+    pub fn with_capacity<P>(path: P, socket: UnixDatagram, cap: usize) -> BufferedUnixMetricSink
+    where
+        P: AsRef<Path>,
+    {
         BufferedUnixMetricSink {
             buffer: Mutex::new(MultiLineWriter::new(
                 cap,
