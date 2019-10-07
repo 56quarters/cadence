@@ -46,14 +46,7 @@
 //! cadence = "x.y.z"
 //! ```
 //!
-//! Then, link to it in your library or application.
-//!
-//! ```rust,no_run
-//! // bin.rs or lib.rs
-//! extern crate cadence;
-//!
-//! // rest of your library or application
-//! ```
+//! That should be all you need!
 //!
 //! ## Usage
 //!
@@ -328,7 +321,7 @@
 //! client.incr("some.other.counter");
 //! ```
 //!
-//! ### Custom UDP or Unix Socket
+//! ### Custom UDP Socket
 //!
 //! Most users of the Cadence `StatsdClient` will be using it to send metrics
 //! over a UDP socket. If you need to customize the socket, for example you
@@ -354,7 +347,22 @@
 //! client.set("users.uniques", 42);
 //! ```
 //!
-//! Cadence also supports using Unix sockets with the `UdsMetricSink`  or `BufferedUnixMetricSink`:
+//! ### Unix Sockets
+//!
+//! Cadence also supports using Unix datagram sockets with the `UdsMetricSink`  or
+//! `BufferedUnixMetricSink`. Unix sockets can be used for sending metrics to a server
+//! or agent running on the same machine (physical machine, VM, containers in a pod)
+//! as your application. Unix sockets are somewhat similar to UDP sockets with a few
+//! important differences:
+//!
+//! * Sending metrics on a socket that doesn't exist or is not being listened to will
+//!   result in an error.
+//! * Metrics sent on a connected socket are guaranteed to be delievered (i.e. they are
+//!   reliable as opposed to UDP sockets). However, it's still possible that the metrics
+//!   won't be read by the server due to a variety of environment and server specific
+//!   reasons.
+//!
+//! An example of using the sinks is given below.
 //!
 //! ```rust,no_run
 //! use std::os::unix::net::UnixDatagram;
