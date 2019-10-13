@@ -46,7 +46,7 @@ impl UnixMetricSink {
     /// Construct a new `UnixMetricSink` instance.
     ///
     /// The socket does not need to be bound (i.e. `UnixDatagram::unbound()` is
-    /// fine) but should have with any desired configuration already applied
+    /// fine) but should have any desired configuration already applied
     /// (blocking vs non-blocking, timeouts, etc.).
     ///
     /// # Example
@@ -147,7 +147,7 @@ impl BufferedUnixMetricSink {
     /// buffer size of 512 bytes.
     ///
     /// The socket does not need to be bound (i.e. `UnixDatagram::unbound()` is
-    /// fine) but should have with any desired configuration already applied
+    /// fine) but should have any desired configuration already applied
     /// (blocking vs non-blocking, timeouts, etc.).
     ///
     /// Writes to this sink are automatically suffixed with a Unix newline
