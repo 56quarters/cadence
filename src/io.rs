@@ -24,7 +24,10 @@ struct WriterMetrics {
 /// writes the complete input in a single call to the underlying
 /// writer.
 #[derive(Debug)]
-pub(crate) struct MultiLineWriter<T: Write> {
+pub(crate) struct MultiLineWriter<T>
+where
+    T: Write,
+{
     written: usize,
     capacity: usize,
     metrics: WriterMetrics,
@@ -32,7 +35,10 @@ pub(crate) struct MultiLineWriter<T: Write> {
     line_ending: Vec<u8>,
 }
 
-impl<T: Write> MultiLineWriter<T> {
+impl<T> MultiLineWriter<T>
+where
+    T: Write,
+{
     /// Create a new buffered `MultiLineWriter` instance that suffixes
     /// each write with a newline character ('\n').
     pub(crate) fn new(cap: usize, inner: T) -> MultiLineWriter<T> {
@@ -62,7 +68,10 @@ impl<T: Write> MultiLineWriter<T> {
     }
 }
 
-impl<T: Write> Write for MultiLineWriter<T> {
+impl<T> Write for MultiLineWriter<T>
+where
+    T: Write,
+{
     fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
         let left = self.capacity - self.written;
         let required = buf.len() + self.line_ending.len();
