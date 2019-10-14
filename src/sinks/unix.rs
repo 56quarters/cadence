@@ -110,7 +110,7 @@ impl UnixWriteAdapter {
 
 impl Write for UnixWriteAdapter {
     fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
-        self.socket.send_to(buf, self.path.as_path())
+        self.socket.send_to(buf, &self.path)
     }
 
     fn flush(&mut self) -> io::Result<()> {
