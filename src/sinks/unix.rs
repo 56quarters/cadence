@@ -221,7 +221,7 @@ mod tests {
     fn test_unix_metric_sink() {
         let harness = UnixServerHarness::new("test_unix_metric_sink");
 
-        harness.run(|path| {
+        harness.run_quiet(|path| {
             let socket = UnixDatagram::unbound().unwrap();
             let sink = UnixMetricSink::from(path, socket);
 
@@ -233,7 +233,7 @@ mod tests {
     fn test_non_blocking_unix_metric_sink() {
         let harness = UnixServerHarness::new("test_non_blocking_unix_metric_sink");
 
-        harness.run(|path| {
+        harness.run_quiet(|path| {
             let socket = UnixDatagram::unbound().unwrap();
             socket.set_nonblocking(true).unwrap();
             let sink = UnixMetricSink::from(path, socket);
@@ -246,7 +246,7 @@ mod tests {
     fn test_buffered_unix_metric_sink() {
         let harness = UnixServerHarness::new("test_buffered_unix_metric_sink");
 
-        harness.run(|path| {
+        harness.run_quiet(|path| {
             let socket = UnixDatagram::unbound().unwrap();
 
             // Set the capacity of the buffer such that we know it will

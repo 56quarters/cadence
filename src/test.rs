@@ -58,6 +58,19 @@ impl Drop for TempDir {
     }
 }
 
+pub trait DatagramConsumer {
+    fn accept(&self, datagram: String);
+}
+
+impl<F> DatagramConsumer for F
+where
+    F: Fn(String) -> (),
+{
+    fn accept(&self, datagram: String) {
+        (self)(datagram);
+    }
+}
+
 /// Basic server for listening on a given Unix socket path.
 ///
 /// This server reads messages from a Unix datagram socket in a loop, ensures
@@ -66,25 +79,27 @@ impl Drop for TempDir {
 ///
 /// This server is only meant for testing Unix socket related functionality in
 /// Cadence itself.
-#[derive(Debug)]
 pub struct UnixSocketServer {
     ready: AtomicBool,
     shutdown: AtomicBool,
     path: PathBuf,
+    consumer: Arc<dyn DatagramConsumer + Send + Sync + 'static>,
     interval: Duration,
 }
 
 impl UnixSocketServer {
     /// Create a new server that will listen for datagrams on the given path, using
     /// the provided interval on the read timeout as part of its main loop.
-    pub fn new<P>(path: P, interval: Duration) -> Self
+    pub fn new<P, C>(path: P, interval: Duration, consumer: C) -> Self
     where
         P: AsRef<Path>,
+        C: DatagramConsumer + Send + Sync + 'static,
     {
         UnixSocketServer {
             ready: AtomicBool::new(false),
             shutdown: AtomicBool::new(false),
             path: path.as_ref().to_path_buf(),
+            consumer: Arc::new(consumer),
             interval,
         }
     }
@@ -109,7 +124,7 @@ impl UnixSocketServer {
         loop {
             match socket.recv(&mut buf) {
                 Ok(v) => match std::str::from_utf8(&buf[0..v]) {
-                    Ok(_s) => {} // Don't print anything on success because it's too noisy
+                    Ok(s) => self.consumer.accept(s.to_owned()),
                     Err(e) => eprintln!("Error: Couldn't decode string to utf-8 {}", e),
                 },
                 Err(e) => {
@@ -135,10 +150,8 @@ impl UnixSocketServer {
     /// Indicate that the server should stop its main run loop.
     pub fn shutdown(&self) {
         self.shutdown.store(true, Ordering::Release);
-        eprintln!("UnixSocketServer: shutting down");
     }
 }
-
 /// Wrapper around a `UnixSocketServer` to start and stop it in the course
 /// of running a single test.
 ///
@@ -162,15 +175,19 @@ impl UnixServerHarness {
         }
     }
 
-    /// Run the given closure, providing the path to the Unix socket as an argument.
-    pub fn run<F>(mut self, test: F)
+    pub fn run<C, F>(mut self, consumer: C, body: F)
     where
+        C: DatagramConsumer + Send + Sync + 'static,
         F: FnOnce(&Path) -> (),
     {
         let temp = TempDir::new(&self.base).unwrap();
         let socket = temp.new_path("cadence.sock");
 
-        let server = Arc::new(UnixSocketServer::new(&socket, Duration::from_millis(100)));
+        let server = Arc::new(UnixSocketServer::new(
+            &socket,
+            Duration::from_millis(100),
+            consumer,
+        ));
         let server_local = Arc::clone(&server);
 
         let t = thread::spawn(move || {
@@ -184,7 +201,14 @@ impl UnixServerHarness {
         self.server = Some(server);
         self.thread = Some(t);
 
-        test(&socket);
+        body(&socket);
+    }
+
+    pub fn run_quiet<F>(self, body: F)
+    where
+        F: FnOnce(&Path) -> (),
+    {
+        self.run(|_| (), body)
     }
 }
 
