@@ -28,7 +28,7 @@ Cadence is a flexible and easy way to do this!
 ## Features
 
 * Support for emitting counters, timers, histograms, gauges, meters, and sets to
-  Statsd over UDP.
+  Statsd over UDP (or optionally Unix sockets).
 * Support for alternate backends via the `MetricSink` trait.
 * Support for [Datadog](https://docs.datadoghq.com/developers/dogstatsd/) style metric
   tags.
