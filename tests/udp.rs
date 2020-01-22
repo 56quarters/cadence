@@ -1,32 +1,44 @@
-use std::net::UdpSocket;
-
+use cadence::test::SpyMetricSink;
 use cadence::{
     BufferedUdpMetricSink, QueuingMetricSink, StatsdClient, UdpMetricSink, DEFAULT_PORT,
 };
+use std::net::UdpSocket;
+use std::sync::Arc;
+use std::thread;
 
 mod utils;
 use utils::{run_arc_threaded_test, NUM_ITERATIONS, NUM_THREADS};
 
+const TARGET_HOST: (&str, u16) = ("127.0.0.1", DEFAULT_PORT);
+const BUFFER_SZ: usize = 512;
+const QUEUE_SZ: usize = 512 * 1024;
+
 fn new_udp_client(prefix: &str) -> StatsdClient {
-    let host = ("127.0.0.1", DEFAULT_PORT);
     let socket = UdpSocket::bind("0.0.0.0:0").unwrap();
-    let sink = UdpMetricSink::from(host, socket).unwrap();
+    let sink = UdpMetricSink::from(TARGET_HOST, socket).unwrap();
     StatsdClient::from_sink(prefix, sink)
 }
 
 fn new_buffered_udp_client(prefix: &str) -> StatsdClient {
-    let host = ("127.0.0.1", DEFAULT_PORT);
     let socket = UdpSocket::bind("0.0.0.0:0").unwrap();
-    let sink = BufferedUdpMetricSink::from(host, socket).unwrap();
+    let sink = BufferedUdpMetricSink::from(TARGET_HOST, socket).unwrap();
     StatsdClient::from_sink(prefix, sink)
 }
 
 fn new_queuing_buffered_udp_client(prefix: &str) -> StatsdClient {
-    let host = ("127.0.0.1", DEFAULT_PORT);
     let socket = UdpSocket::bind("0.0.0.0:0").unwrap();
-    let buffered = BufferedUdpMetricSink::from(host, socket).unwrap();
+    let buffered = BufferedUdpMetricSink::from(TARGET_HOST, socket).unwrap();
     let sink = QueuingMetricSink::from(buffered);
     StatsdClient::from_sink(prefix, sink)
+}
+
+fn new_spy_queuing_buffered_udp_client(prefix: &str) -> (StatsdClient, Arc<QueuingMetricSink>) {
+    let socket = UdpSocket::bind("0.0.0.0:0").unwrap();
+    let buffered = BufferedUdpMetricSink::with_capacity(TARGET_HOST, socket, BUFFER_SZ).unwrap();
+    let queuing = Arc::new(QueuingMetricSink::with_capacity(buffered, QUEUE_SZ));
+    let sink = SpyMetricSink::new(queuing.clone());
+    let client = StatsdClient::from_sink(prefix, sink);
+    (client, queuing)
 }
 
 #[test]
@@ -66,4 +78,17 @@ fn test_statsd_client_buffered_udp_sink_many_threaded() {
 fn test_statsd_client_queuing_buffered_udp_sink_many_threaded() {
     let client = new_queuing_buffered_udp_client("cadence");
     run_arc_threaded_test(client, NUM_THREADS, NUM_ITERATIONS);
+}
+
+#[ignore]
+#[test]
+fn test_statsd_client_queuing_spy_many_threaded() {
+    let (client, sink) = new_spy_queuing_buffered_udp_client("cadence");
+    run_arc_threaded_test(client, NUM_THREADS, NUM_ITERATIONS);
+
+    let mut queued = sink.queued();
+    while queued > 0 {
+        queued = sink.queued();
+        thread::yield_now();
+    }
 }

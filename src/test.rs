@@ -15,9 +15,11 @@
 //!
 //! IF YOU USE THIS CODE YOUR PROJECT WILL BREAK AND YOU WILL DESERVE IT.
 
+use crate::MetricSink;
 use std::fs;
 use std::io::{self, ErrorKind};
 use std::os::unix::net::UnixDatagram;
+use std::panic::RefUnwindSafe;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
@@ -221,5 +223,28 @@ impl Drop for UnixServerHarness {
         if let Some(t) = self.thread.take() {
             let _ = t.join();
         }
+    }
+}
+
+/// `MetricSink` implementation that wraps another reference counted
+/// `MetricSink` so that the caller can keep a reference to it (useful
+/// for testing the `QueuingMetricSink` so that we can inspect the
+/// number of pending metrics and the like).
+pub struct SpyMetricSink {
+    delegate: Arc<dyn MetricSink + Send + Sync + RefUnwindSafe>,
+}
+
+impl SpyMetricSink {
+    pub fn new<S>(delegate: Arc<S>) -> Self
+    where
+        S: MetricSink + Send + Sync + RefUnwindSafe + 'static,
+    {
+        SpyMetricSink { delegate }
+    }
+}
+
+impl MetricSink for SpyMetricSink {
+    fn emit(&self, metric: &str) -> io::Result<usize> {
+        self.delegate.emit(metric)
     }
 }
