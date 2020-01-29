@@ -152,6 +152,12 @@ impl Write for UdpWriteAdapter {
 ///
 /// If a metric larger than the buffer is emitted, it will be written
 /// directly to the underlying UDP socket, bypassing the buffer.
+///
+/// Note that since metrics are buffered until a certain size is reached, it's
+/// possible that they may sit in the buffer for a while for applications
+/// that do not emit metrics frequently or at a high volume. For these low-
+/// throughput use cases, it may make more sense to use the `UdpMetricSink`
+/// since it sends metrics immediately with no buffering.
 #[derive(Debug)]
 pub struct BufferedUdpMetricSink {
     buffer: Mutex<MultiLineWriter<UdpWriteAdapter>>,

@@ -134,7 +134,13 @@ impl Write for UnixWriteAdapter {
 /// If a metric larger than the buffer is emitted, it will be written
 /// directly to the underlying Unix socket, bypassing the buffer.
 ///
-/// Note that unlike the UDP sinks, if there is no receiving socket at the path
+/// Note that since metrics are buffered until a certain size is reached, it's
+/// possible that they may sit in the buffer for a while for applications
+/// that do not emit metrics frequently or at a high volume. For these low-
+/// throughput use cases, it may make more sense to use the `UnixMetricSink`
+/// since it sends metrics immediately with no buffering.
+///
+/// Also note that unlike the UDP sinks, if there is no receiving socket at the path
 /// specified or nothing listening at the path, an error will be returned when
 /// metrics are emitted (though this may not happen on every write due to buffering).
 #[derive(Debug)]

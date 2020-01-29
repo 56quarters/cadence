@@ -119,7 +119,8 @@
 //! that is constantly emitting metrics, this shouldn't be a problem.
 //! However, if your application only occasionally emits metrics, this sink
 //! might result in the metrics being delayed for a little while until the
-//! buffer fills.
+//! buffer fills. In this case, it may make sense to use the `UdpMetricSink`
+//! since it does not do any buffering.
 //!
 //! ### Queuing Asynchronous Metric Sink
 //!
