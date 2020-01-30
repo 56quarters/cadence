@@ -1,7 +1,7 @@
 // Cadence - An extensible Statsd client for Rust!
 //
 // Copyright 2018 Philip Jenvey <pjenvey@mozilla.com>
-// Copyright 2018-2019 TSH Labs
+// Copyright 2018-2020 TSH Labs
 //
 // Licensed under the Apache License, Version 2.0 <LICENSE-APACHE or
 // http://www.apache.org/licenses/LICENSE-2.0> or the MIT license
