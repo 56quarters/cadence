@@ -12,21 +12,21 @@ use cadence::{
     StatsdClient, Timer, UdpMetricSink, DEFAULT_PORT,
 };
 
+const TARGET_HOST: (&str, u16) = ("127.0.0.1", DEFAULT_PORT);
+
 fn new_nop_client() -> StatsdClient {
     StatsdClient::from_sink("client.bench", NopMetricSink)
 }
 
 fn new_udp_client() -> StatsdClient {
-    let host = ("127.0.0.1", DEFAULT_PORT);
     let socket = UdpSocket::bind("0.0.0.0:0").unwrap();
-    let sink = UdpMetricSink::from(host, socket).unwrap();
+    let sink = UdpMetricSink::from(TARGET_HOST, socket).unwrap();
     StatsdClient::from_sink("client.bench", sink)
 }
 
 fn new_buffered_udp_client() -> StatsdClient {
-    let host = ("127.0.0.1", DEFAULT_PORT);
     let socket = UdpSocket::bind("0.0.0.0:0").unwrap();
-    let sink = BufferedUdpMetricSink::from(host, socket).unwrap();
+    let sink = BufferedUdpMetricSink::from(TARGET_HOST, socket).unwrap();
     StatsdClient::from_sink("client.bench", sink)
 }
 
