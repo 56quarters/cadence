@@ -162,6 +162,47 @@
 //! client.incr("some.event");
 //! ```
 //!
+//! In the example above, we use the default constructor for the queuing
+//! sink which creates an **unbounded** queue, with no maximum size, to connect
+//! the main thread where the client sends metrics to the background thread
+//! in which the wrapped sink is running. If instead, you want to create a
+//! **bounded** queue with a maximum size, you can use the `with_capacity`
+//! constructor. An example of this is given below.
+//!
+//! ```rust,no_run
+//! use std::net::UdpSocket;
+//! use cadence::prelude::*;
+//! use cadence::{StatsdClient, QueuingMetricSink, BufferedUdpMetricSink,
+//!               DEFAULT_PORT};
+//!
+//! // Queue with a maximum capacity of 128K elements
+//! const QUEUE_SIZE: usize = 128 * 1024;
+//!
+//! let socket = UdpSocket::bind("0.0.0.0:0").unwrap();
+//! socket.set_nonblocking(true).unwrap();
+//!
+//! let host = ("metrics.example.com", DEFAULT_PORT);
+//! let udp_sink = BufferedUdpMetricSink::from(host, socket).unwrap();
+//! let queuing_sink = QueuingMetricSink::with_capacity(udp_sink, QUEUE_SIZE);
+//! let client = StatsdClient::from_sink("my.prefix", queuing_sink);
+//!
+//! client.count("my.counter.thing", 29);
+//! client.time("my.service.call", 214);
+//! client.incr("some.event");
+//! ```
+//!
+//! Using a `QueuingMetricSink` with a capacity set means that when the queue
+//! is full, attempts to emit metrics via the `StatsdClient` will fail. While
+//! this is bad, the alternative (if you instead used an unbounded queue) is
+//! for unsent metrics to slowly use up more and more memory until your
+//! application exhausts all memory.
+//!
+//! Using an **unbounded** queue means that the sending of metrics can absorb
+//! slowdowns of sending metrics until your application runs out of memory.
+//! Using a **bounded** queue puts a cap on the amount of memory that sending
+//! metrics will use in your application. This is a tradeoff that users of
+//! Cadence must decide for themselves.
+//!
 //! ### Use With Tags
 //!
 //! Adding tags to metrics is accomplished via the use of each of the `_with_tags`
