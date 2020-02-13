@@ -13,6 +13,7 @@ use std::net::{ToSocketAddrs, UdpSocket};
 use std::panic::RefUnwindSafe;
 use std::sync::Arc;
 use std::time::Duration;
+use std::u64;
 
 use crate::builder::{MetricBuilder, MetricFormatter};
 use crate::sinks::{MetricSink, UdpMetricSink};
@@ -99,7 +100,7 @@ pub trait Timed {
     ///
     /// The duration will be truncated to millisecond precision. If the
     /// duration cannot be represented as a `u64` an error will be deferred
-    /// and returned when `MetricBuilder::send()` is called.
+    /// and returned when `MetricBuilder::try_send()` is called.
     fn time_duration_with_tags<'a>(
         &'a self,
         key: &'a str,
@@ -190,6 +191,29 @@ pub trait Histogrammed {
         &'a self,
         key: &'a str,
         value: u64,
+    ) -> MetricBuilder<'_, '_, Histogram>;
+
+    /// Record a single histogram value with the given key.
+    ///
+    /// The duration will be converted to nanoseconds. If the duration cannot
+    /// be represented as a `u64` an error will be returned. Although
+    /// histograms don't necessarily represent times, this method is provided
+    /// as a convenience.
+    fn histogram_duration(&self, key: &str, duration: Duration) -> MetricResult<Histogram> {
+        self.histogram_duration_with_tags(key, duration).try_send()
+    }
+
+    /// Record a single histogram value with the given key and return a
+    /// `MetricBuilder` that can be used to add tags to the metric.
+    ///
+    /// The duration will be converted to nanoseconds. If the duration cannot
+    /// be represented as a `u64` an error will be deferred and returned when
+    /// `MetricBuilder::try_send()` is called. Although histograms don't
+    /// necessarily represent times, this method is provided as a convenience.
+    fn histogram_duration_with_tags<'a>(
+        &'a self,
+        key: &'a str,
+        duration: Duration,
     ) -> MetricBuilder<'_, '_, Histogram>;
 }
 
@@ -719,16 +743,11 @@ impl Timed for StatsdClient {
         key: &'a str,
         duration: Duration,
     ) -> MetricBuilder<'_, '_, Timer> {
-        let secs_as_ms = duration.as_secs().checked_mul(1_000);
-        let nanos_as_ms = u64::from(duration.subsec_nanos()).checked_div(1_000_000);
-
-        let result = secs_as_ms
-            .and_then(|v1| nanos_as_ms.and_then(|v2| v1.checked_add(v2)))
-            .ok_or_else(|| MetricError::from((ErrorKind::InvalidInput, "u64 overflow")));
-
-        match result {
-            Ok(millis) => self.time_with_tags(key, millis),
-            Err(e) => MetricBuilder::from_error(e, self),
+        let as_millis = duration.as_millis();
+        if as_millis > u64::MAX as u128 {
+            MetricBuilder::from_error(MetricError::from((ErrorKind::InvalidInput, "u64 overflow")), self)
+        } else {
+            self.time_with_tags(key, as_millis as u64)
         }
     }
 }
@@ -755,6 +774,19 @@ impl Histogrammed for StatsdClient {
     ) -> MetricBuilder<'_, '_, Histogram> {
         let fmt = MetricFormatter::histogram(&self.prefix, key, value);
         MetricBuilder::new(fmt, self)
+    }
+
+    fn histogram_duration_with_tags<'a>(
+        &'a self,
+        key: &'a str,
+        duration: Duration,
+    ) -> MetricBuilder<'_, '_, Histogram> {
+        let as_nanos = duration.as_nanos();
+        if as_nanos > u64::MAX as u128 {
+            MetricBuilder::from_error(MetricError::from((ErrorKind::InvalidInput, "u64 overflow")), self)
+        } else {
+            self.histogram_with_tags(key, as_nanos as u64)
+        }
     }
 }
 
@@ -854,6 +886,49 @@ mod tests {
             "prefix.some.histo:27|h|#host:www03.example.com,rc1",
             res.unwrap().as_metric_str()
         );
+    }
+
+    #[test]
+    fn test_statsd_client_historgram_duration() {
+        let client = StatsdClient::from_sink("prefix", NopMetricSink);
+        let res = client.histogram_duration("key", Duration::from_nanos(210));
+
+        assert_eq!("prefix.key:210|h", res.unwrap().as_metric_str());
+    }
+
+    #[test]
+    fn test_statsd_client_histogram_duration_with_overflow() {
+        let client = StatsdClient::from_sink("prefix", NopMetricSink);
+        let res = client.histogram_duration("key", Duration::from_secs(u64::MAX));
+
+        assert_eq!(ErrorKind::InvalidInput, res.unwrap_err().kind());
+    }
+
+    #[test]
+    fn test_statsd_client_histogram_duration_with_tags() {
+        let client = StatsdClient::from_sink("prefix", NopMetricSink);
+        let res = client
+            .histogram_duration_with_tags("key", Duration::from_nanos(4096))
+            .with_tag("foo", "bar")
+            .with_tag_value("beta")
+            .try_send();
+
+        assert_eq!(
+            "prefix.key:4096|h|#foo:bar,beta",
+            res.unwrap().as_metric_str()
+        );
+    }
+
+    #[test]
+    fn test_statsd_client_histogram_duration_with_tags_with_overflow() {
+        let client = StatsdClient::from_sink("prefix", NopMetricSink);
+        let res = client
+            .histogram_duration_with_tags("key", Duration::from_millis(u64::MAX))
+            .with_tag("foo", "bar")
+            .with_tag_value("beta")
+            .try_send();
+
+        assert_eq!(ErrorKind::InvalidInput, res.unwrap_err().kind());
     }
 
     #[test]

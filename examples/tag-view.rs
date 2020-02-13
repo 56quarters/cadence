@@ -154,6 +154,19 @@ impl Histogrammed for MetricTagDecorator {
 
         builder
     }
+
+    fn histogram_duration_with_tags<'a>(
+        &'a self,
+        key: &'a str,
+        duration: Duration,
+    ) -> MetricBuilder<'_, '_, Histogram> {
+        let mut builder = self.client.histogram_duration_with_tags(key, duration);
+        for (tkey, tval) in self.tags.iter() {
+            builder = builder.with_tag(tkey, tval);
+        }
+
+        builder
+    }
 }
 
 impl Setted for MetricTagDecorator {
