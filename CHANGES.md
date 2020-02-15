@@ -5,6 +5,8 @@
   `::with_capacity()` constructor. This allows users to limit the amount of
   memory used by sending metrics (in case the wrapped sink can't keep up with
   the rate of metrics being sent due to to some sort of error).
+* **Breaking change** - The `Histogrammed` trait now includes methods for sending
+  `Duration` objects, converted to nanoseconds, as histogram values.
 * **Breaking change** - The `QueuingMetricSink::panics()` method now returns
   a `u64`, not a `usize`.
 
