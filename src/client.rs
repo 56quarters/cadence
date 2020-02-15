@@ -195,10 +195,10 @@ pub trait Histogrammed {
 
     /// Record a single histogram value with the given key.
     ///
-    /// The duration will be converted to nanoseconds. If the duration cannot
-    /// be represented as a `u64` an error will be returned. Although
-    /// histograms don't necessarily represent times, this method is provided
-    /// as a convenience.
+    /// The duration will be converted to nanoseconds. If the duration
+    /// cannot be represented as a `u64` an error will be returned. Note
+    /// that histograms are an extension to Statsd, you'll need to check
+    /// if they are supported by your server and considered times.
     fn histogram_duration(&self, key: &str, duration: Duration) -> MetricResult<Histogram> {
         self.histogram_duration_with_tags(key, duration).try_send()
     }
@@ -208,8 +208,9 @@ pub trait Histogrammed {
     ///
     /// The duration will be converted to nanoseconds. If the duration cannot
     /// be represented as a `u64` an error will be deferred and returned when
-    /// `MetricBuilder::try_send()` is called. Although histograms don't
-    /// necessarily represent times, this method is provided as a convenience.
+    /// `MetricBuilder::try_send()` is called. Note that histograms are an
+    /// extension to Statsd, you'll need to check if they are supported by
+    /// your server and considered times.
     fn histogram_duration_with_tags<'a>(
         &'a self,
         key: &'a str,
