@@ -1,6 +1,6 @@
 # Changelog
 
-## [v0.20.0](https://github.com/tshlabs/cadence/tree/0.20.0) - 2020-??-??
+## [v0.20.0](https://github.com/tshlabs/cadence/tree/0.20.0) - 2020-04-07
 * The `QueuingMetricSink` can now be created with a fixed queue size using the
   `::with_capacity()` constructor. This allows users to limit the amount of
   memory used by sending metrics (in case the wrapped sink can't keep up with
