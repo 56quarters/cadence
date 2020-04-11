@@ -391,7 +391,7 @@
 //!
 //! ### Unix Sockets
 //!
-//! Cadence also supports using Unix datagram sockets with the `UdsMetricSink`  or
+//! Cadence also supports using Unix datagram sockets with the `UnixMetricSink`  or
 //! `BufferedUnixMetricSink`. Unix sockets can be used for sending metrics to a server
 //! or agent running on the same machine (physical machine, VM, containers in a pod)
 //! as your application. Unix sockets are somewhat similar to UDP sockets with a few
