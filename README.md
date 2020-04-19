@@ -40,7 +40,7 @@ Cadence is a flexible and easy way to do this!
 To make use of Cadence in your project, add it as a dependency in your
 `Cargo.toml` file.
 
-``` toml
+```toml
 [dependencies]
 cadence = "x.y.z"
 ```
@@ -167,7 +167,7 @@ in which the wrapped sink is running. If instead, you want to create a
 **bounded** queue with a maximum size, you can use the `with_capacity`
 constructor. An example of this is given below.
 
-```rust,no_run
+```rust
 use std::net::UdpSocket;
 use cadence::prelude::*;
 use cadence::{StatsdClient, QueuingMetricSink, BufferedUdpMetricSink,

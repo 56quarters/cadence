@@ -41,7 +41,7 @@
 //! To make use of Cadence in your project, add it as a dependency in your
 //! `Cargo.toml` file.
 //!
-//! ``` toml
+//! ```toml
 //! [dependencies]
 //! cadence = "x.y.z"
 //! ```
