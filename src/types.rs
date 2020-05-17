@@ -224,6 +224,18 @@ impl fmt::Display for MetricError {
 }
 
 impl error::Error for MetricError {
+    fn source(&self) -> Option<&(dyn error::Error + 'static)> {
+        match self.repr {
+            ErrorRepr::IoError(ref err) => Some(err),
+            _ => None,
+        }
+    }
+
+    // Deprecated in 1.42 but we'd like to support it and older versions of
+    // Rust where this method wasn't deprecated. There's no easy way to return
+    // a `&str` based on the result of `Display` or similar so we're stuck with
+    // this API for a while.
+    #[allow(deprecated, deprecated_in_future)]
     fn description(&self) -> &str {
         match self.repr {
             ErrorRepr::IoError(ref err) => err.description(),
@@ -233,13 +245,6 @@ impl error::Error for MetricError {
 
     fn cause(&self) -> Option<&dyn error::Error> {
         self.source()
-    }
-
-    fn source(&self) -> Option<&(dyn error::Error + 'static)> {
-        match self.repr {
-            ErrorRepr::IoError(ref err) => Some(err),
-            _ => None,
-        }
     }
 }
 
@@ -263,6 +268,7 @@ pub type MetricResult<T> = Result<T, MetricError>;
 
 #[cfg(test)]
 mod tests {
+    #![allow(deprecated, deprecated_in_future)]
 
     use super::{Counter, ErrorKind, Gauge, Histogram, Meter, Metric, MetricError, Set, Timer};
     use std::error::Error;
