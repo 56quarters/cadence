@@ -1,6 +1,6 @@
 # Cadence
 
-[![Build Status](https://travis-ci.org/tshlabs/cadence.svg?branch=master)](https://travis-ci.org/tshlabs/cadence)
+[![Build Status](https://travis-ci.org/56quarters/cadence.svg?branch=master)](https://travis-ci.org/56quarters/cadence)
 [![docs.rs](https://docs.rs/cadence/badge.svg)](https://docs.rs/cadence/)
 [![crates.io](https://img.shields.io/crates/v/cadence.svg)](https://crates.io/crates/cadence/)
 
@@ -422,7 +422,7 @@ The documentation is available at https://docs.rs/cadence/
 
 ## Source
 
-The source code is available on GitHub at https://github.com/tshlabs/cadence
+The source code is available on GitHub at https://github.com/56quarters/cadence
 
 ## Changes
 
