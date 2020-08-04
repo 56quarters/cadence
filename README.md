@@ -3,6 +3,7 @@
 [![Build Status](https://travis-ci.org/56quarters/cadence.svg?branch=master)](https://travis-ci.org/56quarters/cadence)
 [![docs.rs](https://docs.rs/cadence/badge.svg)](https://docs.rs/cadence/)
 [![crates.io](https://img.shields.io/crates/v/cadence.svg)](https://crates.io/crates/cadence/)
+[![Rust 1.36+](https://img.shields.io/badge/rust-1.36+-lightgray.svg)](https://www.rust-lang.org)
 
 [Documentation](https://docs.rs/cadence/)
 
@@ -499,6 +500,10 @@ Support for these versions may be dropped for a release in order to take
 advantage of a feature available in newer versions of Rust.
 
 ### Known to Work
+
+* Stable versions as far back as `1.36` are known to work with Cadence
+  `0.21.0` (not yet released). Building with this version (and any versions
+  older than `stable - 4`) is not supported and may break at any time.
 
 * Stable versions as far back as `1.34` are known to work with Cadence
   `0.20.0`. Building with this version (and any versions older than
