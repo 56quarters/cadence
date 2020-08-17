@@ -216,6 +216,11 @@ impl MetricSink for BufferedUnixMetricSink {
         let mut writer = self.buffer.lock().unwrap();
         writer.write(metric.as_bytes())
     }
+
+    fn flush(&self) -> io::Result<()> {
+        let mut writer = self.buffer.lock().unwrap();
+        writer.flush()
+    }
 }
 
 #[cfg(test)]
@@ -265,6 +270,25 @@ mod tests {
             // the end.
             assert_eq!(9, sink.emit("foo:54|c").unwrap());
             assert_eq!(9, sink.emit("foo:67|c").unwrap());
+        });
+    }
+
+    #[test]
+    fn test_buffered_unix_metric_sink_flush() {
+        let harness = UnixServerHarness::new("test_buffered_unix_metric_sink_flush");
+
+        harness.run_quiet(|path| {
+            let socket = UnixDatagram::unbound().unwrap();
+
+            // Set the capacity of the buffer such that it won't be flushed
+            // from a single write. Thus we can test the flush method.
+            let sink = BufferedUnixMetricSink::with_capacity(path, socket, 16);
+
+            // Note that we're including an extra byte in the expected
+            // number written since each metric is followed by a '\n' at
+            // the end.
+            assert_eq!(9, sink.emit("foo:54|c").unwrap());
+            assert!(sink.flush().is_ok());
         });
     }
 }
