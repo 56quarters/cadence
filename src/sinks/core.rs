@@ -58,6 +58,15 @@ pub trait MetricSink {
     /// Send the Statsd metric using this sink and return the number of bytes
     /// written or an I/O error.
     fn emit(&self, metric: &str) -> io::Result<usize>;
+
+    /// Flush any currently buffered metrics to the underlying backend, returning
+    /// an I/O error if they could not be written for some reason.
+    ///
+    /// Note that not all sinks buffer metrics and so the default implementation of
+    /// this method does nothing.
+    fn flush(&self) -> io::Result<()> {
+        Ok(())
+    }
 }
 
 /// Implementation of a `MetricSink` that discards all metrics.
