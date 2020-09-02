@@ -1,5 +1,9 @@
 # Changelog
 
+## [v0.21.0](https://github.com/tshlabs/cadence/tree/0.21.0) - 2020-09-02
+* Add a `.flush()` method to the `MetricSink` trait to allow applications to
+  flush metrics out-of-band per [#100](https://github.com/tshlabs/cadence/issues/100).
+
 ## [v0.20.0](https://github.com/tshlabs/cadence/tree/0.20.0) - 2020-04-07
 * The `QueuingMetricSink` can now be created with a fixed queue size using the
   `::with_capacity()` constructor. This allows users to limit the amount of
