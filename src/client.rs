@@ -246,7 +246,7 @@ pub trait Setted {
 /// ```
 /// use cadence::{MetricClient, StatsdClient, NopMetricSink};
 ///
-/// let client: Box<MetricClient> = Box::new(StatsdClient::from_sink(
+/// let client: Box<dyn MetricClient> = Box::new(StatsdClient::from_sink(
 ///     "prefix", NopMetricSink));
 ///
 /// client.count("some.counter", 1).unwrap();
@@ -483,7 +483,7 @@ impl StatsdClientBuilder {
 /// use cadence::{StatsdClient, BufferedUdpMetricSink, DEFAULT_PORT};
 ///
 /// struct MyRequestHandler {
-///     metrics: Arc<MetricClient + Send + Sync + RefUnwindSafe>,
+///     metrics: Arc<dyn MetricClient + Send + Sync + RefUnwindSafe>,
 /// }
 ///
 /// impl MyRequestHandler {
