@@ -479,7 +479,7 @@ additional terms or conditions.
 
 ## Language Support
 
-Cadence (latest master) supports building with a range of `1.34+` versions.
+Cadence (latest master) supports building with a range of `1.36+` versions.
 
 ### Guaranteed to Build
 
