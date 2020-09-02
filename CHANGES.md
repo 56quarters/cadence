@@ -1,5 +1,8 @@
 # Changelog
 
+## [v0.21.1](https://github.com/tshlabs/cadence/tree/0.21.1) - 2020-09-02
+* Minor documentation improvements.
+
 ## [v0.21.0](https://github.com/tshlabs/cadence/tree/0.21.0) - 2020-09-02
 * Add a `.flush()` method to the `MetricSink` trait to allow applications to
   flush metrics out-of-band per [#100](https://github.com/tshlabs/cadence/issues/100).
