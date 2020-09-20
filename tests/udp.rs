@@ -1,4 +1,4 @@
-use cadence::test::SpyMetricSink;
+use cadence::test::DelegatingMetricSink;
 use cadence::{
     BufferedUdpMetricSink, QueuingMetricSink, StatsdClient, UdpMetricSink, DEFAULT_PORT,
 };
@@ -32,11 +32,11 @@ fn new_queuing_buffered_udp_client(prefix: &str) -> StatsdClient {
     StatsdClient::from_sink(prefix, sink)
 }
 
-fn new_spy_queuing_buffered_udp_client(prefix: &str) -> (StatsdClient, Arc<QueuingMetricSink>) {
+fn new_delegating_queuing_buffered_udp_client(prefix: &str) -> (StatsdClient, Arc<QueuingMetricSink>) {
     let socket = UdpSocket::bind("0.0.0.0:0").unwrap();
     let buffered = BufferedUdpMetricSink::with_capacity(TARGET_HOST, socket, BUFFER_SZ).unwrap();
     let queuing = Arc::new(QueuingMetricSink::with_capacity(buffered, QUEUE_SZ));
-    let sink = SpyMetricSink::new(queuing.clone());
+    let sink = DelegatingMetricSink::new(queuing.clone());
     let client = StatsdClient::from_sink(prefix, sink);
     (client, queuing)
 }
@@ -82,8 +82,8 @@ fn test_statsd_client_queuing_buffered_udp_sink_many_threaded() {
 
 #[ignore]
 #[test]
-fn test_statsd_client_queuing_spy_many_threaded() {
-    let (client, sink) = new_spy_queuing_buffered_udp_client("cadence");
+fn test_statsd_client_queuing_delegating_many_threaded() {
+    let (client, sink) = new_delegating_queuing_buffered_udp_client("cadence");
     run_arc_threaded_test(client, NUM_THREADS, NUM_ITERATIONS);
 
     let mut queued = sink.queued();

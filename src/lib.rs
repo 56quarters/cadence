@@ -437,7 +437,7 @@ pub use self::client::{
 };
 
 pub use self::sinks::{
-    BufferedUdpMetricSink, MetricSink, NopMetricSink, QueuingMetricSink, UdpMetricSink,
+    BufferedSpyMetricSink, BufferedUdpMetricSink, MetricSink, NopMetricSink, QueuingMetricSink,  UdpMetricSink, SpyMetricSink,
 };
 
 pub use self::types::{

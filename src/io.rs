@@ -41,13 +41,13 @@ where
 {
     /// Create a new buffered `MultiLineWriter` instance that suffixes
     /// each write with a newline character ('\n').
-    pub(crate) fn new(cap: usize, inner: T) -> MultiLineWriter<T> {
-        Self::with_ending(cap, inner, "\n")
+    pub(crate) fn new(inner: T, cap: usize) -> MultiLineWriter<T> {
+        Self::with_ending(inner, cap, "\n")
     }
 
     /// Create a new buffered `MultiLineWriter` instance that suffixes
     /// each write with the given line ending.
-    pub(crate) fn with_ending(cap: usize, inner: T, end: &str) -> MultiLineWriter<T> {
+    pub(crate) fn with_ending(inner: T, cap: usize, end: &str) -> MultiLineWriter<T> {
         MultiLineWriter {
             written: 0,
             capacity: cap,
@@ -123,7 +123,7 @@ mod tests {
 
     #[test]
     fn test_write_needs_flush() {
-        let mut buffered = MultiLineWriter::new(16, vec![]);
+        let mut buffered = MultiLineWriter::new(vec![],16);
 
         let write1 = buffered.write("foo:1234|c".as_bytes()).unwrap();
         let written_after_write1 = buffered.get_ref().len();
@@ -144,7 +144,7 @@ mod tests {
 
     #[test]
     fn test_write_no_flush() {
-        let mut buffered = MultiLineWriter::new(32, vec![]);
+        let mut buffered = MultiLineWriter::new(vec![],32);
 
         let write1 = buffered.write("abc:3|g".as_bytes()).unwrap();
         let written_after_write1 = buffered.get_ref().len();
@@ -161,7 +161,7 @@ mod tests {
 
     #[test]
     fn test_write_bigger_than_buffer() {
-        let mut buffered = MultiLineWriter::new(16, vec![]);
+        let mut buffered = MultiLineWriter::new(vec![], 16);
 
         let write1 = buffered
             .write("some_really_long_metric:456|c".as_bytes())
@@ -184,7 +184,7 @@ mod tests {
 
     #[test]
     fn test_buffer_write_equal_capacity() {
-        let mut buffered = MultiLineWriter::new(8, vec![]);
+        let mut buffered = MultiLineWriter::new(vec![],8);
 
         let bytes_written = buffered.write("foo:42|c".as_bytes()).unwrap();
         let written = str::from_utf8(&buffered.get_ref()).unwrap();
@@ -199,7 +199,7 @@ mod tests {
 
     #[test]
     fn test_flush_still_buffered() {
-        let mut buffered = MultiLineWriter::new(32, vec![]);
+        let mut buffered = MultiLineWriter::new(vec![], 32);
 
         buffered.write("xyz".as_bytes()).unwrap();
         buffered.write("abc".as_bytes()).unwrap();
@@ -220,7 +220,7 @@ mod tests {
         // BufWriter it's using internally is flushed when it goes out
         // of scope and anything that was buffered gets written out.
         {
-            let mut writer = MultiLineWriter::new(32, &mut buf);
+            let mut writer = MultiLineWriter::new(&mut buf, 32);
             let _r = writer.write("something".as_bytes()).unwrap();
             assert_eq!(0, writer.get_ref().len());
         }

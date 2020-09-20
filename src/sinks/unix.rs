@@ -204,8 +204,8 @@ impl BufferedUnixMetricSink {
     {
         BufferedUnixMetricSink {
             buffer: Mutex::new(MultiLineWriter::new(
-                cap,
                 UnixWriteAdapter::new(socket, path),
+                cap,
             )),
         }
     }

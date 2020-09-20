@@ -244,8 +244,8 @@ impl BufferedUdpMetricSink {
         let addr = get_addr(sink_addr)?;
         Ok(BufferedUdpMetricSink {
             buffer: Mutex::new(MultiLineWriter::new(
-                cap,
                 UdpWriteAdapter::new(addr, socket),
+                cap,
             )),
         })
     }
@@ -310,11 +310,11 @@ mod tests {
     }
 
     #[test]
-    fn test_buffered_udp_metric_sink_flus() {
+    fn test_buffered_udp_metric_sink_flush() {
         let socket = UdpSocket::bind("0.0.0.0:0").unwrap();
         // Set the capacity of the buffer such that it won't be flushed
         // from a single write. Thus we can test the flush method.
-        let sink = BufferedUdpMetricSink::with_capacity("127.0.0.1:8125", socket, 16).unwrap();
+        let sink = BufferedUdpMetricSink::with_capacity("127.0.0.1:8125", socket, 64).unwrap();
 
         // Note that we're including an extra byte in the expected
         // number written since each metric is followed by a '\n' at
