@@ -10,10 +10,12 @@
 
 mod core;
 mod queuing;
+mod spy;
 mod udp;
 
 pub use crate::sinks::core::{MetricSink, NopMetricSink};
 pub use crate::sinks::queuing::QueuingMetricSink;
+pub use crate::sinks::spy::{BufferedSpyMetricSink, SpyMetricSink};
 pub use crate::sinks::udp::{BufferedUdpMetricSink, UdpMetricSink};
 
 #[cfg(unix)]

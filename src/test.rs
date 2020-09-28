@@ -230,20 +230,20 @@ impl Drop for UnixServerHarness {
 /// `MetricSink` so that the caller can keep a reference to it (useful
 /// for testing the `QueuingMetricSink` so that we can inspect the
 /// number of pending metrics and the like).
-pub struct SpyMetricSink {
+pub struct DelegatingMetricSink {
     delegate: Arc<dyn MetricSink + Send + Sync + RefUnwindSafe>,
 }
 
-impl SpyMetricSink {
+impl DelegatingMetricSink {
     pub fn new<S>(delegate: Arc<S>) -> Self
     where
         S: MetricSink + Send + Sync + RefUnwindSafe + 'static,
     {
-        SpyMetricSink { delegate }
+        DelegatingMetricSink { delegate }
     }
 }
 
-impl MetricSink for SpyMetricSink {
+impl MetricSink for DelegatingMetricSink {
     fn emit(&self, metric: &str) -> io::Result<usize> {
         self.delegate.emit(metric)
     }
