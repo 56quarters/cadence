@@ -14,8 +14,6 @@ use crate::types::{Metric, MetricError, MetricResult};
 use std::fmt::{self, Write};
 use std::marker::PhantomData;
 
-const DATADOG_TAGS_PREFIX: &str = "|#";
-
 /// Uniform holder for values that knows how to display itself
 #[derive(PartialEq, Eq, Debug, Hash, Clone, Copy)]
 enum MetricValue {
@@ -73,6 +71,8 @@ impl<'a, T> MetricFormatter<'a, T>
 where
     T: Metric + From<String>,
 {
+    const TAG_PREFIX: &'static str = "|#";
+
     pub(crate) fn counter(prefix: &'a str, key: &'a str, val: i64) -> Self {
         Self::from_i64(prefix, key, val, MetricType::Counter)
     }
@@ -139,15 +139,25 @@ where
 
     fn write_tags(&self, out: &mut String) {
         if let Some(tags) = self.tags.as_ref() {
-            write_datadog_tags(out, tags);
+            out.push_str(Self::TAG_PREFIX);
+            for (i, &(key, value)) in tags.iter().enumerate() {
+                if i > 0 {
+                    out.push(',');
+                }
+                if let Some(key) = key {
+                    out.push_str(key);
+                    out.push(':');
+                }
+                out.push_str(value);
+            }
         }
     }
 
-    fn size_hint(&self) -> usize {
+    fn base_metric_size_hint(&self) -> usize {
         // Note: This isn't actually the number of bytes required, it's just
-        // a guess (♪ this is just a tribute ♪). This is probably sufficient in
-        // most cases and guessing is faster than actually doing the math to find
-        // the exact number of bytes required.
+        // a guess. This is probably sufficient in most cases and guessing is
+        // faster than actually doing the math to find the exact number of bytes
+        // required.
         //
         // Justification for "10" bytes: the max number of digits we could possibly
         // need for the string representation of our value is 20 (for both u64::MAX
@@ -155,17 +165,26 @@ where
         // large range of values that will actually be seen in practice. Plus, using
         // a constant is faster than computing the `val.log(10)` of our value which
         // we would need to know exactly how many digits it takes up.
-        let size = self.prefix.len() + self.key.len()
-            + 1 /* : */ + 10 /* see above */ + 1 /* | */ + 2 /* type */;
-        if let Some(tags) = self.tags.as_ref() {
-            size + datadog_tags_size_hint(tags)
-        } else {
-            size
-        }
+        self.prefix.len() + self.key.len() + 1 /* : */ + 10 /* see above */ + 1 /* | */ + 2 /* type */
+    }
+
+    fn tag_size_hint(&self) -> usize {
+        // Enough space for prefix, tags, separators, and commas
+        self.tags.as_ref().map(|t| {
+            // Space required for each key value pair or singleton value
+            let kv_size: usize = t
+                .iter()
+                .map(|tag| tag.0.map_or(0, |k| k.len() + 1 /* : */) + tag.1.len())
+                .sum();
+
+            // If we're inside the map method, there are tags so we need the prefix
+            Self::TAG_PREFIX.len() + kv_size + t.len() - 1 /* prefix, keys and values, commas */
+        }).unwrap_or(0)
     }
 
     pub(crate) fn build(&self) -> T {
-        let mut metric_string = String::with_capacity(self.size_hint());
+        let size_hint = self.base_metric_size_hint() + self.tag_size_hint();
+        let mut metric_string = String::with_capacity(size_hint);
         self.write_base_metric(&mut metric_string);
         self.write_tags(&mut metric_string);
         T::from(metric_string)
@@ -381,35 +400,9 @@ where
     }
 }
 
-fn datadog_tags_size_hint(tags: &[(Option<&str>, &str)]) -> usize {
-    // enough space for prefix, tags/: separators and commas
-    let kv_size: usize = tags
-        .iter()
-        .map(|tag| {
-            tag.0.map_or(0, |k| k.len() + 1) // +1 for : separator
-                + tag.1.len()
-        })
-        .sum();
-    DATADOG_TAGS_PREFIX.len() + kv_size + tags.len() - 1
-}
-
-fn write_datadog_tags(metric: &mut String, tags: &[(Option<&str>, &str)]) {
-    metric.push_str(DATADOG_TAGS_PREFIX);
-    for (i, &(key, value)) in tags.iter().enumerate() {
-        if i > 0 {
-            metric.push(',');
-        }
-        if let Some(key) = key {
-            metric.push_str(key);
-            metric.push(':');
-        }
-        metric.push_str(value);
-    }
-}
-
 #[cfg(test)]
 mod tests {
-    use super::{write_datadog_tags, MetricFormatter};
+    use super::MetricFormatter;
     use crate::types::{Counter, Gauge, Histogram, Meter, Metric, Set, Timer};
 
     #[test]
@@ -556,23 +549,5 @@ mod tests {
             ),
             set.as_metric_str()
         );
-    }
-
-    #[test]
-    fn test_write_datadog_tags() {
-        let mut m = String::from("some.counter:1|c");
-        write_datadog_tags(&mut m, &vec![(Some("host"), "app01.example.com")]);
-        assert_eq!(m, "some.counter:1|c|#host:app01.example.com");
-
-        let mut m = String::new();
-        write_datadog_tags(
-            &mut m,
-            &vec![
-                (Some("host"), "app01.example.com"),
-                (Some("bucket"), "A"),
-                (None, "file-server"),
-            ],
-        );
-        assert_eq!(m, "|#host:app01.example.com,bucket:A,file-server");
     }
 }
