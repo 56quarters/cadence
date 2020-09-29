@@ -1,5 +1,10 @@
 # Changelog
 
+## [v0.22.0](https://github.com/tshlabs/cadence/tree/0.22.0) - 2020-??-??
+* Add new `SpyMetricSink` and `BufferedSpyMetricSink` to allow inspecting
+  metrics sent by Cadence as part of integration testing an application per
+  [#103](https://github.com/tshlabs/cadence/issues/103).
+
 ## [v0.21.1](https://github.com/tshlabs/cadence/tree/0.21.1) - 2020-09-02
 * Minor documentation improvements.
 
