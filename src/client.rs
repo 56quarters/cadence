@@ -262,11 +262,12 @@ pub trait MetricClient: Counted + Timed + Gauged + Metered + Histogrammed + Sett
 ///
 /// This trait exposes methods of the client that would normally be internal
 /// but may be useful for consumers of the library to extend it in unforseen
-/// ways.
+/// ways. Most consumers of the library shouldn't need to make use of this
+/// extension point.
 ///
 /// This trait is not exposed in the `prelude` module since it isn't required
 /// to use the client for sending metrics. It is only exposed in the `ext`
-/// module which is used to encompass extension points for the library.
+/// module which is used to encompass advanced extension points for the library.
 ///
 /// # Example
 ///

@@ -8,10 +8,12 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-//! Extension points for the Cadence library
+//! Advanced extension points for the Cadence library
 //!
 //! Libraries wishing to make use of Cadence for sending metrics to
 //! a Statsd server but needing more control over how the metrics are
-//! built and formatted can make use these extension points.
+//! built and formatted can make use these extension points. Most
+//! consumers of Cadence shouldn't need to make use of these extension
+//! points.
 
 pub use crate::client::MetricBackend;
