@@ -18,6 +18,7 @@ rust:
   - 1.44.0
   - 1.45.0
   - 1.46.0
+  - 1.47.0
 
 matrix:
   allow_failures:
