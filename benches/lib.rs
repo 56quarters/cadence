@@ -123,6 +123,11 @@ fn test_benchmark_new_gauge_obj(b: &mut Bencher) {
 }
 
 #[bench]
+fn test_benchmark_new_gauge_f64_obj(b: &mut Bencher) {
+    b.iter(|| Gauge::new_f64("prefix", "some.gauge", 5.5));
+}
+
+#[bench]
 fn test_benchmark_new_meter_obj(b: &mut Bencher) {
     b.iter(|| Meter::new("prefix", "some.meter", 5));
 }

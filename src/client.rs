@@ -125,9 +125,18 @@ pub trait Gauged {
         self.gauge_with_tags(key, value).try_send()
     }
 
+    /// Record a gauge value with the given key
+    fn gauge_f64(&self, key: &str, value: f64) -> MetricResult<Gauge> {
+        self.gauge_f64_with_tags(key, value).try_send()
+    }
+
     /// Record a gauge value with the given key and return a `MetricBuilder`
     /// that can be used to add tags to the metric.
     fn gauge_with_tags<'a>(&'a self, key: &'a str, value: u64) -> MetricBuilder<'_, '_, Gauge>;
+
+    /// Record a gauge value with the given key and return a `MetricBuilder`
+    /// that can be used to add tags to the metric.
+    fn gauge_f64_with_tags<'a>(&'a self, key: &'a str, value: f64) -> MetricBuilder<'_, '_, Gauge>;
 }
 
 /// Trait for recording meter values.
@@ -759,6 +768,11 @@ impl Gauged for StatsdClient {
         let fmt = MetricFormatter::gauge(&self.prefix, key, value);
         MetricBuilder::new(fmt, self)
     }
+
+    fn gauge_f64_with_tags<'a>(&'a self, key: &'a str, value: f64) -> MetricBuilder<'_, '_, Gauge> {
+        let fmt = MetricFormatter::gauge_f64(&self.prefix, key, value);
+        MetricBuilder::new(fmt, self)
+    }
 }
 
 impl Metered for StatsdClient {
@@ -856,6 +870,21 @@ mod tests {
 
         assert_eq!(
             "prefix.some.gauge:4|g|#bucket:A,file-server",
+            res.unwrap().as_metric_str()
+        );
+    }
+
+    #[test]
+    fn test_statsd_client_gauge_f64_with_tags() {
+        let client = StatsdClient::from_sink("prefix", NopMetricSink);
+        let res = client
+            .gauge_f64_with_tags("some.gauge", 4.5)
+            .with_tag("bucket", "A")
+            .with_tag_value("file-server")
+            .try_send();
+
+        assert_eq!(
+            "prefix.some.gauge:4.5|g|#bucket:A,file-server",
             res.unwrap().as_metric_str()
         );
     }
@@ -1043,14 +1072,6 @@ mod tests {
             .send();
 
         assert_eq!(1, count.load(Ordering::Acquire));
-    }
-
-    #[test]
-    fn test_statsd_client_set_no_tags() {
-        let client = StatsdClient::from_sink("myapp", NopMetricSink);
-        let res = client.set("some.set", 3);
-
-        assert_eq!("myapp.some.set:3|s", res.unwrap().as_metric_str());
     }
 
     #[test]

@@ -58,6 +58,13 @@ fn test_statsd_client_gauge() {
 }
 
 #[test]
+fn test_statsd_client_gauge_f64() {
+    let client = new_nop_client("client.test");
+    let expected = Gauge::new_f64("client.test.", "gauge.key", 5.5);
+    assert_eq!(expected, client.gauge_f64("gauge.key", 5.5).unwrap());
+}
+
+#[test]
 fn test_statsd_client_mark() {
     let client = new_nop_client("client.test");
     let expected = Meter::new("client.test.", "meter.key", 1);

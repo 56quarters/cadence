@@ -15,10 +15,11 @@ use std::fmt::{self, Write};
 use std::marker::PhantomData;
 
 /// Uniform holder for values that knows how to display itself
-#[derive(PartialEq, Eq, Debug, Hash, Clone, Copy)]
+#[derive(Debug, Clone, Copy)]
 enum MetricValue {
     Signed(i64),
     Unsigned(u64),
+    Float(f64),
 }
 
 impl fmt::Display for MetricValue {
@@ -26,12 +27,13 @@ impl fmt::Display for MetricValue {
         match *self {
             MetricValue::Signed(i) => i.fmt(f),
             MetricValue::Unsigned(i) => i.fmt(f),
+            MetricValue::Float(i) => i.fmt(f),
         }
     }
 }
 
 /// Type of metric that knows how to display itself
-#[derive(PartialEq, Eq, Debug, Hash, Clone, Copy)]
+#[derive(Debug, Clone, Copy)]
 enum MetricType {
     Counter,
     Timer,
@@ -54,7 +56,7 @@ impl fmt::Display for MetricType {
     }
 }
 
-#[derive(PartialEq, Eq, Debug, Hash, Clone)]
+#[derive(Debug, Clone)]
 pub(crate) struct MetricFormatter<'a, T>
 where
     T: Metric + From<String>,
@@ -83,6 +85,10 @@ where
 
     pub(crate) fn gauge(prefix: &'a str, key: &'a str, val: u64) -> Self {
         Self::from_u64(prefix, key, val, MetricType::Gauge)
+    }
+
+    pub(crate) fn gauge_f64(prefix: &'a str, key: &'a str, val: f64) -> Self {
+        Self::from_f64(prefix, key, val, MetricType::Gauge)
     }
 
     pub(crate) fn meter(prefix: &'a str, key: &'a str, val: u64) -> Self {
@@ -114,6 +120,17 @@ where
             key,
             type_,
             val: MetricValue::Signed(val),
+            metric: PhantomData,
+            tags: None,
+        }
+    }
+
+    fn from_f64(prefix: &'a str, key: &'a str, val: f64, type_: MetricType) -> Self {
+        MetricFormatter {
+            prefix,
+            key,
+            type_,
+            val: MetricValue::Float(val),
             metric: PhantomData,
             tags: None,
         }

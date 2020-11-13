@@ -16,7 +16,7 @@
 use cadence::prelude::*;
 use cadence::{
     Counted, Counter, Gauge, Gauged, Histogram, Histogrammed, Meter, Metered, MetricBuilder,
-    MetricSink, Set, Setted, StatsdClient, Timed, Timer,
+    MetricSink, Set, Setted, StatsdClient, Timed, Timer, Metric
 };
 use std::fmt;
 use std::io;
@@ -82,11 +82,11 @@ impl MetricTagDecorator {
         tags.extend_from_slice(&self.tags);
         Self::from_tags_string(Arc::clone(&self.client), tags)
     }
-}
 
-impl Counted for MetricTagDecorator {
-    fn count_with_tags<'a>(&'a self, key: &'a str, count: i64) -> MetricBuilder<'_, '_, Counter> {
-        let mut builder = self.client.count_with_tags(key, count);
+    fn copy_tags_to_builder<'a, T>(&'a self, mut builder: MetricBuilder<'a, 'a, T>) -> MetricBuilder<'a, 'a, T>
+    where
+        T: Metric + From<String>
+    {
         for (tkey, tval) in self.tags.iter() {
             builder = builder.with_tag(tkey, tval);
         }
@@ -95,14 +95,17 @@ impl Counted for MetricTagDecorator {
     }
 }
 
+impl Counted for MetricTagDecorator {
+    fn count_with_tags<'a>(&'a self, key: &'a str, count: i64) -> MetricBuilder<'_, '_, Counter> {
+        let builder = self.client.count_with_tags(key, count);
+        self.copy_tags_to_builder(builder)
+    }
+}
+
 impl Timed for MetricTagDecorator {
     fn time_with_tags<'a>(&'a self, key: &'a str, time: u64) -> MetricBuilder<'_, '_, Timer> {
-        let mut builder = self.client.time_with_tags(key, time);
-        for (tkey, tval) in self.tags.iter() {
-            builder = builder.with_tag(tkey, tval);
-        }
-
-        builder
+        let builder = self.client.time_with_tags(key, time);
+        self.copy_tags_to_builder(builder)
     }
 
     fn time_duration_with_tags<'a>(
@@ -110,34 +113,27 @@ impl Timed for MetricTagDecorator {
         key: &'a str,
         duration: Duration,
     ) -> MetricBuilder<'_, '_, Timer> {
-        let mut builder = self.client.time_duration_with_tags(key, duration);
-        for (tkey, tval) in self.tags.iter() {
-            builder = builder.with_tag(tkey, tval);
-        }
-
-        builder
+        let builder = self.client.time_duration_with_tags(key, duration);
+        self.copy_tags_to_builder(builder)
     }
 }
 
 impl Gauged for MetricTagDecorator {
     fn gauge_with_tags<'a>(&'a self, key: &'a str, value: u64) -> MetricBuilder<'_, '_, Gauge> {
-        let mut builder = self.client.gauge_with_tags(key, value);
-        for (tkey, tval) in self.tags.iter() {
-            builder = builder.with_tag(tkey, tval);
-        }
+        let builder = self.client.gauge_with_tags(key, value);
+        self.copy_tags_to_builder(builder)
+    }
 
-        builder
+    fn gauge_f64_with_tags<'a>(&'a self, key: &'a str, value: f64) -> MetricBuilder<'_, '_, Gauge> {
+        let builder = self.client.gauge_f64_with_tags(key, value);
+        self.copy_tags_to_builder(builder)
     }
 }
 
 impl Metered for MetricTagDecorator {
     fn meter_with_tags<'a>(&'a self, key: &'a str, value: u64) -> MetricBuilder<'_, '_, Meter> {
-        let mut builder = self.client.meter_with_tags(key, value);
-        for (tkey, tval) in self.tags.iter() {
-            builder = builder.with_tag(tkey, tval);
-        }
-
-        builder
+        let builder = self.client.meter_with_tags(key, value);
+        self.copy_tags_to_builder(builder)
     }
 }
 
@@ -147,12 +143,8 @@ impl Histogrammed for MetricTagDecorator {
         key: &'a str,
         value: u64,
     ) -> MetricBuilder<'_, '_, Histogram> {
-        let mut builder = self.client.histogram_with_tags(key, value);
-        for (tkey, tval) in self.tags.iter() {
-            builder = builder.with_tag(tkey, tval);
-        }
-
-        builder
+        let builder = self.client.histogram_with_tags(key, value);
+        self.copy_tags_to_builder(builder)
     }
 
     fn histogram_duration_with_tags<'a>(
@@ -160,23 +152,15 @@ impl Histogrammed for MetricTagDecorator {
         key: &'a str,
         duration: Duration,
     ) -> MetricBuilder<'_, '_, Histogram> {
-        let mut builder = self.client.histogram_duration_with_tags(key, duration);
-        for (tkey, tval) in self.tags.iter() {
-            builder = builder.with_tag(tkey, tval);
-        }
-
-        builder
+        let builder = self.client.histogram_duration_with_tags(key, duration);
+        self.copy_tags_to_builder(builder)
     }
 }
 
 impl Setted for MetricTagDecorator {
     fn set_with_tags<'a>(&'a self, key: &'a str, value: i64) -> MetricBuilder<'_, '_, Set> {
-        let mut builder = self.client.set_with_tags(key, value);
-        for (tkey, tval) in self.tags.iter() {
-            builder = builder.with_tag(tkey, tval);
-        }
-
-        builder
+        let builder = self.client.set_with_tags(key, value);
+        self.copy_tags_to_builder(builder)
     }
 }
 
