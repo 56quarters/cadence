@@ -27,7 +27,7 @@ fn main() {
     // pairs. If sending the metric fails, our error handler set above will
     // be invoked to do something with the metric error.
     client
-        .incr_with_tags("requests.handled")
+        .count_with_tags("requests.handled", 1)
         .with_tag("app", "search")
         .with_tag("region", "us-west-2")
         .send();
@@ -36,7 +36,7 @@ fn main() {
     // The results of sending the metric (or failing to send it) are returned
     // to the caller to do something with.
     let res = client
-        .incr_with_tags("requests.handled")
+        .count_with_tags("requests.handled", 1)
         .with_tag("app", "search")
         .with_tag("region", "us-west-2")
         .try_send();

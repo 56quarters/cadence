@@ -38,7 +38,7 @@ impl RequestHandler for ThreadedHandler {
         let metrics_copy = self.metrics.clone();
 
         let t = thread::spawn(move || {
-            let _ = metrics_copy.incr("request.handled");
+            let _ = metrics_copy.count("request.handled", 1);
             println!("Hello from a threaded handler!");
         });
 

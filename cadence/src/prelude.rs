@@ -26,4 +26,5 @@
 //! client.set("some.set", 123).unwrap();
 //! ```
 
-pub use crate::client::{Counted, Distributed, Gauged, Histogrammed, Metered, MetricClient, Setted, Timed};
+pub use crate::client::{Counted, CountedExt, Distributed, Gauged, Histogrammed, Metered, MetricClient, Setted, Timed};
+pub use crate::compat::Compat;

@@ -37,7 +37,7 @@ impl RequestHandler for ThreadedHandler {
         let metrics_ref = Arc::clone(&self.metrics);
 
         let t = thread::spawn(move || {
-            let _ = metrics_ref.incr("request.handled");
+            let _ = metrics_ref.count("request.handled", 1);
             println!("Hello from a threaded handler!");
         });
 

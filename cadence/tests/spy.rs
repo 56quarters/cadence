@@ -2,7 +2,7 @@ use cadence::{BufferedSpyMetricSink, SpyMetricSink, StatsdClient};
 
 mod utils;
 use crossbeam_channel::Receiver;
-use utils::{run_arc_threaded_test, NUM_ITERATIONS, NUM_THREADS};
+use utils::run_arc_threaded_test;
 
 fn new_spy_client(prefix: &str) -> (Receiver<Vec<u8>>, StatsdClient) {
     let (rx, sink) = SpyMetricSink::new();
@@ -24,18 +24,4 @@ fn test_statsd_client_spy_sink_single_threaded() {
 fn test_statsd_client_buffered_spy_sink_single_threaded() {
     let (_rx, client) = new_buffered_spy_client("cadence");
     run_arc_threaded_test(client, 1, 1);
-}
-
-#[ignore]
-#[test]
-fn test_statsd_client_spy_sink_many_threaded() {
-    let (_rx, client) = new_spy_client("cadence");
-    run_arc_threaded_test(client, NUM_THREADS, NUM_ITERATIONS);
-}
-
-#[ignore]
-#[test]
-fn test_statsd_client_buffered_spy_sink_many_threaded() {
-    let (_rx, client) = new_buffered_spy_client("cadence");
-    run_arc_threaded_test(client, NUM_THREADS, NUM_ITERATIONS);
 }
