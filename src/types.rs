@@ -88,6 +88,10 @@ impl Gauge {
     pub fn new(prefix: &str, key: &str, value: u64) -> Gauge {
         MetricFormatter::gauge(prefix, key, value).build()
     }
+
+    pub fn new_f64(prefix: &str, key: &str, value: f64) -> Gauge {
+        MetricFormatter::gauge_f64(prefix, key, value).build()
+    }
 }
 
 impl From<String> for Gauge {

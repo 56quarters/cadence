@@ -20,6 +20,7 @@ pub fn run_arc_threaded_test(client: StatsdClient, num_threads: u64, iterations:
                     local_client.count("some.counter", i as i64).unwrap();
                     local_client.time("some.timer", i).unwrap();
                     local_client.gauge("some.gauge", i).unwrap();
+                    local_client.gauge_f64("some.gauge", i as f64).unwrap();
                     local_client.meter("some.meter", i).unwrap();
                     local_client.histogram("some.histogram", i).unwrap();
                     local_client.set("some.set", i as i64).unwrap();
