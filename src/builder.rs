@@ -227,9 +227,9 @@ where
 /// This builder adds tags, key-value pairs or just values, to a metric that
 /// was previously constructed by a call to a method on `StatsdClient`. The
 /// tags are added to metrics and sent via the client when `MetricBuilder::send()`
-/// is invoked. Any errors countered constructing, validating, or sending the
-/// metrics will be propagated and returned when the `.send()` method is finally
-/// invoked.
+/// or `MetricBuilder::try_send()`is invoked. Any errors encountered constructing,
+/// validating, or sending the metrics will be propagated and returned when the
+/// those methods are finally invoked.
 ///
 /// Currently, only Datadog style tags are supported. For more information on the
 /// exact format used, see the
@@ -241,7 +241,9 @@ where
 /// NOTE: The only way to instantiate an instance of this builder is via methods in
 /// in the `StatsdClient` client.
 ///
-/// # Example
+/// # Examples
+///
+/// ## `.try_send()`
 ///
 /// An example of how the metric builder is used with a `StatsdClient` instance
 /// is given below.
@@ -270,6 +272,28 @@ where
 ///
 /// In this example, two key-value tags and one value tag are added to the
 /// metric before it is finally sent to the Statsd server.
+///
+/// ## `.send()`
+///
+/// An example of how the metric builder is used with a `StatsdClient` instance
+/// when using the "quiet" method is given below.
+///
+/// ```
+/// use cadence::prelude::*;
+/// use cadence::{StatsdClient, NopMetricSink, Metric, Counted};
+///
+/// let client = StatsdClient::builder("some.prefix", NopMetricSink)
+///     .with_error_handler(|e| eprintln!("metric error: {}", e))
+///     .build();
+/// client.count_with_tags("some.key", 1)
+///    .with_tag("host", "app11.example.com")
+///    .with_tag("segment", "23")
+///    .with_tag_value("beta")
+///    .send();
+/// ```
+///
+/// Note that nothing is returned from the `.send()` method. Any errors encountered
+/// in this case will be passed to the error handler we registered.
 #[must_use = "Did you forget to call .send() after adding tags?"]
 #[derive(Debug)]
 pub struct MetricBuilder<'m, 'c, T>
