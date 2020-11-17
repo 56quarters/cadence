@@ -185,11 +185,7 @@ impl UnixServerHarness {
         let temp = TempDir::new(&self.base).unwrap();
         let socket = temp.new_path("cadence.sock");
 
-        let server = Arc::new(UnixSocketServer::new(
-            &socket,
-            Duration::from_millis(100),
-            consumer,
-        ));
+        let server = Arc::new(UnixSocketServer::new(&socket, Duration::from_millis(100), consumer));
         let server_local = Arc::clone(&server);
 
         let t = thread::spawn(move || {

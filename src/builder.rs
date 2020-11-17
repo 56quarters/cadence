@@ -137,9 +137,7 @@ where
     }
 
     fn with_tag(&mut self, key: &'a str, value: &'a str) {
-        self.tags
-            .get_or_insert_with(Vec::new)
-            .push((Some(key), value));
+        self.tags.get_or_insert_with(Vec::new).push((Some(key), value));
     }
 
     fn with_tag_value(&mut self, value: &'a str) {
@@ -147,11 +145,7 @@ where
     }
 
     fn write_base_metric(&self, out: &mut String) {
-        let _ = write!(
-            out,
-            "{}{}:{}|{}",
-            self.prefix, self.key, self.val, self.type_
-        );
+        let _ = write!(out, "{}{}:{}|{}", self.prefix, self.key, self.val, self.type_);
     }
 
     fn write_tags(&self, out: &mut String) {
@@ -170,6 +164,9 @@ where
         }
     }
 
+    // Don't have rustfmt do anything to this method because it keeps wrapping
+    // the line when we don't want it to.
+    #[rustfmt::skip]
     fn base_metric_size_hint(&self) -> usize {
         // Note: This isn't actually the number of bytes required, it's just
         // a guess. This is probably sufficient in most cases and guessing is
@@ -182,21 +179,24 @@ where
         // large range of values that will actually be seen in practice. Plus, using
         // a constant is faster than computing the `val.log(10)` of our value which
         // we would need to know exactly how many digits it takes up.
-        self.prefix.len() + self.key.len() + 1 /* : */ + 10 /* see above */ + 1 /* | */ + 2 /* type */
+        self.prefix.len() + self.key.len() + 1 /* : */ + 10 /* value */ + 1 /* | */ + 2 /* type */
     }
 
     fn tag_size_hint(&self) -> usize {
         // Enough space for prefix, tags, separators, and commas
-        self.tags.as_ref().map(|t| {
-            // Space required for each key value pair or singleton value
-            let kv_size: usize = t
-                .iter()
-                .map(|tag| tag.0.map_or(0, |k| k.len() + 1 /* : */) + tag.1.len())
-                .sum();
+        self.tags
+            .as_ref()
+            .map(|t| {
+                // Space required for each key value pair or singleton value
+                let kv_size: usize = t
+                    .iter()
+                    .map(|tag| tag.0.map_or(0, |k| k.len() + 1 /* : */) + tag.1.len())
+                    .sum();
 
-            // If we're inside the map method, there are tags so we need the prefix
-            Self::TAG_PREFIX.len() + kv_size + t.len() - 1 /* prefix, keys and values, commas */
-        }).unwrap_or(0)
+                // If we're inside the map method, there are tags so we need the prefix
+                Self::TAG_PREFIX.len() + kv_size + t.len() - 1 /* prefix, keys and values, commas */
+            })
+            .unwrap_or(0)
     }
 
     pub(crate) fn build(&self) -> T {
@@ -464,12 +464,7 @@ mod tests {
         let counter: Counter = fmt.build();
 
         assert_eq!(
-            concat!(
-                "prefix.some.key:4|c|#",
-                "host:app03.example.com,",
-                "bucket:2,",
-                "beta",
-            ),
+            "prefix.some.key:4|c|#host:app03.example.com,bucket:2,beta",
             counter.as_metric_str()
         );
     }
@@ -490,10 +485,7 @@ mod tests {
 
         let timer: Timer = fmt.build();
 
-        assert_eq!(
-            "prefix.some.method:21|ms|#app:metrics,async",
-            timer.as_metric_str()
-        );
+        assert_eq!("prefix.some.method:21|ms|#app:metrics,async", timer.as_metric_str());
     }
 
     #[test]
@@ -512,10 +504,7 @@ mod tests {
 
         let gauge: Gauge = fmt.build();
 
-        assert_eq!(
-            "prefix.num.failures:7|g|#window:300,best-effort",
-            gauge.as_metric_str()
-        );
+        assert_eq!("prefix.num.failures:7|g|#window:300,best-effort", gauge.as_metric_str());
     }
 
     #[test]
@@ -557,11 +546,7 @@ mod tests {
         let histogram: Histogram = fmt.build();
 
         assert_eq!(
-            concat!(
-                "prefix.num.results:44|h|#",
-                "user-type:authenticated,",
-                "source=search"
-            ),
+            "prefix.num.results:44|h|#user-type:authenticated,source=search",
             histogram.as_metric_str()
         );
     }

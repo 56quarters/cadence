@@ -44,9 +44,7 @@ fn test_statsd_client_time_duration() {
     let expected = Timer::new("client.test.", "timer.key", 35);
     assert_eq!(
         expected,
-        client
-            .time_duration("timer.key", Duration::from_millis(35))
-            .unwrap()
+        client.time_duration("timer.key", Duration::from_millis(35)).unwrap()
     );
 }
 

@@ -1,7 +1,5 @@
 use cadence::test::DelegatingMetricSink;
-use cadence::{
-    BufferedUdpMetricSink, QueuingMetricSink, StatsdClient, UdpMetricSink, DEFAULT_PORT,
-};
+use cadence::{BufferedUdpMetricSink, QueuingMetricSink, StatsdClient, UdpMetricSink, DEFAULT_PORT};
 use std::net::UdpSocket;
 use std::sync::Arc;
 use std::thread;

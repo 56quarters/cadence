@@ -56,8 +56,7 @@ fn test_statsd_client_buffered_unix_sink_single_threaded() {
 
 #[test]
 fn test_statsd_client_queuing_buffered_unix_sink_single_threaded() {
-    let harness =
-        UnixServerHarness::new("test_statsd_client_queuing_buffered_unix_sink_single_threaded");
+    let harness = UnixServerHarness::new("test_statsd_client_queuing_buffered_unix_sink_single_threaded");
     harness.run_quiet(|socket| {
         let client = new_queuing_buffered_unix_client("client.test", socket);
         run_arc_threaded_test(client, 1, 1);
@@ -87,8 +86,7 @@ fn test_statsd_client_buffered_unix_sink_many_threaded() {
 #[ignore]
 #[test]
 fn test_statsd_client_queuing_buffered_unix_sink_many_threaded() {
-    let harness =
-        UnixServerHarness::new("test_statsd_client_queuing_buffered_unix_sink_many_threaded");
+    let harness = UnixServerHarness::new("test_statsd_client_queuing_buffered_unix_sink_many_threaded");
     harness.run_quiet(|socket| {
         let client = new_queuing_buffered_unix_client("client.test", socket);
         run_arc_threaded_test(client, NUM_THREADS, NUM_ITERATIONS);

@@ -8,8 +8,8 @@ use std::net::UdpSocket;
 
 use cadence::prelude::*;
 use cadence::{
-    BufferedUdpMetricSink, Counter, Gauge, Histogram, Meter, NopMetricSink, QueuingMetricSink, Set,
-    StatsdClient, Timer, UdpMetricSink, DEFAULT_PORT,
+    BufferedUdpMetricSink, Counter, Gauge, Histogram, Meter, NopMetricSink, QueuingMetricSink, Set, StatsdClient,
+    Timer, UdpMetricSink, DEFAULT_PORT,
 };
 
 const TARGET_HOST: (&str, u16) = ("127.0.0.1", DEFAULT_PORT);
