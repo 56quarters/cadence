@@ -233,20 +233,13 @@ impl BufferedUdpMetricSink {
     ///
     /// * It is unable to resolve the hostname of the metric server.
     /// * The host address is otherwise unable to be parsed
-    pub fn with_capacity<A>(
-        sink_addr: A,
-        socket: UdpSocket,
-        cap: usize,
-    ) -> MetricResult<BufferedUdpMetricSink>
+    pub fn with_capacity<A>(sink_addr: A, socket: UdpSocket, cap: usize) -> MetricResult<BufferedUdpMetricSink>
     where
         A: ToSocketAddrs,
     {
         let addr = get_addr(sink_addr)?;
         Ok(BufferedUdpMetricSink {
-            buffer: Mutex::new(MultiLineWriter::new(
-                UdpWriteAdapter::new(addr, socket),
-                cap,
-            )),
+            buffer: Mutex::new(MultiLineWriter::new(UdpWriteAdapter::new(addr, socket), cap)),
         })
     }
 }

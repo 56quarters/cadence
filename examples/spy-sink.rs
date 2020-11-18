@@ -13,8 +13,8 @@
 // be used to verify that Cadence wrote what you thought it was going to write.
 
 use cadence::prelude::*;
-use cadence::{StatsdClient, BufferedSpyMetricSink};
-use std::sync::{Mutex, Arc};
+use cadence::{BufferedSpyMetricSink, StatsdClient};
+use std::sync::{Arc, Mutex};
 
 fn main() {
     let our_writer = Arc::new(Mutex::new(Vec::new()));

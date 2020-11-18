@@ -123,7 +123,7 @@ mod tests {
 
     #[test]
     fn test_write_needs_flush() {
-        let mut buffered = MultiLineWriter::new(vec![],16);
+        let mut buffered = MultiLineWriter::new(vec![], 16);
 
         let write1 = buffered.write("foo:1234|c".as_bytes()).unwrap();
         let written_after_write1 = buffered.get_ref().len();
@@ -144,7 +144,7 @@ mod tests {
 
     #[test]
     fn test_write_no_flush() {
-        let mut buffered = MultiLineWriter::new(vec![],32);
+        let mut buffered = MultiLineWriter::new(vec![], 32);
 
         let write1 = buffered.write("abc:3|g".as_bytes()).unwrap();
         let written_after_write1 = buffered.get_ref().len();
@@ -163,9 +163,7 @@ mod tests {
     fn test_write_bigger_than_buffer() {
         let mut buffered = MultiLineWriter::new(vec![], 16);
 
-        let write1 = buffered
-            .write("some_really_long_metric:456|c".as_bytes())
-            .unwrap();
+        let write1 = buffered.write("some_really_long_metric:456|c".as_bytes()).unwrap();
         let written_after_write1 = buffered.get_ref().len();
         let in_buffer_after_write1 = buffered.written;
 
@@ -184,7 +182,7 @@ mod tests {
 
     #[test]
     fn test_buffer_write_equal_capacity() {
-        let mut buffered = MultiLineWriter::new(vec![],8);
+        let mut buffered = MultiLineWriter::new(vec![], 8);
 
         let bytes_written = buffered.write("foo:42|c".as_bytes()).unwrap();
         let written = str::from_utf8(&buffered.get_ref()).unwrap();

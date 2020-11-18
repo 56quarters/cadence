@@ -8,18 +8,15 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
+use crate::builder::{MetricBuilder, MetricFormatter};
+use crate::sinks::{MetricSink, UdpMetricSink};
+use crate::types::{Counter, ErrorKind, Gauge, Histogram, Meter, Metric, MetricError, MetricResult, Set, Timer};
 use std::fmt;
 use std::net::{ToSocketAddrs, UdpSocket};
 use std::panic::RefUnwindSafe;
 use std::sync::Arc;
 use std::time::Duration;
 use std::u64;
-
-use crate::builder::{MetricBuilder, MetricFormatter};
-use crate::sinks::{MetricSink, UdpMetricSink};
-use crate::types::{
-    Counter, ErrorKind, Gauge, Histogram, Meter, Metric, MetricError, MetricResult, Set, Timer,
-};
 
 /// Trait for incrementing and decrementing counters.
 ///
@@ -101,11 +98,7 @@ pub trait Timed {
     /// The duration will be truncated to millisecond precision. If the
     /// duration cannot be represented as a `u64` an error will be deferred
     /// and returned when `MetricBuilder::try_send()` is called.
-    fn time_duration_with_tags<'a>(
-        &'a self,
-        key: &'a str,
-        duration: Duration,
-    ) -> MetricBuilder<'_, '_, Timer>;
+    fn time_duration_with_tags<'a>(&'a self, key: &'a str, duration: Duration) -> MetricBuilder<'_, '_, Timer>;
 }
 
 /// Trait for recording gauge values.
@@ -196,11 +189,7 @@ pub trait Histogrammed {
 
     /// Record a single histogram value with the given key and return a
     /// `MetricBuilder` that can be used to add tags to the metric.
-    fn histogram_with_tags<'a>(
-        &'a self,
-        key: &'a str,
-        value: u64,
-    ) -> MetricBuilder<'_, '_, Histogram>;
+    fn histogram_with_tags<'a>(&'a self, key: &'a str, value: u64) -> MetricBuilder<'_, '_, Histogram>;
 
     /// Record a single histogram value with the given key.
     ///
@@ -220,11 +209,8 @@ pub trait Histogrammed {
     /// `MetricBuilder::try_send()` is called. Note that histograms are an
     /// extension to Statsd, you'll need to check if they are supported by
     /// your server and considered times.
-    fn histogram_duration_with_tags<'a>(
-        &'a self,
-        key: &'a str,
-        duration: Duration,
-    ) -> MetricBuilder<'_, '_, Histogram>;
+    fn histogram_duration_with_tags<'a>(&'a self, key: &'a str, duration: Duration)
+        -> MetricBuilder<'_, '_, Histogram>;
 }
 
 /// Trait for recording set values.
@@ -749,11 +735,7 @@ impl Timed for StatsdClient {
         MetricBuilder::new(fmt, self)
     }
 
-    fn time_duration_with_tags<'a>(
-        &'a self,
-        key: &'a str,
-        duration: Duration,
-    ) -> MetricBuilder<'_, '_, Timer> {
+    fn time_duration_with_tags<'a>(&'a self, key: &'a str, duration: Duration) -> MetricBuilder<'_, '_, Timer> {
         let as_millis = duration.as_millis();
         if as_millis > u64::MAX as u128 {
             MetricBuilder::from_error(MetricError::from((ErrorKind::InvalidInput, "u64 overflow")), self)
@@ -783,11 +765,7 @@ impl Metered for StatsdClient {
 }
 
 impl Histogrammed for StatsdClient {
-    fn histogram_with_tags<'a>(
-        &'a self,
-        key: &'a str,
-        value: u64,
-    ) -> MetricBuilder<'_, '_, Histogram> {
+    fn histogram_with_tags<'a>(&'a self, key: &'a str, value: u64) -> MetricBuilder<'_, '_, Histogram> {
         let fmt = MetricFormatter::histogram(&self.prefix, key, value);
         MetricBuilder::new(fmt, self)
     }
@@ -822,6 +800,9 @@ fn nop_error_handler(_err: MetricError) {
 
 #[cfg(test)]
 mod tests {
+    use super::{Counted, Gauged, Histogrammed, Metered, MetricClient, Setted, StatsdClient, Timed};
+    use crate::sinks::{MetricSink, NopMetricSink, QueuingMetricSink};
+    use crate::types::{ErrorKind, Metric, MetricError};
     use std::cell::RefCell;
     use std::io;
     use std::panic::RefUnwindSafe;
@@ -829,13 +810,6 @@ mod tests {
     use std::sync::{Arc, Mutex};
     use std::time::Duration;
     use std::u64;
-
-    use super::{
-        Counted, Gauged, Histogrammed, Metered, MetricClient, Setted, StatsdClient, Timed,
-    };
-
-    use crate::sinks::{MetricSink, NopMetricSink, QueuingMetricSink};
-    use crate::types::{ErrorKind, Metric, MetricError};
 
     #[test]
     fn test_statsd_client_empty_prefix() {
@@ -853,10 +827,7 @@ mod tests {
             .with_tag("foo", "bar")
             .try_send();
 
-        assert_eq!(
-            "prefix.some.counter:3|c|#foo:bar",
-            res.unwrap().as_metric_str()
-        );
+        assert_eq!("prefix.some.counter:3|c|#foo:bar", res.unwrap().as_metric_str());
     }
 
     #[test]
@@ -898,10 +869,7 @@ mod tests {
             .with_tag_value("beta")
             .try_send();
 
-        assert_eq!(
-            "prefix.some.meter:64|m|#segment:142,beta",
-            res.unwrap().as_metric_str()
-        );
+        assert_eq!("prefix.some.meter:64|m|#segment:142,beta", res.unwrap().as_metric_str());
     }
 
     #[test]
@@ -944,10 +912,7 @@ mod tests {
             .with_tag_value("beta")
             .try_send();
 
-        assert_eq!(
-            "prefix.key:4096|h|#foo:bar,beta",
-            res.unwrap().as_metric_str()
-        );
+        assert_eq!("prefix.key:4096|h|#foo:bar,beta", res.unwrap().as_metric_str());
     }
 
     #[test]
@@ -987,10 +952,7 @@ mod tests {
             .with_tag_value("quux")
             .try_send();
 
-        assert_eq!(
-            "prefix.key:157|ms|#foo:bar,quux",
-            res.unwrap().as_metric_str()
-        );
+        assert_eq!("prefix.key:157|ms|#foo:bar,quux", res.unwrap().as_metric_str());
     }
 
     #[test]
@@ -1027,17 +989,12 @@ mod tests {
 
         let metrics = Arc::new(Mutex::new(RefCell::new(Vec::new())));
         let metrics_ref = Arc::clone(&metrics);
-        let sink = StoringSink {
-            metrics: metrics_ref,
-        };
+        let sink = StoringSink { metrics: metrics_ref };
         let client = StatsdClient::builder("prefix", sink)
             .with_error_handler(panic_handler)
             .build();
 
-        client
-            .incr_with_tags("some.key")
-            .with_tag("test", "a")
-            .send();
+        client.incr_with_tags("some.key").with_tag("test", "a").send();
 
         let mutex = metrics.as_ref();
         let cell = mutex.lock().unwrap();
@@ -1066,10 +1023,7 @@ mod tests {
             .with_error_handler(handler)
             .build();
 
-        client
-            .incr_with_tags("some.key")
-            .with_tag("tier", "web")
-            .send();
+        client.incr_with_tags("some.key").with_tag("tier", "web").send();
 
         assert_eq!(1, count.load(Ordering::Acquire));
     }
@@ -1077,10 +1031,7 @@ mod tests {
     #[test]
     fn test_statsd_client_set_with_tags() {
         let client = StatsdClient::from_sink("myapp", NopMetricSink);
-        let res = client
-            .set_with_tags("some.set", 3)
-            .with_tag("foo", "bar")
-            .try_send();
+        let res = client.set_with_tags("some.set", 3).with_tag("foo", "bar").try_send();
 
         assert_eq!("myapp.some.set:3|s|#foo:bar", res.unwrap().as_metric_str());
     }
@@ -1119,8 +1070,7 @@ mod tests {
 
     #[test]
     fn test_statsd_client_as_histogrammed() {
-        let client: Box<dyn Histogrammed> =
-            Box::new(StatsdClient::from_sink("prefix", NopMetricSink));
+        let client: Box<dyn Histogrammed> = Box::new(StatsdClient::from_sink("prefix", NopMetricSink));
 
         client.histogram("some.histogram", 4).unwrap();
     }
@@ -1134,8 +1084,7 @@ mod tests {
 
     #[test]
     fn test_statsd_client_as_metric_client() {
-        let client: Box<dyn MetricClient> =
-            Box::new(StatsdClient::from_sink("prefix", NopMetricSink));
+        let client: Box<dyn MetricClient> = Box::new(StatsdClient::from_sink("prefix", NopMetricSink));
 
         client.count("some.counter", 3).unwrap();
         client.time("some.timer", 198).unwrap();
@@ -1147,9 +1096,10 @@ mod tests {
 
     #[test]
     fn test_statsd_client_as_thread_and_panic_safe() {
-        let client: Box<dyn MetricClient + Send + Sync + RefUnwindSafe> = Box::new(
-            StatsdClient::from_sink("prefix", QueuingMetricSink::from(NopMetricSink)),
-        );
+        let client: Box<dyn MetricClient + Send + Sync + RefUnwindSafe> = Box::new(StatsdClient::from_sink(
+            "prefix",
+            QueuingMetricSink::from(NopMetricSink),
+        ));
 
         client.count("some.counter", 3).unwrap();
         client.time("some.timer", 198).unwrap();

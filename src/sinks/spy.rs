@@ -10,10 +10,10 @@
 
 use crate::io::MultiLineWriter;
 use crate::sinks::core::MetricSink;
-use std::io::{self, Write};
-use std::sync::{Arc, Mutex};
 use std::fmt::{self, Debug, Formatter};
+use std::io::{self, Write};
 use std::panic::RefUnwindSafe;
+use std::sync::{Arc, Mutex};
 
 // Default size of the buffer for buffered metric sinks, picked for
 // consistency with the UDP implementation.
@@ -60,7 +60,7 @@ pub struct SpyMetricSink {
 impl SpyMetricSink {
     pub fn from(writer: Arc<Mutex<dyn Write + Send + RefUnwindSafe + 'static>>) -> Self {
         SpyMetricSink {
-            writer: Mutex::new(SpyWriter::from(writer))
+            writer: Mutex::new(SpyWriter::from(writer)),
         }
     }
 }
@@ -116,10 +116,7 @@ impl BufferedSpyMetricSink {
 
     pub fn with_capacity(writer: Arc<Mutex<dyn Write + Send + RefUnwindSafe + 'static>>, cap: usize) -> Self {
         BufferedSpyMetricSink {
-            writer: Mutex::new(MultiLineWriter::new(
-                SpyWriter::from(writer),
-                cap,
-            ))
+            writer: Mutex::new(MultiLineWriter::new(SpyWriter::from(writer), cap)),
         }
     }
 }
@@ -138,14 +135,17 @@ impl MetricSink for BufferedSpyMetricSink {
 
 impl Debug for BufferedSpyMetricSink {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "BufferedSpyMetricSink {{ Mutex {{ MultiLineWriter {{ SpyWriter {{ ... }} }} }} }}")
+        write!(
+            f,
+            "BufferedSpyMetricSink {{ Mutex {{ MultiLineWriter {{ SpyWriter {{ ... }} }} }} }}"
+        )
     }
 }
 
 #[cfg(test)]
 mod test {
-    use std::sync::{Arc, Mutex};
     use super::{BufferedSpyMetricSink, MetricSink, SpyMetricSink};
+    use std::sync::{Arc, Mutex};
 
     // Get a copy of the contents of the shared writer and make sure to
     // drop the lock before any assertions, otherwise the mutex becomes

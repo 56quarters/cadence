@@ -713,7 +713,10 @@ mod tests {
         // one of the submissions should be successfully queued and one of them should have failed.
         // Depending on how quickly the network thread of the sink started running, an entry may
         // have been removed from the queue (meaning that two submissions would have succeeded).
-        assert!(success >= 1, "At least one submission to the queue should have succeeded");
+        assert!(
+            success >= 1,
+            "At least one submission to the queue should have succeeded"
+        );
         assert!(failure >= 1, "At least one submission to the queue should have failed");
     }
 }

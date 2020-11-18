@@ -203,10 +203,7 @@ impl BufferedUnixMetricSink {
         P: AsRef<Path>,
     {
         BufferedUnixMetricSink {
-            buffer: Mutex::new(MultiLineWriter::new(
-                UnixWriteAdapter::new(socket, path),
-                cap,
-            )),
+            buffer: Mutex::new(MultiLineWriter::new(UnixWriteAdapter::new(socket, path), cap)),
         }
     }
 }
