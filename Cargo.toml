@@ -12,7 +12,7 @@ keywords = ["statsd", "metrics"]
 edition = "2018"
 
 [dependencies]
-crossbeam-channel = "0.4.0"
+crossbeam-channel = "0.5.0"
 
 [lib]
 name = "cadence"
