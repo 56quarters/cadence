@@ -26,5 +26,3 @@ harness = false
 name = "cadence"
 path = "src/lib.rs"
 
-[badges]
-travis-ci = { repository = "56quarters/cadence" }

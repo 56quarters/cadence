@@ -1,6 +1,6 @@
 # Cadence
 
-[![Build Status](https://travis-ci.org/56quarters/cadence.svg?branch=master)](https://travis-ci.org/56quarters/cadence)
+[![build status](https://circleci.com/gh/56quarters/cadence.svg?style=shield)](https://circleci.com/gh/56quarters/cadence)
 [![docs.rs](https://docs.rs/cadence/badge.svg)](https://docs.rs/cadence/)
 [![crates.io](https://img.shields.io/crates/v/cadence.svg)](https://crates.io/crates/cadence/)
 [![Rust 1.36+](https://img.shields.io/badge/rust-1.36+-lightgray.svg)](https://www.rust-lang.org)
