@@ -1,5 +1,11 @@
 # Changelog
 
+## [v0.23.0](https://github.com/tshlabs/cadence/tree/0.23.0) - 2020-12-14
+* **Breaking change** - Add method to emit `f64` types as gauges per 
+  [#106](https://github.com/tshlabs/cadence/issues/106).
+* Update `crossbeam-channel` dependency to `0.5` per
+  [#110](https://github.com/56quarters/cadence/pull/110).
+
 ## [v0.22.0](https://github.com/tshlabs/cadence/tree/0.22.0) - 2020-10-08
 * Add new `SpyMetricSink` and `BufferedSpyMetricSink` to allow inspecting
   metrics sent by Cadence as part of integration testing an application per
