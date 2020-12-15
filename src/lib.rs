@@ -129,7 +129,7 @@
 //! fast), it's probably a good idea to make sure metrics are emitted in
 //! in a different thread than your application thread.
 //!
-//! To allow you do this, there is `QueuingMetricSink`. This sink allows
+//! To allow you to do this, there is `QueuingMetricSink`. This sink allows
 //! you to wrap any other metric sink and send metrics to it via a queue,
 //! as it emits metrics in another thread, asynchronously from the flow of
 //! your application.
