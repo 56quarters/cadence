@@ -86,7 +86,7 @@ where
             // "things" into a single write call to the underlying impl
             // (probably a UDP socket). Thus, there's no value in adding
             // a newline when we're only writing a single large value to
-            // the underlying impl. See https://github.com/tshlabs/cadence/issues/87
+            // the underlying impl. See https://github.com/56quarters/cadence/issues/87
             Ok(self.inner.get_mut().write(buf)?)
         } else {
             if left < required {
