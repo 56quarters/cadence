@@ -1,9 +1,8 @@
+use cadence::prelude::*;
+use cadence::StatsdClient;
 use std::sync::Arc;
 use std::thread;
 use std::time::Duration;
-
-use cadence::prelude::*;
-use cadence::StatsdClient;
 
 pub const NUM_THREADS: u64 = 10;
 pub const NUM_ITERATIONS: u64 = 1000;

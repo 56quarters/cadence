@@ -6,13 +6,13 @@ use utils::{run_arc_threaded_test, NUM_ITERATIONS, NUM_THREADS};
 
 fn new_spy_client(prefix: &str) -> StatsdClient {
     let writer = Arc::new(Mutex::new(Vec::new()));
-    let sink = SpyMetricSink::from(writer.clone());
+    let sink = SpyMetricSink::from(writer);
     StatsdClient::from_sink(prefix, sink)
 }
 
 fn new_buffered_spy_client(prefix: &str) -> StatsdClient {
     let writer = Arc::new(Mutex::new(Vec::new()));
-    let sink = BufferedSpyMetricSink::from(writer.clone());
+    let sink = BufferedSpyMetricSink::from(writer);
     StatsdClient::from_sink(prefix, sink)
 }
 

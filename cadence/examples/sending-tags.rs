@@ -15,7 +15,7 @@ use cadence::prelude::*;
 use cadence::{MetricError, NopMetricSink, StatsdClient};
 
 fn main() {
-    fn my_error_handler(err: MetricError) -> () {
+    fn my_error_handler(err: MetricError) {
         eprintln!("Error sending metrics: {}", err);
     }
 

@@ -346,7 +346,7 @@ struct Worker<T>
 where
     T: Send + 'static,
 {
-    task: Box<dyn Fn(T) -> () + Sync + Send + RefUnwindSafe + 'static>,
+    task: Box<dyn Fn(T) + Sync + Send + RefUnwindSafe + 'static>,
     sender: Sender<Option<T>>,
     receiver: Receiver<Option<T>>,
     stopped: AtomicBool,
@@ -359,7 +359,7 @@ where
 {
     fn new<F>(capacity: Option<usize>, task: F) -> Worker<T>
     where
-        F: Fn(T) -> () + Sync + Send + RefUnwindSafe + 'static,
+        F: Fn(T) + Sync + Send + RefUnwindSafe + 'static,
     {
         let (tx, rx) = Self::get_channels(capacity);
         Worker {

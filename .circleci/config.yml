@@ -5,15 +5,18 @@ orbs:
 workflows:
   workflow:
     jobs:
+    - rust/clippy:
+        toolchain: "stable"
+    - rust/format:
+        toolchain: "stable"
     - rust/test:
         matrix:
           parameters:
-            # Only the last 3 releases and 1.36 since we only have a limited amount
-            # of build credits each month. This will likely catch most issues (I hope).
-            # We only test back to 1.36 since that's what our dependencies support and
-            # thus we should too.
+            # Only test stable, beta, nightly, and 1.36 since we only have a limited amount
+            # of build credits each month. We test back to 1.36 since that's what our dependencies
+            # support and thus we should too.
             toolchain:
-            - "1.48.0"
-            - "1.47.0"
-            - "1.46.0"
+            - "stable"
+            - "beta"
+            - "nightly"
             - "1.36.0"

@@ -57,6 +57,10 @@ use std::io;
 pub trait MetricSink {
     /// Send the Statsd metric using this sink and return the number of bytes
     /// written or an I/O error.
+    ///
+    /// Note that implementations may return `0` bytes if the metric is not
+    /// immediately written (such as when it is buffered).  Callers should *NOT*
+    /// interpret this as an error.
     fn emit(&self, metric: &str) -> io::Result<usize>;
 
     /// Flush any currently buffered metrics to the underlying backend, returning

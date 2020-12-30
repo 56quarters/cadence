@@ -199,8 +199,9 @@ mod tests {
     fn test_flush_still_buffered() {
         let mut buffered = MultiLineWriter::new(vec![], 32);
 
-        buffered.write("xyz".as_bytes()).unwrap();
-        buffered.write("abc".as_bytes()).unwrap();
+        // Ignore bytes written but don't use `.write_all` for now. See https://github.com/56quarters/cadence/issues/117
+        let _ = buffered.write("xyz".as_bytes()).unwrap();
+        let _ = buffered.write("abc".as_bytes()).unwrap();
         let len_after_writes = buffered.get_ref().len();
 
         buffered.flush().unwrap();

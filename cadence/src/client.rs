@@ -372,7 +372,7 @@ pub trait MetricBackend {
 pub struct StatsdClientBuilder {
     prefix: String,
     sink: Box<dyn MetricSink + Sync + Send + RefUnwindSafe>,
-    errors: Box<dyn Fn(MetricError) -> () + Sync + Send + RefUnwindSafe>,
+    errors: Box<dyn Fn(MetricError) + Sync + Send + RefUnwindSafe>,
 }
 
 impl StatsdClientBuilder {
@@ -402,7 +402,7 @@ impl StatsdClientBuilder {
     /// implementation.
     pub fn with_error_handler<F>(mut self, errors: F) -> Self
     where
-        F: Fn(MetricError) -> () + Sync + Send + RefUnwindSafe + 'static,
+        F: Fn(MetricError) + Sync + Send + RefUnwindSafe + 'static,
     {
         self.errors = Box::new(errors);
         self
@@ -549,7 +549,7 @@ impl StatsdClientBuilder {
 pub struct StatsdClient {
     prefix: String,
     sink: Arc<dyn MetricSink + Sync + Send + RefUnwindSafe>,
-    errors: Arc<dyn Fn(MetricError) -> () + Sync + Send + RefUnwindSafe>,
+    errors: Arc<dyn Fn(MetricError) + Sync + Send + RefUnwindSafe>,
 }
 
 impl StatsdClient {

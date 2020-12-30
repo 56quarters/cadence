@@ -13,7 +13,7 @@
 //! Functionality exported to be used by integration tests. This module
 //! is NOT part of the Cadence API and is subject to change at any time.
 //!
-//! IF YOU USE THIS CODE YOUR PROJECT WILL BREAK AND YOU WILL DESERVE IT.
+//! IF YOU USE THIS CODE YOUR PROJECT WILL BREAK.
 
 use crate::MetricSink;
 use std::fs;
@@ -66,7 +66,7 @@ pub trait DatagramConsumer {
 
 impl<F> DatagramConsumer for F
 where
-    F: Fn(String) -> (),
+    F: Fn(String),
 {
     fn accept(&self, datagram: String) {
         (self)(datagram);
@@ -180,7 +180,7 @@ impl UnixServerHarness {
     pub fn run<C, F>(mut self, consumer: C, body: F)
     where
         C: DatagramConsumer + Send + Sync + 'static,
-        F: FnOnce(&Path) -> (),
+        F: FnOnce(&Path),
     {
         let temp = TempDir::new(&self.base).unwrap();
         let socket = temp.new_path("cadence.sock");
@@ -204,7 +204,7 @@ impl UnixServerHarness {
 
     pub fn run_quiet<F>(self, body: F)
     where
-        F: FnOnce(&Path) -> (),
+        F: FnOnce(&Path),
     {
         self.run(|_| (), body)
     }

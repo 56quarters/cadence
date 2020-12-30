@@ -10,43 +10,27 @@
 
 //! An extensible Statsd client for Rust!
 //!
-//! [Statsd](https://github.com/etsy/statsd) is a network server that listens for
-//! metrics (things like counters and timers) sent over UDP and sends aggregates of
-//! these metrics to a backend service of some kind (often
-//! [Graphite](http://graphite.readthedocs.org/)).
-//!
-//! Cadence is a client written in Rust for interacting with a Statsd server. You
-//! might want to emit metrics (using Cadence, sending them to a Statsd server) in
-//! your Rust server application.
-//!
-//! For example, if you are running a Rust web service you might want to record:
-//!
-//! * Number of successful requests
-//! * Number of error requests
-//! * Time taken for each request
-//!
-//! Cadence is a flexible and easy way to do this!
+//! Cadence is a fast and flexible way to emit Statsd metrics from your application.
 //!
 //! ## Features
 //!
 //! * Support for emitting counters, timers, histograms, gauges, meters, and sets to
 //!   Statsd over UDP (or optionally Unix sockets).
 //! * Support for alternate backends via the `MetricSink` trait.
-//! * Support for [Datadog](https://docs.datadoghq.com/developers/dogstatsd/) style metric
-//!   tags.
+//! * Support for [Datadog](https://docs.datadoghq.com/developers/dogstatsd/) style metrics tags.
+//! * Macros to simplify common calls to emit metrics
 //! * A simple yet flexible API for sending metrics.
 //!
 //! ## Install
 //!
-//! To make use of Cadence in your project, add it as a dependency in your
-//! `Cargo.toml` file.
+//! To make use of `cadence` in your project, add it as a dependency in your `Cargo.toml` file.
 //!
 //! ```toml
 //! [dependencies]
 //! cadence = "x.y.z"
 //! ```
 //!
-//! That should be all you need!
+//! That's all you need!
 //!
 //! ## Usage
 //!
@@ -146,8 +130,7 @@
 //! ```rust,no_run
 //! use std::net::UdpSocket;
 //! use cadence::prelude::*;
-//! use cadence::{StatsdClient, QueuingMetricSink, BufferedUdpMetricSink,
-//!               DEFAULT_PORT};
+//! use cadence::{StatsdClient, QueuingMetricSink, BufferedUdpMetricSink, DEFAULT_PORT};
 //!
 //! let socket = UdpSocket::bind("0.0.0.0:0").unwrap();
 //! socket.set_nonblocking(true).unwrap();
