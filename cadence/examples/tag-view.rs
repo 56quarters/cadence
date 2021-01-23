@@ -46,15 +46,15 @@ impl MetricTagDecorator {
 
     /// Create a new decorator from the provided client and tags.
     pub fn from_tags_str(client: Arc<dyn MetricClient + Send + Sync>, tags: Vec<(&str, &str)>) -> Self {
-        Self::from_tags_string(client, Self::to_vec_strings(tags.iter()))
+        Self::from_tags_string(client, Self::str_to_vec_strings(tags.iter()))
     }
 
     /// Create a new decorator from the provided client and tags.
     pub fn from_tags_slice(client: Arc<dyn MetricClient + Send + Sync>, tags: &[(&str, &str)]) -> Self {
-        Self::from_tags_string(client, Self::to_vec_strings(tags.iter()))
+        Self::from_tags_string(client, Self::str_to_vec_strings(tags.iter()))
     }
 
-    fn to_vec_strings<'a, I>(tags: I) -> Vec<(String, String)>
+    fn str_to_vec_strings<'a, I>(tags: I) -> Vec<(String, String)>
     where
         I: Iterator<Item = &'a (&'a str, &'a str)>,
     {
@@ -69,7 +69,7 @@ impl MetricTagDecorator {
 
     /// Create a new decorator wrapping the current decorator with the provided tags.
     pub fn with_tags_str(&self, tags: Vec<(&str, &str)>) -> Self {
-        let mut tags = Self::to_vec_strings(tags.iter());
+        let mut tags = Self::str_to_vec_strings(tags.iter());
         tags.extend_from_slice(&self.tags);
         Self::from_tags_string(Arc::clone(&self.client), tags)
     }

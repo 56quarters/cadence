@@ -1,7 +1,6 @@
-use std::time::Duration;
-
 use cadence::prelude::*;
 use cadence::{Counter, Gauge, Histogram, Meter, NopMetricSink, StatsdClient, Timer};
+use std::time::Duration;
 
 mod utils;
 use utils::{run_arc_threaded_test, NUM_ITERATIONS, NUM_THREADS};

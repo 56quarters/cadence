@@ -1,0 +1,16 @@
+[package]
+name = "cadence-macros"
+version = "0.23.0"
+authors = ["Nick Pillitteri"]
+description = "An extensible Statsd client for Rust"
+homepage = "https://github.com/56quarters/cadence"
+documentation = "https://docs.rs/cadence/"
+repository = "https://github.com/56quarters/cadence.git"
+readme = "README.md"
+license = "Apache-2.0/MIT"
+keywords = ["statsd", "metrics"]
+edition = "2018"
+autobenches = false
+
+[dependencies]
+cadence = { path = "../cadence", version = "0.23" }
