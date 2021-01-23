@@ -262,11 +262,8 @@ mod tests {
             // be flushed as a response to the metrics we're writing.
             let sink = BufferedUnixMetricSink::with_capacity(path, socket, 16);
 
-            // Note that we're including an extra byte in the expected
-            // number written since each metric is followed by a '\n' at
-            // the end.
-            assert_eq!(9, sink.emit("foo:54|c").unwrap());
-            assert_eq!(9, sink.emit("foo:67|c").unwrap());
+            assert_eq!(8, sink.emit("foo:54|c").unwrap());
+            assert_eq!(8, sink.emit("foo:67|c").unwrap());
         });
     }
 
@@ -281,10 +278,7 @@ mod tests {
             // from a single write. Thus we can test the flush method.
             let sink = BufferedUnixMetricSink::with_capacity(path, socket, 16);
 
-            // Note that we're including an extra byte in the expected
-            // number written since each metric is followed by a '\n' at
-            // the end.
-            assert_eq!(9, sink.emit("foo:54|c").unwrap());
+            assert_eq!(8, sink.emit("foo:54|c").unwrap());
             assert!(sink.flush().is_ok());
         });
     }

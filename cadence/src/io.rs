@@ -86,7 +86,8 @@ where
             // "things" into a single write call to the underlying impl
             // (probably a UDP socket). Thus, there's no value in adding
             // a newline when we're only writing a single large value to
-            // the underlying impl. See https://github.com/56quarters/cadence/issues/87
+            // the underlying impl.
+            // See https://github.com/56quarters/cadence/issues/87
             Ok(self.inner.get_mut().write(buf)?)
         } else {
             if left < required {
@@ -102,7 +103,12 @@ where
 
             let write2 = self.inner.write(&self.line_ending)?;
             self.written += write2;
-            Ok(write1 + write2)
+
+            // We keep track of the total number of bytes written above but
+            // we only return the number of bytes from the provided buffer we
+            // wrote per the `Write::write` contract.
+            // See https://github.com/56quarters/cadence/issues/117
+            Ok(write1)
         }
     }
 
@@ -128,15 +134,15 @@ mod tests {
         let write1 = buffered.write("foo:1234|c".as_bytes()).unwrap();
         let written_after_write1 = buffered.get_ref().len();
 
-        let write2 = buffered.write("baz:56789|c".as_bytes()).unwrap();
+        let write2 = buffered.write("baz:5678|c".as_bytes()).unwrap();
         let written_after_write2 = buffered.get_ref().len();
 
         let written = str::from_utf8(&buffered.get_ref()).unwrap();
 
-        assert_eq!(11, write1);
+        assert_eq!(10, write1);
         assert_eq!(0, written_after_write1);
 
-        assert_eq!(12, write2);
+        assert_eq!(10, write2);
         assert_eq!(11, written_after_write2);
 
         assert_eq!("foo:1234|c\n", written);
@@ -152,10 +158,10 @@ mod tests {
         let write2 = buffered.write("def:4|g".as_bytes()).unwrap();
         let written_after_write2 = buffered.get_ref().len();
 
-        assert_eq!(8, write1);
+        assert_eq!(7, write1);
         assert_eq!(0, written_after_write1);
 
-        assert_eq!(8, write2);
+        assert_eq!(7, write2);
         assert_eq!(0, written_after_write2);
     }
 
@@ -175,7 +181,7 @@ mod tests {
         assert_eq!(29, written_after_write1);
         assert_eq!(0, in_buffer_after_write1);
 
-        assert_eq!(8, write2);
+        assert_eq!(7, write2);
         assert_eq!(29, written_after_write2);
         assert_eq!(8, in_buffer_after_write2);
     }
@@ -199,9 +205,8 @@ mod tests {
     fn test_flush_still_buffered() {
         let mut buffered = MultiLineWriter::new(vec![], 32);
 
-        // Ignore bytes written but don't use `.write_all` for now. See https://github.com/56quarters/cadence/issues/117
-        let _ = buffered.write("xyz".as_bytes()).unwrap();
-        let _ = buffered.write("abc".as_bytes()).unwrap();
+        buffered.write_all("xyz".as_bytes()).unwrap();
+        buffered.write_all("abc".as_bytes()).unwrap();
         let len_after_writes = buffered.get_ref().len();
 
         buffered.flush().unwrap();
@@ -220,7 +225,7 @@ mod tests {
         // of scope and anything that was buffered gets written out.
         {
             let mut writer = MultiLineWriter::new(&mut buf, 32);
-            let _r = writer.write("something".as_bytes()).unwrap();
+            writer.write_all("something".as_bytes()).unwrap();
             assert_eq!(0, writer.get_ref().len());
         }
 
