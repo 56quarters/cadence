@@ -83,6 +83,16 @@
 //! statsd_set!("some.set", 123, "tag" => "val", "another" => "thing");
 //! ```
 //!
+//! ## Limitations
+//!
+//! Some limitations with the current implemenation of Cadence macros are described below
+//!
+//! * Value tags are not supported. For example the following style of tag cannot be
+//!   set when using macros: `client.count_with_tags("some.counter", 123).with_tag_value("beta").send()`
+//! * Only a single type of value for each type of metric is supported. For example, only
+//!   `u64` can be used with the `statsd_time!` macro, not a `std::time::Duration`. Only
+//!   `u64` can be used with the `statsd_gauge!` macro, not a `f64`.
+//!
 
 pub use crate::state::{get_global_default, is_global_default_set, set_global_default, GlobalDefaultNotSet};
 
