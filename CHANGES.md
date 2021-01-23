@@ -1,5 +1,13 @@
 # Changelog
 
+## master (unreleased)
+* Split the project into two crates. The `cadence` crate will continue to
+  contain the primary client and API. The `cadence-macros` crate contains
+  convenience macros for removing some boilerplate required to emit metrics
+  per [#114](https://github.com/56quarters/cadence/issues/114).
+* Fix `MultilineWriter` (used by buffered sinks) to honor the `Write::write`
+  contract per [#117](https://github.com/56quarters/cadence/issues/117).
+
 ## [v0.23.0](https://github.com/56quarters/cadence/tree/0.23.0) - 2020-12-14
 * **Breaking change** - Add method to emit `f64` types as gauges per 
   [#106](https://github.com/56quarters/cadence/issues/106).
