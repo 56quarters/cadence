@@ -23,6 +23,7 @@
 //! client.gauge("some.gauge", 45).unwrap();
 //! client.meter("some.meter", 67).unwrap();
 //! client.histogram("some.histogram", 89).unwrap();
+//! client.set("some.set", 123).unwrap();
 //! ```
 
 pub use crate::client::{Counted, Gauged, Histogrammed, Metered, MetricClient, Setted, Timed};
