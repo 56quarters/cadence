@@ -14,3 +14,10 @@ autobenches = false
 
 [dependencies]
 cadence = { path = "../cadence", version = "0.23" }
+
+[dev-dependencies]
+criterion = "0.3.1"
+
+[[bench]]
+name = "lib"
+harness = false
