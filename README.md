@@ -23,7 +23,7 @@ Cadence is a fast and flexible way to emit Statsd metrics from your application.
 ## Usage
 
 An example of how to use Cadence for maximum performance is given below. For many more examples
-and advanced use cases, see the [`cadence`](cadence) crate.
+and advanced use cases, see the [`cadence`](cadence) crate or the [documentation](https://docs.rs/cadence/).
 
 ```rust
 use std::net::UdpSocket;
