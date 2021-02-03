@@ -1,6 +1,6 @@
 # Changelog
 
-## master (unreleased)
+## [v0.24.0](https://github.com/56quarters/cadence/tree/0.24.0) - 2021-02-02
 * Split the project into two crates. The `cadence` crate will continue to
   contain the primary client and API. The `cadence-macros` crate contains
   convenience macros for removing some boilerplate required to emit metrics
