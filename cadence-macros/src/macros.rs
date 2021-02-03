@@ -13,6 +13,9 @@
 
 /// Emit a counter using the default global client, optionally with tags
 ///
+/// The counter will use the prefix from the default global client combined
+/// with the provided key.
+///
 /// Any errors encountered sending metrics will be handled by the error handler
 /// registered with the default global client. This error handler is a no-op
 /// unless explicitly set. Callers should set the error handler for the default
@@ -35,8 +38,11 @@
 ///
 /// cadence_macros::set_global_default(client);
 ///
+/// // "my.prefix.some.counter:123|c"
 /// statsd_count!("some.counter", 123);
+/// // "my.prefix.some.counter:123|c|#tag:val"
 /// statsd_count!("some.counter", 123, "tag" => "val");
+/// // "my.prefix.some.counter:123|c|#tag:val,another:thing"
 /// statsd_count!("some.counter", 123, "tag" => "val", "another" => "thing");
 /// ```
 ///
@@ -56,6 +62,9 @@ macro_rules! statsd_count {
 }
 
 /// Emit a timer using the default global client, optionally with tags
+///
+/// The timer will use the prefix from the default global client combined
+/// with the provided key.
 ///
 /// Any errors encountered sending metrics will be handled by the error handler
 /// registered with the default global client. This error handler is a no-op
@@ -79,8 +88,11 @@ macro_rules! statsd_count {
 ///
 /// cadence_macros::set_global_default(client);
 ///
+/// // "my.prefix.some.timer:123|ms"
 /// statsd_time!("some.timer", 123);
+/// // "my.prefix.some.timer:123|ms|#tag:val"
 /// statsd_time!("some.timer", 123, "tag" => "val");
+/// // "my.prefix.some.timer:123|ms|#tag:val,another:thing"
 /// statsd_time!("some.timer", 123, "tag" => "val", "another" => "thing");
 /// ```
 ///
@@ -100,6 +112,9 @@ macro_rules! statsd_time {
 }
 
 /// Emit a gauge using the default global client, optionally with tags
+///
+/// The gauge will use the prefix from the default global client combined
+/// with the provided key.
 ///
 /// Any errors encountered sending metrics will be handled by the error handler
 /// registered with the default global client. This error handler is a no-op
@@ -123,8 +138,11 @@ macro_rules! statsd_time {
 ///
 /// cadence_macros::set_global_default(client);
 ///
+/// // "my.prefix.some.gauge:123|g"
 /// statsd_gauge!("some.gauge", 123);
+/// // "my.prefix.some.gauge:123|g|#tag:val"
 /// statsd_gauge!("some.gauge", 123, "tag" => "val");
+/// // "my.prefix.some.gauge:123|g|#tag:val,another:thing"
 /// statsd_gauge!("some.gauge", 123, "tag" => "val", "another" => "thing");
 /// ```
 ///
@@ -144,6 +162,9 @@ macro_rules! statsd_gauge {
 }
 
 /// Emit a meter using the default global client, optionally with tags
+///
+/// The meter will use the prefix from the default global client combined
+/// with the provided key.
 ///
 /// Any errors encountered sending metrics will be handled by the error handler
 /// registered with the default global client. This error handler is a no-op
@@ -167,8 +188,11 @@ macro_rules! statsd_gauge {
 ///
 /// cadence_macros::set_global_default(client);
 ///
+/// // "my.prefix.some.meter:123|m"
 /// statsd_meter!("some.meter", 123);
+/// // "my.prefix.some.meter:123|m|#tag:val"
 /// statsd_meter!("some.meter", 123, "tag" => "val");
+/// // "my.prefix.some.meter:123|m|#tag:val,another:thing"
 /// statsd_meter!("some.meter", 123, "tag" => "val", "another" => "thing");
 /// ```
 ///
@@ -188,6 +212,9 @@ macro_rules! statsd_meter {
 }
 
 /// Emit a histogram using the default global client, optionally with tags
+///
+/// The histogram will use the prefix from the default global client combined
+/// with the provided key.
 ///
 /// Any errors encountered sending metrics will be handled by the error handler
 /// registered with the default global client. This error handler is a no-op
@@ -211,8 +238,11 @@ macro_rules! statsd_meter {
 ///
 /// cadence_macros::set_global_default(client);
 ///
+/// // "my.prefix.some.histogram:123|h"
 /// statsd_histogram!("some.histogram", 123);
+/// // "my.prefix.some.histogram:123|h|#tag:val"
 /// statsd_histogram!("some.histogram", 123, "tag" => "val");
+/// // "my.prefix.some.histogram:123|h|#tag:val,another:thing"
 /// statsd_histogram!("some.histogram", 123, "tag" => "val", "another" => "thing");
 /// ```
 ///
@@ -232,6 +262,9 @@ macro_rules! statsd_histogram {
 }
 
 /// Emit a set using the default global client, optionally with tags
+///
+/// The set will use the prefix from the default global client combined
+/// with the provided key.
 ///
 /// Any errors encountered sending metrics will be handled by the error handler
 /// registered with the default global client. This error handler is a no-op
@@ -255,8 +288,11 @@ macro_rules! statsd_histogram {
 ///
 /// cadence_macros::set_global_default(client);
 ///
+/// // "my.prefix.some.set:123|s"
 /// statsd_set!("some.set", 123);
+/// // "my.prefix.some.set:123|s|#tag:val"
 /// statsd_set!("some.set", 123, "tag" => "val");
+/// // "my.prefix.some.set:123|s|#tag:val,another:thing"
 /// statsd_set!("some.set", 123, "tag" => "val", "another" => "thing");
 /// ```
 ///
