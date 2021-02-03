@@ -66,7 +66,7 @@ where
     key: &'a str,
     val: MetricValue,
     type_: MetricType,
-    tags: Option<Vec<(Option<&'a str>, &'a str)>>,
+    tags: Vec<(Option<&'a str>, &'a str)>,
 }
 
 impl<'a, T> MetricFormatter<'a, T>
@@ -110,7 +110,7 @@ where
             type_,
             val: MetricValue::Unsigned(val),
             metric: PhantomData,
-            tags: None,
+            tags: Vec::new(),
         }
     }
 
@@ -121,7 +121,7 @@ where
             type_,
             val: MetricValue::Signed(val),
             metric: PhantomData,
-            tags: None,
+            tags: Vec::new(),
         }
     }
 
@@ -132,16 +132,16 @@ where
             type_,
             val: MetricValue::Float(val),
             metric: PhantomData,
-            tags: None,
+            tags: Vec::new(),
         }
     }
 
     fn with_tag(&mut self, key: &'a str, value: &'a str) {
-        self.tags.get_or_insert_with(Vec::new).push((Some(key), value));
+        self.tags.push((Some(key), value));
     }
 
     fn with_tag_value(&mut self, value: &'a str) {
-        self.tags.get_or_insert_with(Vec::new).push((None, value));
+        self.tags.push((None, value));
     }
 
     fn write_base_metric(&self, out: &mut String) {
@@ -149,9 +149,9 @@ where
     }
 
     fn write_tags(&self, out: &mut String) {
-        if let Some(tags) = self.tags.as_ref() {
+        if !self.tags.is_empty() {
             out.push_str(Self::TAG_PREFIX);
-            for (i, &(key, value)) in tags.iter().enumerate() {
+            for (i, &(key, value)) in self.tags.iter().enumerate() {
                 if i > 0 {
                     out.push(',');
                 }
@@ -183,20 +183,21 @@ where
     }
 
     fn tag_size_hint(&self) -> usize {
-        // Enough space for prefix, tags, separators, and commas
-        self.tags
-            .as_ref()
-            .map(|t| {
-                // Space required for each key value pair or singleton value
-                let kv_size: usize = t
-                    .iter()
-                    .map(|tag| tag.0.map_or(0, |k| k.len() + 1 /* : */) + tag.1.len())
-                    .sum();
+        if self.tags.is_empty() {
+            return 0;
+        }
 
-                // If we're inside the map method, there are tags so we need the prefix
-                Self::TAG_PREFIX.len() + kv_size + t.len() - 1 /* prefix, keys and values, commas */
+        let kv_size: usize = self
+            .tags
+            .iter()
+            .map(|(key, val)| {
+                // keys are optional so either include its length and ':' or zero
+                key.map(|s| s.len() + 1 /* : */).unwrap_or(0) + val.len()
             })
-            .unwrap_or(0)
+            .sum();
+
+        // prefix, keys and values, commas
+        Self::TAG_PREFIX.len() + kv_size + self.tags.len() - 1
     }
 
     pub(crate) fn build(&self) -> T {
@@ -445,6 +446,29 @@ where
 mod tests {
     use super::MetricFormatter;
     use crate::types::{Counter, Gauge, Histogram, Meter, Metric, Set, Timer};
+
+    #[test]
+    fn test_metric_formatter_tag_size_hint_no_tags() {
+        let fmt: MetricFormatter<'_, Counter> = MetricFormatter::counter("prefix.", "some.key", 1);
+        assert_eq!(0, fmt.tag_size_hint());
+    }
+
+    #[test]
+    fn test_metric_formatter_tag_size_hint_value() {
+        let mut fmt: MetricFormatter<'_, Counter> = MetricFormatter::counter("prefix.", "some.key", 1);
+        fmt.with_tag_value("test");
+
+        assert_eq!(6, fmt.tag_size_hint());
+    }
+
+    #[test]
+    fn test_metric_formatter_tag_size_hint_key_value() {
+        let mut fmt: MetricFormatter<'_, Counter> = MetricFormatter::counter("prefix.", "some.key", 1);
+        fmt.with_tag("host", "web");
+        fmt.with_tag("user", "123");
+
+        assert_eq!(19, fmt.tag_size_hint());
+    }
 
     #[test]
     fn test_metric_formatter_counter_no_tags() {
