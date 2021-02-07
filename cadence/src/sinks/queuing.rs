@@ -66,7 +66,7 @@ use std::thread;
 /// sink is stopped.
 #[derive(Debug, Clone)]
 pub struct QueuingMetricSink {
-    worker: Arc<Worker<String>>,
+    worker: Arc<Worker>,
 }
 
 impl QueuingMetricSink {
@@ -266,10 +266,7 @@ impl WorkerStats {
 /// This function uses a `Sentinel` struct to make sure that any panics from
 /// running the worker result in another thread being spawned to start running
 /// the worker again.
-fn spawn_worker_in_thread<T>(worker: Arc<Worker<T>>) -> thread::JoinHandle<()>
-where
-    T: Send + 'static,
-{
+fn spawn_worker_in_thread(worker: Arc<Worker>) -> thread::JoinHandle<()> {
     thread::spawn(move || {
         let mut sentinel = Sentinel::new(&worker);
         worker.run();
@@ -284,19 +281,13 @@ where
 /// in its destructor unless the `.cancel()` method is called after the
 /// worker completes (which won't happen if the worker panics).
 #[derive(Debug)]
-struct Sentinel<'a, T>
-where
-    T: Send + 'static,
-{
-    worker: &'a Arc<Worker<T>>,
+struct Sentinel<'a> {
+    worker: &'a Arc<Worker>,
     active: bool,
 }
 
-impl<'a, T> Sentinel<'a, T>
-where
-    T: Send + 'static,
-{
-    fn new(worker: &'a Arc<Worker<T>>) -> Sentinel<'a, T> {
+impl<'a> Sentinel<'a> {
+    fn new(worker: &'a Arc<Worker>) -> Sentinel<'a> {
         Sentinel { worker, active: true }
     }
 
@@ -305,10 +296,7 @@ where
     }
 }
 
-impl<'a, T> Drop for Sentinel<'a, T>
-where
-    T: Send + 'static,
-{
+impl<'a> Drop for Sentinel<'a> {
     fn drop(&mut self) {
         if self.active {
             // This sentinel didn't have its `.cancel()`method called so
@@ -342,24 +330,18 @@ where
 /// worry about this, just call `.submit()`, `.run()`, and `.stop()`.
 /// But, if you're wondering why the stopped flag and methods to wait
 /// for it or inspect it even exist: testing is the reason.
-struct Worker<T>
-where
-    T: Send + 'static,
-{
-    task: Box<dyn Fn(T) + Sync + Send + RefUnwindSafe + 'static>,
-    sender: Sender<Option<T>>,
-    receiver: Receiver<Option<T>>,
+struct Worker {
+    task: Box<dyn Fn(String) + Sync + Send + RefUnwindSafe + 'static>,
+    sender: Sender<Option<String>>,
+    receiver: Receiver<Option<String>>,
     stopped: AtomicBool,
     stats: WorkerStats,
 }
 
-impl<T> Worker<T>
-where
-    T: Send + 'static,
-{
-    fn new<F>(capacity: Option<usize>, task: F) -> Worker<T>
+impl Worker {
+    fn new<F>(capacity: Option<usize>, task: F) -> Self
     where
-        F: Fn(T) + Sync + Send + RefUnwindSafe + 'static,
+        F: Fn(String) + Sync + Send + RefUnwindSafe + 'static,
     {
         let (tx, rx) = Self::get_channels(capacity);
         Worker {
@@ -371,7 +353,7 @@ where
         }
     }
 
-    fn get_channels(capacity: Option<usize>) -> (Sender<Option<T>>, Receiver<Option<T>>) {
+    fn get_channels(capacity: Option<usize>) -> (Sender<Option<String>>, Receiver<Option<String>>) {
         if let Some(v) = capacity {
             crossbeam_channel::bounded(v)
         } else {
@@ -379,7 +361,7 @@ where
         }
     }
 
-    fn submit(&self, v: T) -> Result<(), TrySendError<Option<T>>> {
+    fn submit(&self, v: String) -> Result<(), TrySendError<Option<String>>> {
         let res = self.sender.try_send(Some(v));
         if res.is_ok() {
             self.stats.incr_submitted();
@@ -434,10 +416,7 @@ where
     }
 }
 
-impl<T> fmt::Debug for Worker<T>
-where
-    T: Send + 'static,
-{
+impl fmt::Debug for Worker {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "Worker {{ ... }}")
     }
