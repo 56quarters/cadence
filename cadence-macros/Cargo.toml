@@ -17,6 +17,7 @@ cadence = { path = "../cadence", version = "0.24" }
 
 [dev-dependencies]
 criterion = "0.3.1"
+crossbeam-channel = "0.5.0"
 
 [[bench]]
 name = "lib"
