@@ -15,8 +15,8 @@
 
 use cadence::prelude::*;
 use cadence::{
-    Counted, Counter, Gauge, Gauged, Histogram, Histogrammed, Meter, Metered, Metric, MetricBuilder, MetricSink, Set,
-    Setted, StatsdClient, Timed, Timer,
+    Counted, Counter, Distribution, Distributed, Gauge, Gauged, Histogram, Histogrammed, Meter, Metered, Metric, MetricBuilder,
+    MetricSink, Set, Setted, StatsdClient, Timed, Timer,
 };
 use std::fmt;
 use std::io;
@@ -136,6 +136,13 @@ impl Histogrammed for MetricTagDecorator {
         duration: Duration,
     ) -> MetricBuilder<'_, '_, Histogram> {
         let builder = self.client.histogram_duration_with_tags(key, duration);
+        self.copy_tags_to_builder(builder)
+    }
+}
+
+impl Distributed for MetricTagDecorator {
+    fn distribution_with_tags<'a>(&'a self, key: &'a str, value: u64) -> MetricBuilder<'_, '_, Distribution> {
+        let builder = self.client.distribution_with_tags(key, value);
         self.copy_tags_to_builder(builder)
     }
 }

@@ -261,6 +261,56 @@ macro_rules! statsd_histogram {
     }
 }
 
+/// Emit a distribution using the default global client, optionally with tags
+///
+/// The distribution will use the prefix from the default global client combined
+/// with the provided key.
+///
+/// Any errors encountered sending metrics will be handled by the error handler
+/// registered with the default global client. This error handler is a no-op
+/// unless explicitly set. Callers should set the error handler for the default
+/// client if you wish to handle these errors (by logging them or something similar).
+///
+/// # Panics
+///
+/// This macro will panic if the default global client has not been set when
+/// it is invoked (via `cadence_macros::set_global_default`).
+///
+/// # Examples
+///
+/// ```
+/// use cadence::{StatsdClient, NopMetricSink};
+/// use cadence_macros::statsd_distribution;
+///
+/// let client = StatsdClient::builder("my.prefix", NopMetricSink)
+///     .with_error_handler(|e| { eprintln!("metric error: {}", e) })
+///     .build();
+///
+/// cadence_macros::set_global_default(client);
+///
+/// // "my.prefix.some.distribution:123|d"
+/// statsd_distribution!("some.distribution", 123);
+/// // "my.prefix.some.distribution:123|d|#tag:val"
+/// statsd_distribution!("some.distribution", 123, "tag" => "val");
+/// // "my.prefix.some.distribution:123|d|#tag:val,another:thing"
+/// statsd_distribution!("some.distribution", 123, "tag" => "val", "another" => "thing");
+/// ```
+///
+/// # Limitations
+///
+/// Only key-value style tags are supported. Value style tags are not
+/// supported, e.g. `builder.with_tag_value("val")`.
+#[macro_export]
+macro_rules! statsd_distribution {
+    ($key:expr, $val:expr) => {
+        $crate::statsd_distribution!($key, $val,)
+    };
+
+    ($key:expr, $val:expr, $($tag_key:expr => $tag_val:expr),*) => {
+        $crate::_generate_impl!(distribution_with_tags, $key, $val, $($tag_key => $tag_val),*)
+    }
+}
+
 /// Emit a set using the default global client, optionally with tags
 ///
 /// The set will use the prefix from the default global client combined

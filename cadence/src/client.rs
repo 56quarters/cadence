@@ -10,7 +10,7 @@
 
 use crate::builder::{MetricBuilder, MetricFormatter};
 use crate::sinks::{MetricSink, UdpMetricSink};
-use crate::types::{Counter, ErrorKind, Gauge, Histogram, Meter, Metric, MetricError, MetricResult, Set, Timer};
+use crate::types::{Counter, Distribution, ErrorKind, Gauge, Histogram, Meter, Metric, MetricError, MetricResult, Set, Timer};
 use std::fmt;
 use std::net::{ToSocketAddrs, UdpSocket};
 use std::panic::RefUnwindSafe;
@@ -213,6 +213,29 @@ pub trait Histogrammed {
         -> MetricBuilder<'_, '_, Histogram>;
 }
 
+/// Trait for recording distribution values.
+///
+/// Similar to histrograms, but applies globally. A distrubtion can be used to
+/// instrument logical objects, like services, independently from the underlying
+/// hosts.
+///
+/// See the [Datadog docs](https://docs.datadoghq.com/developers/metrics/types/?tab=distribution#definition)
+/// for more information.
+///
+/// Note that tags and distributions are a
+/// [Datadog](https://docs.datadoghq.com/developers/dogstatsd/) extension to
+/// Statsd and may not be supported by your server.
+pub trait Distributed {
+    /// Record a single distribution value with the given key
+    fn distribution(&self, key: &str, value: u64) -> MetricResult<Distribution> {
+        self.distribution_with_tags(key, value).try_send()
+    }
+
+    /// Record a single distribution value with the given key and return a
+    /// `MetricBuilder` that can be used to add tags to the metric.
+    fn distribution_with_tags<'a>(&'a self, key: &'a str, value: u64) -> MetricBuilder<'_, '_, Distribution>;
+}
+
 /// Trait for recording set values.
 ///
 /// Sets count the number of unique elements in a group. You can use them to,
@@ -251,7 +274,7 @@ pub trait Setted {
 /// client.histogram("some.histogram", 4).unwrap();
 /// client.set("some.set", 5).unwrap();
 /// ```
-pub trait MetricClient: Counted + Timed + Gauged + Metered + Histogrammed + Setted {}
+pub trait MetricClient: Counted + Timed + Gauged + Metered + Histogrammed + Setted + Distributed {}
 
 /// Typically internal methods for sending metrics and handling errors.
 ///
@@ -784,6 +807,13 @@ impl Histogrammed for StatsdClient {
     }
 }
 
+impl Distributed for StatsdClient {
+    fn distribution_with_tags<'a>(&'a self, key: &'a str, value: u64) -> MetricBuilder<'_, '_, Distribution> {
+        let fmt = MetricFormatter::distribution(&self.prefix, key, value);
+        MetricBuilder::new(fmt, self)
+    }
+}
+
 impl Setted for StatsdClient {
     fn set_with_tags<'a>(&'a self, key: &'a str, value: i64) -> MetricBuilder<'_, '_, Set> {
         let fmt = MetricFormatter::set(&self.prefix, key, value);
@@ -800,7 +830,7 @@ fn nop_error_handler(_err: MetricError) {
 
 #[cfg(test)]
 mod tests {
-    use super::{Counted, Gauged, Histogrammed, Metered, MetricClient, Setted, StatsdClient, Timed};
+    use super::{Counted, Distributed, Gauged, Histogrammed, Metered, MetricClient, Setted, StatsdClient, Timed};
     use crate::sinks::{MetricSink, NopMetricSink, QueuingMetricSink};
     use crate::types::{ErrorKind, Metric, MetricError};
     use std::cell::RefCell;
@@ -925,6 +955,21 @@ mod tests {
             .try_send();
 
         assert_eq!(ErrorKind::InvalidInput, res.unwrap_err().kind());
+    }
+
+    #[test]
+    fn test_statsd_client_distribution_with_tags() {
+        let client = StatsdClient::from_sink("prefix", NopMetricSink);
+        let res = client
+            .distribution_with_tags("some.distr", 27)
+            .with_tag("host", "www03.example.com")
+            .with_tag_value("rc1")
+            .try_send();
+
+        assert_eq!(
+            "prefix.some.distr:27|d|#host:www03.example.com,rc1",
+            res.unwrap().as_metric_str()
+        );
     }
 
     #[test]
