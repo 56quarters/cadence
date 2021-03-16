@@ -219,8 +219,8 @@ pub trait Histogrammed {
 /// instrument logical objects, like services, independently from the underlying
 /// hosts.
 ///
-/// See the [Datadog docs](https://github.com/b/statsd_spec) for more
-/// information.
+/// See the [Datadog docs](https://docs.datadoghq.com/developers/metrics/types/?tab=distribution#definition)
+/// for more information.
 ///
 /// Note that tags and distributions are a
 /// [Datadog](https://docs.datadoghq.com/developers/dogstatsd/) extension to
