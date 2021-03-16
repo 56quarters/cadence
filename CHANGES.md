@@ -1,5 +1,11 @@
 # Changelog
 
+## master / unreleased
+
+* Added support for [DataDog distribution](https://docs.datadoghq.com/developers/metrics/types/?tab=distribution#definition)
+  metric types per [#125](https://github.com/56quarters/cadence/pull/125)
+  thanks to @duarten.
+
 ## [v0.24.0](https://github.com/56quarters/cadence/tree/0.24.0) - 2021-02-02
 * Split the project into two crates. The `cadence` crate will continue to
   contain the primary client and API. The `cadence-macros` crate contains
