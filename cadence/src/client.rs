@@ -234,27 +234,6 @@ pub trait Distributed {
     /// Record a single distribution value with the given key and return a
     /// `MetricBuilder` that can be used to add tags to the metric.
     fn distribution_with_tags<'a>(&'a self, key: &'a str, value: u64) -> MetricBuilder<'_, '_, Distribution>;
-
-    /// Record a single distribution value with the given key.
-    ///
-    /// The duration will be converted to nanoseconds. If the duration
-    /// cannot be represented as a `u64` an error will be returned. Note
-    /// that distributions are an extension to Statsd, you'll need to check
-    /// if they are supported by your server and considered times.
-    fn distribution_duration(&self, key: &str, duration: Duration) -> MetricResult<Distribution> {
-        self.distribution_duration_with_tags(key, duration).try_send()
-    }
-
-    /// Record a single distribution value with the given key and return a
-    /// `MetricBuilder` that can be used to add tags to the metric.
-    ///
-    /// The duration will be converted to nanoseconds. If the duration cannot
-    /// be represented as a `u64` an error will be deferred and returned when
-    /// `MetricBuilder::try_send()` is called. Note that distributions are an
-    /// extension to Statsd, you'll need to check if they are supported by
-    /// your server and considered times.
-    fn distribution_duration_with_tags<'a>(&'a self, key: &'a str, duration: Duration)
-        -> MetricBuilder<'_, '_, Distribution>;
 }
 
 /// Trait for recording set values.
@@ -833,19 +812,6 @@ impl Distributed for StatsdClient {
         let fmt = MetricFormatter::distribution(&self.prefix, key, value);
         MetricBuilder::new(fmt, self)
     }
-
-    fn distribution_duration_with_tags<'a>(
-        &'a self,
-        key: &'a str,
-        duration: Duration,
-    ) -> MetricBuilder<'_, '_, Distribution> {
-        let as_nanos = duration.as_nanos();
-        if as_nanos > u64::MAX as u128 {
-            MetricBuilder::from_error(MetricError::from((ErrorKind::InvalidInput, "u64 overflow")), self)
-        } else {
-            self.distribution_with_tags(key, as_nanos as u64)
-        }
-    }
 }
 
 impl Setted for StatsdClient {
@@ -1004,46 +970,6 @@ mod tests {
             "prefix.some.distr:27|d|#host:www03.example.com,rc1",
             res.unwrap().as_metric_str()
         );
-    }
-
-    #[test]
-    fn test_statsd_client_distribution_duration() {
-        let client = StatsdClient::from_sink("prefix", NopMetricSink);
-        let res = client.distribution_duration("key", Duration::from_nanos(210));
-
-        assert_eq!("prefix.key:210|d", res.unwrap().as_metric_str());
-    }
-
-    #[test]
-    fn test_statsd_client_distribution_duration_with_overflow() {
-        let client = StatsdClient::from_sink("prefix", NopMetricSink);
-        let res = client.distribution_duration("key", Duration::from_secs(u64::MAX));
-
-        assert_eq!(ErrorKind::InvalidInput, res.unwrap_err().kind());
-    }
-
-    #[test]
-    fn test_statsd_client_distribution_duration_with_tags() {
-        let client = StatsdClient::from_sink("prefix", NopMetricSink);
-        let res = client
-            .distribution_duration_with_tags("key", Duration::from_nanos(4096))
-            .with_tag("foo", "bar")
-            .with_tag_value("beta")
-            .try_send();
-
-        assert_eq!("prefix.key:4096|d|#foo:bar,beta", res.unwrap().as_metric_str());
-    }
-
-    #[test]
-    fn test_statsd_client_distribution_duration_with_tags_with_overflow() {
-        let client = StatsdClient::from_sink("prefix", NopMetricSink);
-        let res = client
-            .distribution_duration_with_tags("key", Duration::from_millis(u64::MAX))
-            .with_tag("foo", "bar")
-            .with_tag_value("beta")
-            .try_send();
-
-        assert_eq!(ErrorKind::InvalidInput, res.unwrap_err().kind());
     }
 
     #[test]

@@ -145,15 +145,6 @@ impl Distributed for MetricTagDecorator {
         let builder = self.client.distribution_with_tags(key, value);
         self.copy_tags_to_builder(builder)
     }
-
-    fn distribution_duration_with_tags<'a>(
-        &'a self,
-        key: &'a str,
-        duration: Duration,
-    ) -> MetricBuilder<'_, '_, Distribution> {
-        let builder = self.client.distribution_duration_with_tags(key, duration);
-        self.copy_tags_to_builder(builder)
-    }
 }
 
 impl Setted for MetricTagDecorator {
