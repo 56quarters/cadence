@@ -15,8 +15,8 @@
 
 use cadence::prelude::*;
 use cadence::{
-    Counted, Counter, Distribution, Distributed, Gauge, Gauged, Histogram, Histogrammed, Meter, Metered, Metric, MetricBuilder,
-    MetricSink, Set, Setted, StatsdClient, Timed, Timer,
+    Counted, Counter, Distributed, Distribution, Gauge, Gauged, Histogram, Histogrammed, Meter, Metered, Metric,
+    MetricBuilder, MetricSink, Set, Setted, StatsdClient, Timed, Timer,
 };
 use std::fmt;
 use std::io;

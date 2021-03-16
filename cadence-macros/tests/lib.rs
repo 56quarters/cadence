@@ -1,5 +1,7 @@
 use cadence::{SpyMetricSink, StatsdClient};
-use cadence_macros::{statsd_count, statsd_distribution, statsd_gauge, statsd_histogram, statsd_meter, statsd_set, statsd_time};
+use cadence_macros::{
+    statsd_count, statsd_distribution, statsd_gauge, statsd_histogram, statsd_meter, statsd_set, statsd_time,
+};
 use std::io;
 use std::sync::{Arc, Mutex, Once};
 

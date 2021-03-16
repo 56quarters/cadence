@@ -10,7 +10,9 @@
 
 use crate::builder::{MetricBuilder, MetricFormatter};
 use crate::sinks::{MetricSink, UdpMetricSink};
-use crate::types::{Counter, Distribution, ErrorKind, Gauge, Histogram, Meter, Metric, MetricError, MetricResult, Set, Timer};
+use crate::types::{
+    Counter, Distribution, ErrorKind, Gauge, Histogram, Meter, Metric, MetricError, MetricResult, Set, Timer,
+};
 use std::fmt;
 use std::net::{ToSocketAddrs, UdpSocket};
 use std::panic::RefUnwindSafe;
