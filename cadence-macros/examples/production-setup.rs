@@ -8,7 +8,9 @@
 // software. If not, see <http://creativecommons.org/publicdomain/zero/1.0/>.
 
 use cadence::{BufferedUdpMetricSink, QueuingMetricSink, StatsdClient, DEFAULT_PORT};
-use cadence_macros::{statsd_count, statsd_distribution, statsd_gauge, statsd_histogram, statsd_meter, statsd_set, statsd_time};
+use cadence_macros::{
+    statsd_count, statsd_distribution, statsd_gauge, statsd_histogram, statsd_meter, statsd_set, statsd_time,
+};
 use std::net::UdpSocket;
 
 fn main() {

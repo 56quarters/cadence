@@ -423,7 +423,9 @@ pub use self::sinks::{
     UdpMetricSink,
 };
 
-pub use self::types::{Counter, Distribution, ErrorKind, Gauge, Histogram, Meter, Metric, MetricError, MetricResult, Set, Timer};
+pub use self::types::{
+    Counter, Distribution, ErrorKind, Gauge, Histogram, Meter, Metric, MetricError, MetricResult, Set, Timer,
+};
 
 mod builder;
 mod client;
