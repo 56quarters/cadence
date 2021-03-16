@@ -14,7 +14,7 @@
 //!
 //! ## Features
 //!
-//! * Support for emitting counters, timers, histograms, gauges, meters, and sets to
+//! * Support for emitting counters, timers, histograms, distributions, gauges, meters, and sets to
 //!   Statsd over UDP (or optionally Unix sockets).
 //! * Support for alternate backends via the `MetricSink` trait.
 //! * Support for [Datadog](https://docs.datadoghq.com/developers/dogstatsd/) style metrics tags.
@@ -415,7 +415,7 @@ pub const DEFAULT_PORT: u16 = 8125;
 pub use self::builder::MetricBuilder;
 
 pub use self::client::{
-    Counted, Gauged, Histogrammed, Metered, MetricClient, Setted, StatsdClient, StatsdClientBuilder, Timed,
+    Counted, Distributed, Gauged, Histogrammed, Metered, MetricClient, Setted, StatsdClient, StatsdClientBuilder, Timed,
 };
 
 pub use self::sinks::{
@@ -423,7 +423,7 @@ pub use self::sinks::{
     UdpMetricSink,
 };
 
-pub use self::types::{Counter, ErrorKind, Gauge, Histogram, Meter, Metric, MetricError, MetricResult, Set, Timer};
+pub use self::types::{Counter, Distribution, ErrorKind, Gauge, Histogram, Meter, Metric, MetricError, MetricResult, Set, Timer};
 
 mod builder;
 mod client;

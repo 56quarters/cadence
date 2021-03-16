@@ -162,6 +162,32 @@ impl Metric for Histogram {
     }
 }
 
+/// Distributions represent a global statistical distribution of a set of values.
+///
+/// See the `Distributed` trait for more information.
+#[derive(PartialEq, Eq, Debug, Hash, Clone)]
+pub struct Distribution {
+    repr: String,
+}
+
+impl Distribution {
+    pub fn new(prefix: &str, key: &str, value: u64) -> Distribution {
+        MetricFormatter::distribution(prefix, key, value).build()
+    }
+}
+
+impl From<String> for Distribution {
+    fn from(s: String) -> Self {
+        Distribution { repr: s }
+    }
+}
+
+impl Metric for Distribution {
+    fn as_metric_str(&self) -> &str {
+        &self.repr
+    }
+}
+
 /// Sets count the number of unique elements in a group.
 ///
 /// See the `Setted` trait for more information.

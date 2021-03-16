@@ -1,5 +1,5 @@
 use cadence::{SpyMetricSink, StatsdClient};
-use cadence_macros::{statsd_count, statsd_gauge, statsd_histogram, statsd_meter, statsd_set, statsd_time};
+use cadence_macros::{statsd_count, statsd_distribution, statsd_gauge, statsd_histogram, statsd_meter, statsd_set, statsd_time};
 use std::io;
 use std::sync::{Arc, Mutex, Once};
 
@@ -125,6 +125,17 @@ fn test_statsd_histogram() {
     let storage = get_default_storage();
     assert!(storage.contains(&"my.prefix.some.histogram:223|h".to_owned()));
     assert!(storage.contains(&"my.prefix.some.histogram:223|h|#method:auth,result:error".to_owned()));
+}
+
+#[test]
+fn test_statsd_distribution() {
+    init_default_client();
+    statsd_distribution!("some.distribution", 223);
+    statsd_distribution!("some.distribution", 223, "method" => "auth", "result" => "error");
+
+    let storage = get_default_storage();
+    assert!(storage.contains(&"my.prefix.some.distribution:223|d".to_owned()));
+    assert!(storage.contains(&"my.prefix.some.distribution:223|d|#method:auth,result:error".to_owned()));
 }
 
 #[test]
