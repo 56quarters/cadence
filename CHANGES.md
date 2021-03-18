@@ -2,9 +2,22 @@
 
 ## master / unreleased
 
-* Added support for [DataDog distribution](https://docs.datadoghq.com/developers/metrics/types/?tab=distribution#definition)
+* **Breaking change** - Added support for
+  [DataDog distribution](https://docs.datadoghq.com/developers/metrics/types/?tab=distribution#definition)
   metric types per [#125](https://github.com/56quarters/cadence/pull/125)
   thanks to @duarten.
+* **Breaking change** - Rewrite `SpyMetricSink` and `BufferedSpyMetricSink`
+  introduced in 0.22.0 to use channels for making written metrics available
+  instead of shared `Write` implementation wrapped with a `Mutex`. The newly
+  changed sinks now return a `crossbeam_channel::Receiver<Vec<u8>>` instance
+  from their constructors that callers can use to read any metrics written by
+  the sink. This avoids accidental cases of [mutex poisoning](https://doc.rust-lang.org/nomicon/poisoning.html)
+  which can happen when the `Mutex` is held when an assertion fails as part of
+  a test per [#124](https://github.com/56quarters/cadence/issues/124).
+  
+  Examples of how to use the newly rewritten sinks can be found in:
+  * [cadence/examples/spy-sink.rs](cadence/examples/spy-sink.rs)
+  * [cadence-macros/tests/lib.rs](cadence-macros/tests/lib.rs)
 
 ## [v0.24.0](https://github.com/56quarters/cadence/tree/0.24.0) - 2021-02-02
 * Split the project into two crates. The `cadence` crate will continue to

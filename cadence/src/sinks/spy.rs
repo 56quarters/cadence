@@ -10,82 +10,57 @@
 
 use crate::io::MultiLineWriter;
 use crate::sinks::core::MetricSink;
-use std::fmt::{self, Debug, Formatter};
-use std::io::{self, Write};
-use std::panic::RefUnwindSafe;
-use std::sync::{Arc, Mutex};
+use crossbeam_channel::{bounded, unbounded, Receiver, Sender, TrySendError};
+use std::io::{self, ErrorKind, Write};
+use std::sync::Mutex;
 
 // Default size of the buffer for buffered metric sinks, picked for
 // consistency with the UDP implementation.
 const DEFAULT_BUFFER_SIZE: usize = 512;
 
-#[derive(Clone)]
-struct SpyWriter {
-    inner: Arc<Mutex<dyn Write + Send + RefUnwindSafe + 'static>>,
-}
-
-impl SpyWriter {
-    fn from(inner: Arc<Mutex<dyn Write + Send + RefUnwindSafe + 'static>>) -> Self {
-        SpyWriter { inner }
-    }
-}
-
-impl Write for SpyWriter {
-    fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
-        let mut writer = self.inner.lock().unwrap();
-        writer.write(buf)
-    }
-
-    fn flush(&mut self) -> io::Result<()> {
-        let mut writer = self.inner.lock().unwrap();
-        writer.flush()
-    }
-}
-
-/// `MetricSink` implementation that writes all metrics to a shared `Write`
-/// instance that callers retain a reference to.
+/// `MetricSink` implementation that writes all metrics to the `Sender` half of
+/// a channel while callers are given ownership of the `Receiver` half.
 ///
 /// This is not a general purpose sink, rather it's a sink meant for verifying
-/// metrics written during the course of integration tests. Due to the requirement
-/// that callers retain a shared reference to the underlying `Write` implementation,
-/// this sink uses more locking (mutexes) than other sinks in Cadence. Thus, it
-/// should not be used in production, only testing.
+/// metrics written during the course of integration tests. By default, the channel
+/// used is unbounded. The channel size can be limited using the `with_capacity` method.
 ///
-/// Each metric is sent to the underlying writer when the `.emit()` method is
+/// Each metric is sent to the underlying channel when the `.emit()` method is
 /// called, in the thread of the caller.
+#[derive(Debug)]
 pub struct SpyMetricSink {
-    writer: Mutex<SpyWriter>,
+    sender: Sender<Vec<u8>>,
 }
 
 impl SpyMetricSink {
-    pub fn from(writer: Arc<Mutex<dyn Write + Send + RefUnwindSafe + 'static>>) -> Self {
-        SpyMetricSink {
-            writer: Mutex::new(SpyWriter::from(writer)),
-        }
+    pub fn new() -> (Receiver<Vec<u8>>, Self) {
+        Self::with_queue_capacity(None)
+    }
+
+    pub fn with_capacity(queue: usize) -> (Receiver<Vec<u8>>, Self) {
+        Self::with_queue_capacity(Some(queue))
+    }
+
+    fn with_queue_capacity(queue: Option<usize>) -> (Receiver<Vec<u8>>, Self) {
+        let (tx, rx) = new_channel(queue);
+        let sink = SpyMetricSink { sender: tx };
+        (rx, sink)
     }
 }
 
 impl MetricSink for SpyMetricSink {
     fn emit(&self, metric: &str) -> io::Result<usize> {
-        let mut writer = self.writer.lock().unwrap();
-        writer.write(metric.as_bytes())
+        send_metric(&self.sender, metric.as_bytes())
     }
 }
 
-impl Debug for SpyMetricSink {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        write!(f, "SpyMetricSink {{ Mutex {{ SpyWriter {{ ... }} }} }}")
-    }
-}
-
-/// `MetricSink` implementation that buffers metrics and writes them to a
-/// shared `Write` instance that callers retain a reference to.
+/// `MetricSink` implementation that buffers metrics and writes them to the
+/// `Sender` half of a channel while callers are given ownership of the `Receiver`
+/// half.
 ///
 /// This is not a general purpose sink, rather it's a sink meant for verifying
-/// metrics written during the course of integration tests. Due to the requirement
-/// that callers retain a shared reference to the underlying `Write` implementation,
-/// this sink uses more locking (mutexes) than other sinks in Cadence. Thus, it
-/// should not be used in production, only testing.
+/// metrics written during the course of integration tests. By default, the channel
+/// used is unbounded. The channel size can be limited using the `with_capacity` method.
 ///
 /// Metrics are line buffered, meaning that a trailing "\n" is added
 /// after each metric written to this sink. When the buffer is sufficiently
@@ -105,19 +80,24 @@ impl Debug for SpyMetricSink {
 /// that do not emit metrics frequently or at a high volume. For these low-
 /// throughput use cases, it may make more sense to use the `SpyMetricSink`
 /// since it sends metrics immediately with no buffering.
+#[derive(Debug)]
 pub struct BufferedSpyMetricSink {
-    writer: Mutex<MultiLineWriter<SpyWriter>>,
+    writer: Mutex<MultiLineWriter<WriteAdapter>>,
 }
 
 impl BufferedSpyMetricSink {
-    pub fn from(writer: Arc<Mutex<dyn Write + Send + RefUnwindSafe + 'static>>) -> Self {
-        Self::with_capacity(writer, DEFAULT_BUFFER_SIZE)
+    pub fn new() -> (Receiver<Vec<u8>>, Self) {
+        Self::with_capacity(None, Some(DEFAULT_BUFFER_SIZE))
     }
 
-    pub fn with_capacity(writer: Arc<Mutex<dyn Write + Send + RefUnwindSafe + 'static>>, cap: usize) -> Self {
-        BufferedSpyMetricSink {
-            writer: Mutex::new(MultiLineWriter::new(SpyWriter::from(writer), cap)),
-        }
+    pub fn with_capacity(queue: Option<usize>, buffer: Option<usize>) -> (Receiver<Vec<u8>>, Self) {
+        let (tx, rx) = new_channel(queue);
+        let buffer_sz = buffer.unwrap_or(DEFAULT_BUFFER_SIZE);
+        let writer = MultiLineWriter::new(WriteAdapter::new(tx), buffer_sz);
+        let sink = BufferedSpyMetricSink {
+            writer: Mutex::new(writer),
+        };
+        (rx, sink)
     }
 }
 
@@ -133,67 +113,82 @@ impl MetricSink for BufferedSpyMetricSink {
     }
 }
 
-impl Debug for BufferedSpyMetricSink {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(
-            f,
-            "BufferedSpyMetricSink {{ Mutex {{ MultiLineWriter {{ SpyWriter {{ ... }} }} }} }}"
-        )
+#[derive(Debug)]
+struct WriteAdapter {
+    sender: Sender<Vec<u8>>,
+}
+
+impl WriteAdapter {
+    fn new(sender: Sender<Vec<u8>>) -> Self {
+        WriteAdapter { sender }
+    }
+}
+
+impl Write for WriteAdapter {
+    fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
+        send_metric(&self.sender, buf)
+    }
+
+    fn flush(&mut self) -> io::Result<()> {
+        Ok(())
+    }
+}
+
+fn new_channel(cap: Option<usize>) -> (Sender<Vec<u8>>, Receiver<Vec<u8>>) {
+    if let Some(sz) = cap {
+        bounded(sz)
+    } else {
+        unbounded()
+    }
+}
+
+fn send_metric(sender: &Sender<Vec<u8>>, metric: &[u8]) -> io::Result<usize> {
+    match sender.try_send(metric.to_vec()) {
+        Err(TrySendError::Disconnected(_)) => Err(io::Error::new(ErrorKind::Other, "channel disconnected")),
+        Err(TrySendError::Full(_)) => Err(io::Error::new(ErrorKind::Other, "channel full")),
+        Ok(_) => Ok(metric.len()),
     }
 }
 
 #[cfg(test)]
 mod test {
     use super::{BufferedSpyMetricSink, MetricSink, SpyMetricSink};
-    use std::sync::{Arc, Mutex};
-
-    // Get a copy of the contents of the shared writer and make sure to
-    // drop the lock before any assertions, otherwise the mutex becomes
-    // poisoned and results in obscure errors when trying to debug tests
-    #[inline]
-    fn copy_buffer(writer: Arc<Mutex<Vec<u8>>>) -> Vec<u8> {
-        writer.lock().unwrap().clone()
-    }
 
     #[test]
     fn test_spy_metric_sink() {
-        let writer = Arc::new(Mutex::new(Vec::new()));
-        let sink = SpyMetricSink::from(writer.clone());
+        let (rx, sink) = SpyMetricSink::new();
         sink.emit("buz:1|c").unwrap();
 
-        let contents = copy_buffer(writer);
-        assert_eq!("buz:1|c".as_bytes(), contents.as_slice());
+        let sent = rx.recv().unwrap();
+        assert_eq!("buz:1|c".as_bytes(), sent.as_slice());
     }
 
     #[test]
     fn test_buffered_spy_metric_sink() {
-        let writer = Arc::new(Mutex::new(Vec::new()));
-
         // Make sure the sink is dropped before checking what was written
         // to the buffer so that we know everything was flushed
-        {
-            let sink = BufferedSpyMetricSink::with_capacity(writer.clone(), 16);
+        let rx = {
+            let (rx, sink) = BufferedSpyMetricSink::with_capacity(None, Some(64));
             sink.emit("foo:54|c").unwrap();
             sink.emit("foo:67|c").unwrap();
-        }
+            rx
+        };
 
-        let contents = copy_buffer(writer);
-        assert_eq!("foo:54|c\nfoo:67|c\n".as_bytes(), contents.as_slice());
+        let sent = rx.recv().unwrap();
+        assert_eq!("foo:54|c\nfoo:67|c\n".as_bytes(), sent.as_slice());
     }
 
     #[test]
     fn test_buffered_spy_metric_sink_flush() {
-        let writer = Arc::new(Mutex::new(Vec::new()));
-
         // Set the capacity of the buffer such that it won't be flushed
         // from a single write. Thus we can test the flush method.
-        let sink = BufferedSpyMetricSink::with_capacity(writer.clone(), 64);
+        let (rx, sink) = BufferedSpyMetricSink::with_capacity(None, Some(64));
         sink.emit("foo:54|c").unwrap();
         sink.emit("foo:67|c").unwrap();
         let flush = sink.flush();
 
-        let contents = copy_buffer(writer);
-        assert_eq!("foo:54|c\nfoo:67|c\n".as_bytes(), contents.as_slice());
+        let sent = rx.recv().unwrap();
+        assert_eq!("foo:54|c\nfoo:67|c\n".as_bytes(), sent.as_slice());
         assert!(flush.is_ok());
     }
 }
