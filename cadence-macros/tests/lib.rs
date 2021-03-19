@@ -1,10 +1,12 @@
-use cadence::{SpyMetricSink, StatsdClient};
+use cadence::{NopMetricSink, SpyMetricSink, StatsdClient};
 use cadence_macros::{
     statsd_count, statsd_distribution, statsd_gauge, statsd_histogram, statsd_meter, statsd_set, statsd_time,
     SingletonHolder,
 };
 use crossbeam_channel::Receiver;
 use std::collections::HashSet;
+use std::sync::{Arc, Barrier};
+use std::thread;
 
 static RX: SingletonHolder<Receiver<Vec<u8>>> = SingletonHolder::new();
 
@@ -30,6 +32,41 @@ fn read_all_metrics() -> HashSet<String> {
     }
 
     out
+}
+
+#[test]
+fn test_init_safety() {
+    let num_threads = 10;
+    let num_iterations = 1000;
+
+    static STATE: SingletonHolder<StatsdClient> = SingletonHolder::new();
+    let gate = Arc::new(Barrier::new(num_threads * 2));
+    let mut threads = Vec::new();
+
+    for _ in 0..num_threads {
+        let gate = gate.clone();
+        threads.push(thread::spawn(move || {
+            gate.wait();
+            for _ in 0..num_iterations {
+                let _ = STATE.get();
+            }
+        }));
+    }
+
+    for _ in 0..num_threads {
+        let gate = gate.clone();
+        threads.push(thread::spawn(move || {
+            gate.wait();
+            for _ in 0..num_iterations {
+                let client = StatsdClient::from_sink("", NopMetricSink);
+                STATE.set(client);
+            }
+        }));
+    }
+
+    for t in threads {
+        t.join().unwrap();
+    }
 }
 
 #[test]
