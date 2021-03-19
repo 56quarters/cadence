@@ -18,6 +18,12 @@
   Examples of how to use the newly rewritten sinks can be found in:
   * [cadence/examples/spy-sink.rs](cadence/examples/spy-sink.rs)
   * [cadence-macros/tests/lib.rs](cadence-macros/tests/lib.rs)
+* **Breaking change** - Remove unsafe uses of `static mut` used for global state
+  related to macros which caused undefined behavior per
+  [#129](https://github.com/56quarters/cadence/issues/129) thanks to @parasyte.
+  A consequence of  this that `cadence_macros::set_global_default` and
+  `cadence_macros::get_global_default` now only accept instances of `StatsdClient`,
+  not the trait `MetricClient`.
 
 ## [v0.24.0](https://github.com/56quarters/cadence/tree/0.24.0) - 2021-02-02
 * Split the project into two crates. The `cadence` crate will continue to
