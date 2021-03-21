@@ -10,13 +10,13 @@ fn benchmark_global_statsdclient_queuing(c: &mut Criterion) {
     // of metrics which tends to be accurate except in special cases (like f64 gauges or
     // timers and histograms using Durations).
 
-    c.bench_function("statsdclient_queuing_statsd_counter", |b| {
+    c.bench_function("macros_statsdclient_queuing_statsd_counter", |b| {
         b.iter(|| {
             statsd_count!("some.counter", 123);
         })
     });
 
-    c.bench_function("statsdclient_queuing_statsd_counter_tags", |b| {
+    c.bench_function("macros_statsdclient_queuing_statsd_counter_tags", |b| {
         b.iter(|| {
             statsd_count!("some.counter", 123, "tag" => "val", "another" => "thing");
         })
