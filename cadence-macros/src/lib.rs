@@ -98,7 +98,9 @@
 //!   `u64` can be used with the `statsd_gauge!` macro, not a `f64`.
 //!
 
-pub use crate::state::{get_global_default, is_global_default_set, set_global_default, GlobalDefaultNotSet};
+pub use crate::state::{
+    get_global_default, is_global_default_set, set_global_default, GlobalDefaultNotSet, SingletonHolder,
+};
 
 mod macros;
 mod state;

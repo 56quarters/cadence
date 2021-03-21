@@ -365,6 +365,7 @@ macro_rules! statsd_set {
 #[doc(hidden)]
 macro_rules! _generate_impl {
     ($method:ident, $key:expr, $val:expr, $($tag_key:expr => $tag_val:expr),*) => {
+        use cadence::prelude::*;
         let client = $crate::get_global_default().unwrap();
         let builder = client.$method($key, $val);
         $(let builder = builder.with_tag($tag_key, $tag_val);)*

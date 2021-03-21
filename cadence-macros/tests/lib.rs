@@ -1,39 +1,26 @@
 use cadence::{SpyMetricSink, StatsdClient};
 use cadence_macros::{
     statsd_count, statsd_distribution, statsd_gauge, statsd_histogram, statsd_meter, statsd_set, statsd_time,
+    SingletonHolder,
 };
 use crossbeam_channel::Receiver;
 use std::collections::HashSet;
-use std::sync::{Arc, Once};
 
-/// Channel to be used to inspect metrics written to a `SpyMetricSink`
-static mut RX: Option<Arc<Receiver<Vec<u8>>>> = None;
+static RX: SingletonHolder<Receiver<Vec<u8>>> = SingletonHolder::new();
 
-/// Control initialization of the sink and channel being used
-static RX_INIT: Once = Once::new();
-
-/// Set a default client and save a reference to channel for inspecting metrics
+/// Set a default client and save a reference to a channel for inspecting metrics
 fn init_default_client() {
-    RX_INIT.call_once(|| {
-        // Save a global reference to the receiver that the spy sink will make any
-        // written metrics available in.
-        let (rx, sink) = SpyMetricSink::new();
-        unsafe {
-            RX = Some(Arc::new(rx));
-        }
+    // Save a global reference to the receiver that the spy sink will make any
+    // written metrics available in.
+    let (rx, sink) = SpyMetricSink::new();
+    RX.set(rx);
 
-        // Set the global default to be a client that writes to a SpyMetricSink so
-        // we can verify the metrics being written are what we expect. It would be
-        // safe to do this outside of the `call_once` block (since set_global_default
-        // will only set the client a single time) but we might as well avoid extra
-        // work if we can.
-        cadence_macros::set_global_default(StatsdClient::from_sink("my.prefix", sink));
-    });
+    cadence_macros::set_global_default(StatsdClient::from_sink("my.prefix", sink));
 }
 
 /// Get the all strings written to the sink so far.
 fn read_all_metrics() -> HashSet<String> {
-    let rx = unsafe { RX.clone().unwrap() };
+    let rx = RX.get().unwrap();
 
     // We use a SpyMetricSink above (non-buffered) for the global client so each metric
     // is a separate string that we can read from the channel and look for in our tests.
