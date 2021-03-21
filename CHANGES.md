@@ -1,7 +1,6 @@
 # Changelog
 
-## master / unreleased
-
+## [v0.25.0](https://github.com/56quarters/cadence/tree/0.25.0) - 2021-03-21
 * **Breaking change** - Added support for
   [DataDog distribution](https://docs.datadoghq.com/developers/metrics/types/?tab=distribution#definition)
   metric types per [#125](https://github.com/56quarters/cadence/pull/125)
