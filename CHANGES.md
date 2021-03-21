@@ -25,6 +25,9 @@
   not the trait `MetricClient`.
 
 ## [v0.24.0](https://github.com/56quarters/cadence/tree/0.24.0) - 2021-02-02
+
+`cadence-macros` **yanked** due to causing undefined behavior [#129](https://github.com/56quarters/cadence/issues/129)
+
 * Split the project into two crates. The `cadence` crate will continue to
   contain the primary client and API. The `cadence-macros` crate contains
   convenience macros for removing some boilerplate required to emit metrics
