@@ -5,7 +5,9 @@
 [![crates.io](https://img.shields.io/crates/v/cadence.svg)](https://crates.io/crates/cadence/)
 [![Rust 1.36+](https://img.shields.io/badge/rust-1.36+-lightgray.svg)](https://www.rust-lang.org)
 
-[Documentation](https://docs.rs/cadence/)
+[Cadence Documentation](https://docs.rs/cadence/)
+
+[Macros Documentation](https://docs.rs/cadence-macros/)
 
 An extensible Statsd client for Rust!
 
@@ -13,11 +15,11 @@ Cadence is a fast and flexible way to emit Statsd metrics from your application.
 
 ## Features
 
-* Support for emitting counters, timers, histograms, distributions, gauges, meters, and sets to
-  Statsd over UDP (or optionally Unix sockets).
+* [Support](https://docs.rs/cadence/) for emitting counters, timers, histograms, distributions,
+  gauges, meters, and sets to Statsd over UDP (or optionally Unix sockets).
 * Support for alternate backends via the `MetricSink` trait.
 * Support for [Datadog](https://docs.datadoghq.com/developers/dogstatsd/) style metrics tags.
-* Macros to simplify common calls to emit metrics
+* [Macros](https://docs.rs/cadence-macros/) to simplify common calls to emit metrics
 * A simple yet flexible API for sending metrics.
 
 ## Usage
