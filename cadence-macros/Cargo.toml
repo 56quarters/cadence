@@ -2,7 +2,7 @@
 name = "cadence-macros"
 version = "0.25.0"
 authors = ["Nick Pillitteri"]
-description = "An extensible Statsd client for Rust"
+description = "Macros for Cadence, an extensible Statsd client for Rust"
 homepage = "https://github.com/56quarters/cadence"
 documentation = "https://docs.rs/cadence-macros/"
 repository = "https://github.com/56quarters/cadence"
