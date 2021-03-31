@@ -4,7 +4,6 @@ use std::sync::Arc;
 use std::thread;
 use std::time::Duration;
 
-#[allow(dead_code)]
 pub fn run_arc_threaded_test(client: StatsdClient, num_threads: u64, iterations: u64) {
     let shared_client = Arc::new(client);
 
