@@ -459,6 +459,7 @@ impl StatsdClientBuilder {
 /// * `Gauged` for emitting gauge values.
 /// * `Metered` for emitting meter values.
 /// * `Histogrammed` for emitting histogram values.
+/// * `Distributed` for emitting distribution values.
 /// * `Setted` for emitting set values.
 /// * `MetricClient` for a combination of all of the above.
 ///
