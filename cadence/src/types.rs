@@ -8,11 +8,10 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
+use crate::builder::{MetricFormatter, MetricValue};
 use std::error;
 use std::fmt;
 use std::io;
-
-use crate::builder::MetricFormatter;
 
 /// Trait for metrics to expose Statsd metric string slice representation.
 ///
@@ -32,7 +31,7 @@ pub struct Counter {
 
 impl Counter {
     pub fn new(prefix: &str, key: &str, count: i64) -> Counter {
-        MetricFormatter::counter(prefix, key, count).build()
+        Self::from(MetricFormatter::counter(prefix, key, MetricValue::Signed(count)).format())
     }
 }
 
@@ -60,7 +59,7 @@ pub struct Timer {
 
 impl Timer {
     pub fn new(prefix: &str, key: &str, time: u64) -> Timer {
-        MetricFormatter::timer(prefix, key, time).build()
+        Self::from(MetricFormatter::timer(prefix, key, MetricValue::Unsigned(time)).format())
     }
 }
 
@@ -86,11 +85,11 @@ pub struct Gauge {
 
 impl Gauge {
     pub fn new(prefix: &str, key: &str, value: u64) -> Gauge {
-        MetricFormatter::gauge(prefix, key, value).build()
+        Self::from(MetricFormatter::gauge(prefix, key, MetricValue::Unsigned(value)).format())
     }
 
     pub fn new_f64(prefix: &str, key: &str, value: f64) -> Gauge {
-        MetricFormatter::gauge_f64(prefix, key, value).build()
+        Self::from(MetricFormatter::gauge(prefix, key, MetricValue::Float(value)).format())
     }
 }
 
@@ -116,7 +115,7 @@ pub struct Meter {
 
 impl Meter {
     pub fn new(prefix: &str, key: &str, value: u64) -> Meter {
-        MetricFormatter::meter(prefix, key, value).build()
+        Self::from(MetricFormatter::meter(prefix, key, MetricValue::Unsigned(value)).format())
     }
 }
 
@@ -146,7 +145,7 @@ pub struct Histogram {
 
 impl Histogram {
     pub fn new(prefix: &str, key: &str, value: u64) -> Histogram {
-        MetricFormatter::histogram(prefix, key, value).build()
+        Self::from(MetricFormatter::histogram(prefix, key, MetricValue::Unsigned(value)).format())
     }
 }
 
@@ -172,7 +171,7 @@ pub struct Distribution {
 
 impl Distribution {
     pub fn new(prefix: &str, key: &str, value: u64) -> Distribution {
-        MetricFormatter::distribution(prefix, key, value).build()
+        Self::from(MetricFormatter::distribution(prefix, key, MetricValue::Unsigned(value)).format())
     }
 }
 
@@ -198,7 +197,7 @@ pub struct Set {
 
 impl Set {
     pub fn new(prefix: &str, key: &str, value: i64) -> Set {
-        MetricFormatter::set(prefix, key, value).build()
+        Self::from(MetricFormatter::set(prefix, key, MetricValue::Signed(value)).format())
     }
 }
 

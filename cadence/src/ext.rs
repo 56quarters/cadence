@@ -10,10 +10,26 @@
 
 //! Advanced extension points for the Cadence library
 //!
-//! Libraries wishing to make use of Cadence for sending metrics to
-//! a Statsd server but needing more control over how the metrics are
-//! built and formatted can make use these extension points. Most
-//! consumers of Cadence shouldn't need to make use of these extension
-//! points.
+//! Most users of Cadence shouldn't need to make use of this module or
+//! the included traits and types. However, users that need to extend the
+//! library in unforeseen ways may find them useful.
+//!
+//! The `MetricBackend` trait, for example, can be used to implement a
+//! client that sends a new non-standard type of metric using the same
+//! backend that Cadence would use (via the `.send_metric()` method).
+//!
+//! The various `To*Value` traits are used as markers for types that are
+//! valid for each type of metric. They also contain conversion logic for
+//! the types in some cases (such as in the case of `Duration` objects).
+//! These can be used to allow your own custom types to be converted to
+//! metric values that Cadence understands.
+//!
+//! In summary, most users don't need to worry about these types but they
+//! are available for advanced use cases and subject to the same guarantees
+//! as the rest of the API (semantic versioning, etc.).
 
-pub use crate::client::MetricBackend;
+pub use crate::builder::MetricValue;
+pub use crate::client::{
+    MetricBackend, ToCounterValue, ToDistributionValue, ToGaugeValue, ToHistogramValue, ToMeterValue, ToSetValue,
+    ToTimerValue,
+};

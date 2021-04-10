@@ -8,7 +8,9 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-use crate::builder::{MetricBuilder, MetricFormatter};
+use crate::builder::{MetricBuilder, MetricFormatter, MetricValue};
+use crate::compat::Compat;
+use crate::sealed::Sealed;
 use crate::sinks::{MetricSink, UdpMetricSink};
 use crate::types::{
     Counter, Distribution, ErrorKind, Gauge, Histogram, Meter, Metric, MetricError, MetricResult, Set, Timer,
@@ -20,6 +22,159 @@ use std::sync::Arc;
 use std::time::Duration;
 use std::u64;
 
+/// Conversion trait for valid values for counters
+///
+/// This trait must be implemented for any types that are used as counter
+/// values (currently only `i64`). This trait is internal to how values are
+/// formatted as part of metrics but is exposed publicly for documentation
+/// purposes.
+///
+/// Typical use of Cadence shouldn't require interacting with this trait.
+pub trait ToCounterValue {
+    fn try_to_value(self) -> MetricResult<MetricValue>;
+}
+
+impl ToCounterValue for i64 {
+    fn try_to_value(self) -> MetricResult<MetricValue> {
+        Ok(MetricValue::Signed(self))
+    }
+}
+
+/// Conversion trait for valid values for timers
+///
+/// This trait must be implemented for any types that are used as timer
+/// values (currently `u64` and `Duration`). This trait is internal to how
+/// values are formatted as part of metrics but is exposed publicly for
+/// documentation purposes.
+///
+/// Typical use of Cadence shouldn't require interacting with this trait.
+pub trait ToTimerValue {
+    fn try_to_value(self) -> MetricResult<MetricValue>;
+}
+
+impl ToTimerValue for u64 {
+    fn try_to_value(self) -> MetricResult<MetricValue> {
+        Ok(MetricValue::Unsigned(self))
+    }
+}
+
+impl ToTimerValue for Duration {
+    fn try_to_value(self) -> MetricResult<MetricValue> {
+        let as_millis = self.as_millis();
+        if as_millis > u64::MAX as u128 {
+            Err(MetricError::from((ErrorKind::InvalidInput, "u64 overflow")))
+        } else {
+            Ok(MetricValue::Unsigned(as_millis as u64))
+        }
+    }
+}
+
+/// Conversion trait for valid values for gauges
+///
+/// This trait must be implemented for any types that are used as gauge
+/// values (currently `u64` and `f64`). This trait is internal to how values
+/// are formatted as part of metrics but is exposed publicly for documentation
+/// purposes.
+///
+/// Typical use of Cadence shouldn't require interacting with this trait.
+pub trait ToGaugeValue {
+    fn try_to_value(self) -> MetricResult<MetricValue>;
+}
+
+impl ToGaugeValue for u64 {
+    fn try_to_value(self) -> MetricResult<MetricValue> {
+        Ok(MetricValue::Unsigned(self))
+    }
+}
+impl ToGaugeValue for f64 {
+    fn try_to_value(self) -> MetricResult<MetricValue> {
+        Ok(MetricValue::Float(self))
+    }
+}
+
+/// Conversion trait for valid values for meters
+///
+/// This trait must be implemented for any types that are used as meter
+/// values (currently only `u64`). This trait is internal to how values are
+/// formatted as part of metrics but is exposed publicly for documentation
+/// purposes.
+///
+/// Typical use of Cadence shouldn't require interacting with this trait.
+pub trait ToMeterValue {
+    fn try_to_value(self) -> MetricResult<MetricValue>;
+}
+
+impl ToMeterValue for u64 {
+    fn try_to_value(self) -> MetricResult<MetricValue> {
+        Ok(MetricValue::Unsigned(self))
+    }
+}
+
+/// Conversion trait for valid values for histograms
+///
+/// This trait must be implemented for any types that are used as histogram
+/// values (currently `u64` and `Duration`). This trait is internal to how
+/// values are formatted as part of metrics but is exposed publicly for
+/// documentation purposes.
+///
+/// Typical use of Cadence shouldn't require interacting with this trait.
+pub trait ToHistogramValue {
+    fn try_to_value(self) -> MetricResult<MetricValue>;
+}
+
+impl ToHistogramValue for u64 {
+    fn try_to_value(self) -> MetricResult<MetricValue> {
+        Ok(MetricValue::Unsigned(self))
+    }
+}
+
+impl ToHistogramValue for Duration {
+    fn try_to_value(self) -> MetricResult<MetricValue> {
+        let as_nanos = self.as_nanos();
+        if as_nanos > u64::MAX as u128 {
+            Err(MetricError::from((ErrorKind::InvalidInput, "u64 overflow")))
+        } else {
+            Ok(MetricValue::Unsigned(as_nanos as u64))
+        }
+    }
+}
+
+/// Conversion trait for valid values for distributions
+///
+/// This trait must be implemented for any types that are used as distribution
+/// values (currently only `u64`). This trait is internal to how values are
+/// formatted as part of metrics but is exposed publicly for documentation
+/// purposes.
+///
+/// Typical use of Cadence shouldn't require interacting with this trait.
+pub trait ToDistributionValue {
+    fn try_to_value(self) -> MetricResult<MetricValue>;
+}
+
+impl ToDistributionValue for u64 {
+    fn try_to_value(self) -> MetricResult<MetricValue> {
+        Ok(MetricValue::Unsigned(self))
+    }
+}
+
+/// Conversion trait for valid values for sets
+///
+/// This trait must be implemented for any types that are used as counter
+/// values (currently only `i64`). This trait is internal to how values are
+/// formatted as part of metrics but is exposed publicly for documentation
+/// purposes.
+///
+/// Typical use of Cadence shouldn't require interacting with this trait.
+pub trait ToSetValue {
+    fn try_to_value(self) -> MetricResult<MetricValue>;
+}
+
+impl ToSetValue for i64 {
+    fn try_to_value(self) -> MetricResult<MetricValue> {
+        Ok(MetricValue::Signed(self))
+    }
+}
+
 /// Trait for incrementing and decrementing counters.
 ///
 /// Counters are simple values incremented or decremented by a client. The
@@ -27,80 +182,84 @@ use std::u64;
 /// by the server receiving them. Examples of counter uses include number
 /// of logins to a system or requests received.
 ///
+/// The following types are valid for counters:
+/// * `i64`
+///
 /// See the [Statsd spec](https://github.com/b/statsd_spec) for more
 /// information.
 ///
 /// Note that tags are a [Datadog](https://docs.datadoghq.com/developers/dogstatsd/)
 /// extension to Statsd and may not be supported by your server.
-pub trait Counted {
-    /// Increment the counter by `1`
-    fn incr(&self, key: &str) -> MetricResult<Counter> {
-        self.count(key, 1)
-    }
-
-    /// Increment the counter by `1` and return a `MetricBuilder` that can
-    /// be used to add tags to the metric.
-    fn incr_with_tags<'a>(&'a self, key: &'a str) -> MetricBuilder<'_, '_, Counter> {
-        self.count_with_tags(key, 1)
-    }
-
-    /// Decrement the counter by `1`
-    fn decr(&self, key: &str) -> MetricResult<Counter> {
-        self.count(key, -1)
-    }
-
-    /// Decrement the counter by `1` and return a `MetricBuilder that can
-    /// be used to add tags to the metric.
-    fn decr_with_tags<'a>(&'a self, key: &'a str) -> MetricBuilder<'_, '_, Counter> {
-        self.count_with_tags(key, -1)
-    }
-
+pub trait Counted<T>
+where
+    T: ToCounterValue,
+{
     /// Increment or decrement the counter by the given amount
-    fn count(&self, key: &str, count: i64) -> MetricResult<Counter> {
+    fn count(&self, key: &str, count: T) -> MetricResult<Counter> {
         self.count_with_tags(key, count).try_send()
     }
 
     /// Increment or decrement the counter by the given amount and return
     /// a `MetricBuilder` that can be used to add tags to the metric.
-    fn count_with_tags<'a>(&'a self, key: &'a str, count: i64) -> MetricBuilder<'_, '_, Counter>;
+    fn count_with_tags<'a>(&'a self, key: &'a str, count: T) -> MetricBuilder<'_, '_, Counter>;
+}
+
+/// Trait for convenience methods for counters
+///
+/// This trait specifically implements increment and decrement convenience
+/// methods for counters with `i64` types.
+pub trait CountedExt: Counted<i64> {
+    /// Increment the counter by 1
+    fn incr(&self, key: &str) -> MetricResult<Counter> {
+        self.incr_with_tags(key).try_send()
+    }
+
+    /// Increment the counter by 1 and return a `MetricBuilder` that can
+    /// be used to add tags to the metric.
+    fn incr_with_tags<'a>(&'a self, key: &'a str) -> MetricBuilder<'_, '_, Counter> {
+        self.count_with_tags(key, 1)
+    }
+
+    /// Decrement the counter by 1
+    fn decr(&self, key: &str) -> MetricResult<Counter> {
+        self.decr_with_tags(key).try_send()
+    }
+
+    /// Decrement the counter by 1 and return a `MetricBuilder` that can
+    /// be used to add tags to the metric.
+    fn decr_with_tags<'a>(&'a self, key: &'a str) -> MetricBuilder<'_, '_, Counter> {
+        self.count_with_tags(key, -1)
+    }
 }
 
 /// Trait for recording timings in milliseconds.
 ///
 /// Timings are a positive number of milliseconds between a start and end
 /// time. Examples include time taken to render a web page or time taken
-/// for a database call to return.
+/// for a database call to return. `Duration` values are converted to
+/// milliseconds before being recorded.
+///
+/// The following types are valid for timers:
+/// * `u64`
+/// * `Duration`
 ///
 /// See the [Statsd spec](https://github.com/b/statsd_spec) for more
 /// information.
 ///
 /// Note that tags are a [Datadog](https://docs.datadoghq.com/developers/dogstatsd/)
 /// extension to Statsd and may not be supported by your server.
-pub trait Timed {
+pub trait Timed<T>
+where
+    T: ToTimerValue,
+{
     /// Record a timing in milliseconds with the given key
-    fn time(&self, key: &str, time: u64) -> MetricResult<Timer> {
+    fn time(&self, key: &str, time: T) -> MetricResult<Timer> {
         self.time_with_tags(key, time).try_send()
     }
 
     /// Record a timing in milliseconds with the given key and return a
     /// `MetricBuilder` that can be used to add tags to the metric.
-    fn time_with_tags<'a>(&'a self, key: &'a str, time: u64) -> MetricBuilder<'_, '_, Timer>;
-
-    /// Record a timing in milliseconds with the given key
-    ///
-    /// The duration will be truncated to millisecond precision. If the
-    /// duration cannot be represented as a `u64` an error will be returned.
-    fn time_duration(&self, key: &str, duration: Duration) -> MetricResult<Timer> {
-        self.time_duration_with_tags(key, duration).try_send()
-    }
-
-    /// Record a timing in milliseconds with the given key and return a
-    /// `MetricBuilder` that can be used to add tags to the metric.
-    ///
-    /// The duration will be truncated to millisecond precision. If the
-    /// duration cannot be represented as a `u64` an error will be deferred
-    /// and returned when `MetricBuilder::try_send()` is called.
-    fn time_duration_with_tags<'a>(&'a self, key: &'a str, duration: Duration) -> MetricBuilder<'_, '_, Timer>;
+    fn time_with_tags<'a>(&'a self, key: &'a str, time: T) -> MetricBuilder<'_, '_, Timer>;
 }
 
 /// Trait for recording gauge values.
@@ -109,29 +268,27 @@ pub trait Timed {
 /// by the client. They do not change unless changed by the client. Examples
 /// include things like load average or how many connections are active.
 ///
+/// The following types are valid for gauges:
+/// * `u64`
+/// * `f64`
+///
 /// See the [Statsd spec](https://github.com/b/statsd_spec) for more
 /// information.
 ///
 /// Note that tags are a [Datadog](https://docs.datadoghq.com/developers/dogstatsd/)
 /// extension to Statsd and may not be supported by your server.
-pub trait Gauged {
+pub trait Gauged<T>
+where
+    T: ToGaugeValue,
+{
     /// Record a gauge value with the given key
-    fn gauge(&self, key: &str, value: u64) -> MetricResult<Gauge> {
+    fn gauge(&self, key: &str, value: T) -> MetricResult<Gauge> {
         self.gauge_with_tags(key, value).try_send()
     }
 
-    /// Record a gauge value with the given key
-    fn gauge_f64(&self, key: &str, value: f64) -> MetricResult<Gauge> {
-        self.gauge_f64_with_tags(key, value).try_send()
-    }
-
     /// Record a gauge value with the given key and return a `MetricBuilder`
     /// that can be used to add tags to the metric.
-    fn gauge_with_tags<'a>(&'a self, key: &'a str, value: u64) -> MetricBuilder<'_, '_, Gauge>;
-
-    /// Record a gauge value with the given key and return a `MetricBuilder`
-    /// that can be used to add tags to the metric.
-    fn gauge_f64_with_tags<'a>(&'a self, key: &'a str, value: f64) -> MetricBuilder<'_, '_, Gauge>;
+    fn gauge_with_tags<'a>(&'a self, key: &'a str, value: T) -> MetricBuilder<'_, '_, Gauge>;
 }
 
 /// Trait for recording meter values.
@@ -142,31 +299,26 @@ pub trait Gauged {
 /// things like number of requests handled or number of times something is
 /// flushed to disk.
 ///
+/// The following types are valid for meters:
+/// * `u64`
+///
 /// See the [Statsd spec](https://github.com/b/statsd_spec) for more
 /// information.
 ///
 /// Note that tags are a [Datadog](https://docs.datadoghq.com/developers/dogstatsd/)
 /// extension to Statsd and may not be supported by your server.
-pub trait Metered {
-    /// Record a single metered event with the given key
-    fn mark(&self, key: &str) -> MetricResult<Meter> {
-        self.meter(key, 1)
-    }
-
-    /// Record a single metered event with the given key and return a
-    /// `MetricBuilder` that can be used to add tags to the metric.
-    fn mark_with_tags<'a>(&'a self, key: &'a str) -> MetricBuilder<'_, '_, Meter> {
-        self.meter_with_tags(key, 1)
-    }
-
+pub trait Metered<T>
+where
+    T: ToMeterValue,
+{
     /// Record a meter value with the given key
-    fn meter(&self, key: &str, value: u64) -> MetricResult<Meter> {
+    fn meter(&self, key: &str, value: T) -> MetricResult<Meter> {
         self.meter_with_tags(key, value).try_send()
     }
 
     /// Record a meter value with the given key and return a `MetricBuilder`
     /// that can be used to add tags to the metric.
-    fn meter_with_tags<'a>(&'a self, key: &'a str, value: u64) -> MetricBuilder<'_, '_, Meter>;
+    fn meter_with_tags<'a>(&'a self, key: &'a str, value: T) -> MetricBuilder<'_, '_, Meter>;
 }
 
 /// Trait for recording histogram values.
@@ -175,7 +327,12 @@ pub trait Metered {
 /// statistical distribution is calculated by the server. The values can be
 /// timings, amount of some resource consumed, size of HTTP responses in
 /// some application, etc. Histograms can be thought of as a more general
-/// form of timers.
+/// form of timers. `Duration` values are converted to nanoseconds before
+/// being emitted.
+///
+/// The following types are valid for histograms:
+/// * `u64`
+/// * `Duration`
 ///
 /// See the [Statsd spec](https://github.com/b/statsd_spec) for more
 /// information.
@@ -183,43 +340,28 @@ pub trait Metered {
 /// Note that tags and histograms are a
 /// [Datadog](https://docs.datadoghq.com/developers/dogstatsd/) extension to
 /// Statsd and may not be supported by your server.
-pub trait Histogrammed {
+pub trait Histogrammed<T>
+where
+    T: ToHistogramValue,
+{
     /// Record a single histogram value with the given key
-    fn histogram(&self, key: &str, value: u64) -> MetricResult<Histogram> {
+    fn histogram(&self, key: &str, value: T) -> MetricResult<Histogram> {
         self.histogram_with_tags(key, value).try_send()
     }
 
     /// Record a single histogram value with the given key and return a
     /// `MetricBuilder` that can be used to add tags to the metric.
-    fn histogram_with_tags<'a>(&'a self, key: &'a str, value: u64) -> MetricBuilder<'_, '_, Histogram>;
-
-    /// Record a single histogram value with the given key.
-    ///
-    /// The duration will be converted to nanoseconds. If the duration
-    /// cannot be represented as a `u64` an error will be returned. Note
-    /// that histograms are an extension to Statsd, you'll need to check
-    /// if they are supported by your server and considered times.
-    fn histogram_duration(&self, key: &str, duration: Duration) -> MetricResult<Histogram> {
-        self.histogram_duration_with_tags(key, duration).try_send()
-    }
-
-    /// Record a single histogram value with the given key and return a
-    /// `MetricBuilder` that can be used to add tags to the metric.
-    ///
-    /// The duration will be converted to nanoseconds. If the duration cannot
-    /// be represented as a `u64` an error will be deferred and returned when
-    /// `MetricBuilder::try_send()` is called. Note that histograms are an
-    /// extension to Statsd, you'll need to check if they are supported by
-    /// your server and considered times.
-    fn histogram_duration_with_tags<'a>(&'a self, key: &'a str, duration: Duration)
-        -> MetricBuilder<'_, '_, Histogram>;
+    fn histogram_with_tags<'a>(&'a self, key: &'a str, value: T) -> MetricBuilder<'_, '_, Histogram>;
 }
 
 /// Trait for recording distribution values.
 ///
-/// Similar to histrograms, but applies globally. A distrubtion can be used to
+/// Similar to histograms, but applies globally. A distribution can be used to
 /// instrument logical objects, like services, independently from the underlying
 /// hosts.
+///
+/// The following types are valid for distributions:
+/// * `u64`
 ///
 /// See the [Datadog docs](https://docs.datadoghq.com/developers/metrics/types/?tab=distribution#definition)
 /// for more information.
@@ -227,15 +369,18 @@ pub trait Histogrammed {
 /// Note that tags and distributions are a
 /// [Datadog](https://docs.datadoghq.com/developers/dogstatsd/) extension to
 /// Statsd and may not be supported by your server.
-pub trait Distributed {
+pub trait Distributed<T>
+where
+    T: ToDistributionValue,
+{
     /// Record a single distribution value with the given key
-    fn distribution(&self, key: &str, value: u64) -> MetricResult<Distribution> {
+    fn distribution(&self, key: &str, value: T) -> MetricResult<Distribution> {
         self.distribution_with_tags(key, value).try_send()
     }
 
     /// Record a single distribution value with the given key and return a
     /// `MetricBuilder` that can be used to add tags to the metric.
-    fn distribution_with_tags<'a>(&'a self, key: &'a str, value: u64) -> MetricBuilder<'_, '_, Distribution>;
+    fn distribution_with_tags<'a>(&'a self, key: &'a str, value: T) -> MetricBuilder<'_, '_, Distribution>;
 }
 
 /// Trait for recording set values.
@@ -243,17 +388,23 @@ pub trait Distributed {
 /// Sets count the number of unique elements in a group. You can use them to,
 /// for example, count the unique visitors to your site.
 ///
+/// The following types are valid for sets:
+/// * `i64`
+///
 /// See the [Statsd spec](https://github.com/b/statsd_spec) for more
 /// information.
-pub trait Setted {
+pub trait Setted<T>
+where
+    T: ToSetValue,
+{
     /// Record a single set value with the given key
-    fn set(&self, key: &str, value: i64) -> MetricResult<Set> {
+    fn set(&self, key: &str, value: T) -> MetricResult<Set> {
         self.set_with_tags(key, value).try_send()
     }
 
     /// Record a single set value with the given key and return a
     /// `MetricBuilder` that can be used to add tags to the metric.
-    fn set_with_tags<'a>(&'a self, key: &'a str, value: i64) -> MetricBuilder<'_, '_, Set>;
+    fn set_with_tags<'a>(&'a self, key: &'a str, value: T) -> MetricBuilder<'_, '_, Set>;
 }
 
 /// Trait that encompasses all other traits for sending metrics.
@@ -264,6 +415,7 @@ pub trait Setted {
 /// using a single trait. An example of this is shown below.
 ///
 /// ```
+/// use std::time::Duration;
 /// use cadence::{MetricClient, StatsdClient, NopMetricSink};
 ///
 /// let client: Box<dyn MetricClient> = Box::new(StatsdClient::from_sink(
@@ -271,14 +423,31 @@ pub trait Setted {
 ///
 /// client.count("some.counter", 1).unwrap();
 /// client.time("some.timer", 42).unwrap();
+/// client.time("some.timer", Duration::from_millis(42)).unwrap();
 /// client.gauge("some.gauge", 8).unwrap();
 /// client.meter("some.meter", 13).unwrap();
 /// client.histogram("some.histogram", 4).unwrap();
+/// client.histogram("some.histogram", Duration::from_nanos(4)).unwrap();
+/// client.distribution("some.distribution", 4).unwrap();
 /// client.set("some.set", 5).unwrap();
 /// ```
-pub trait MetricClient: Counted + Timed + Gauged + Metered + Histogrammed + Setted + Distributed {}
+pub trait MetricClient:
+    Counted<i64>
+    + CountedExt
+    + Timed<u64>
+    + Timed<Duration>
+    + Gauged<u64>
+    + Gauged<f64>
+    + Metered<u64>
+    + Histogrammed<u64>
+    + Histogrammed<Duration>
+    + Distributed<u64>
+    + Setted<i64>
+    + Compat
+{
+}
 
-/// Typically internal methods for sending metrics and handling errors.
+/// Typically internal client methods for sending metrics and handling errors.
 ///
 /// This trait exposes methods of the client that would normally be internal
 /// but may be useful for consumers of the library to extend it in unforseen
@@ -288,6 +457,9 @@ pub trait MetricClient: Counted + Timed + Gauged + Metered + Histogrammed + Sett
 /// This trait is not exposed in the `prelude` module since it isn't required
 /// to use the client for sending metrics. It is only exposed in the `ext`
 /// module which is used to encompass advanced extension points for the library.
+///
+/// NOTE: This is a sealed trait and so it cannot be implemented outside of the
+/// library.
 ///
 /// # Example
 ///
@@ -344,7 +516,7 @@ pub trait MetricClient: Counted + Timed + Gauged + Metered + Histogrammed + Sett
 /// custom.send_event("some.event", 123).unwrap();
 /// custom.send_event_quietly("some.event", 456);
 /// ```
-pub trait MetricBackend {
+pub trait MetricBackend: Sealed {
     /// Send a full formed `Metric` implementation via the underlying `MetricSink`
     ///
     /// Obtain a `&str` representation of a metric, encode it as UTF-8 bytes, and
@@ -522,7 +694,7 @@ impl StatsdClientBuilder {
 ///         let metric_ref = self.metrics.clone();
 ///         let _t = thread::spawn(move || {
 ///             println!("Hello from the thread!");
-///             metric_ref.incr("request.handler");
+///             metric_ref.count("request.handler", 1);
 ///         });
 ///
 ///         Ok(())
@@ -561,7 +733,7 @@ impl StatsdClientBuilder {
 ///         let metric_clone = self.metrics.clone();
 ///         let _t = thread::spawn(move || {
 ///             println!("Hello from the thread!");
-///             metric_clone.incr("request.handler");
+///             metric_clone.count("request.handler", 1);
 ///         });
 ///
 ///         Ok(())
@@ -723,6 +895,8 @@ impl StatsdClient {
     }
 }
 
+impl Sealed for StatsdClient {}
+
 impl MetricBackend for StatsdClient {
     fn send_metric<M>(&self, metric: &M) -> MetricResult<()>
     where
@@ -748,79 +922,89 @@ impl fmt::Debug for StatsdClient {
     }
 }
 
-impl Counted for StatsdClient {
-    fn count_with_tags<'a>(&'a self, key: &'a str, count: i64) -> MetricBuilder<'_, '_, Counter> {
-        let fmt = MetricFormatter::counter(&self.prefix, key, count);
-        MetricBuilder::new(fmt, self)
-    }
-}
-
-impl Timed for StatsdClient {
-    fn time_with_tags<'a>(&'a self, key: &'a str, time: u64) -> MetricBuilder<'_, '_, Timer> {
-        let fmt = MetricFormatter::timer(&self.prefix, key, time);
-        MetricBuilder::new(fmt, self)
-    }
-
-    fn time_duration_with_tags<'a>(&'a self, key: &'a str, duration: Duration) -> MetricBuilder<'_, '_, Timer> {
-        let as_millis = duration.as_millis();
-        if as_millis > u64::MAX as u128 {
-            MetricBuilder::from_error(MetricError::from((ErrorKind::InvalidInput, "u64 overflow")), self)
-        } else {
-            self.time_with_tags(key, as_millis as u64)
+impl<T> Counted<T> for StatsdClient
+where
+    T: ToCounterValue,
+{
+    fn count_with_tags<'a>(&'a self, key: &'a str, value: T) -> MetricBuilder<'_, '_, Counter> {
+        match value.try_to_value() {
+            Ok(v) => MetricBuilder::from_fmt(MetricFormatter::counter(&self.prefix, key, v), &self),
+            Err(e) => MetricBuilder::from_error(e, &self),
         }
     }
 }
 
-impl Gauged for StatsdClient {
-    fn gauge_with_tags<'a>(&'a self, key: &'a str, value: u64) -> MetricBuilder<'_, '_, Gauge> {
-        let fmt = MetricFormatter::gauge(&self.prefix, key, value);
-        MetricBuilder::new(fmt, self)
-    }
+impl CountedExt for StatsdClient {}
 
-    fn gauge_f64_with_tags<'a>(&'a self, key: &'a str, value: f64) -> MetricBuilder<'_, '_, Gauge> {
-        let fmt = MetricFormatter::gauge_f64(&self.prefix, key, value);
-        MetricBuilder::new(fmt, self)
-    }
-}
-
-impl Metered for StatsdClient {
-    fn meter_with_tags<'a>(&'a self, key: &'a str, value: u64) -> MetricBuilder<'_, '_, Meter> {
-        let fmt = MetricFormatter::meter(&self.prefix, key, value);
-        MetricBuilder::new(fmt, self)
-    }
-}
-
-impl Histogrammed for StatsdClient {
-    fn histogram_with_tags<'a>(&'a self, key: &'a str, value: u64) -> MetricBuilder<'_, '_, Histogram> {
-        let fmt = MetricFormatter::histogram(&self.prefix, key, value);
-        MetricBuilder::new(fmt, self)
-    }
-
-    fn histogram_duration_with_tags<'a>(
-        &'a self,
-        key: &'a str,
-        duration: Duration,
-    ) -> MetricBuilder<'_, '_, Histogram> {
-        let as_nanos = duration.as_nanos();
-        if as_nanos > u64::MAX as u128 {
-            MetricBuilder::from_error(MetricError::from((ErrorKind::InvalidInput, "u64 overflow")), self)
-        } else {
-            self.histogram_with_tags(key, as_nanos as u64)
+impl<T> Timed<T> for StatsdClient
+where
+    T: ToTimerValue,
+{
+    fn time_with_tags<'a>(&'a self, key: &'a str, time: T) -> MetricBuilder<'_, '_, Timer> {
+        match time.try_to_value() {
+            Ok(v) => MetricBuilder::from_fmt(MetricFormatter::timer(&self.prefix, key, v), &self),
+            Err(e) => MetricBuilder::from_error(e, &self),
         }
     }
 }
 
-impl Distributed for StatsdClient {
-    fn distribution_with_tags<'a>(&'a self, key: &'a str, value: u64) -> MetricBuilder<'_, '_, Distribution> {
-        let fmt = MetricFormatter::distribution(&self.prefix, key, value);
-        MetricBuilder::new(fmt, self)
+impl<T> Gauged<T> for StatsdClient
+where
+    T: ToGaugeValue,
+{
+    fn gauge_with_tags<'a>(&'a self, key: &'a str, value: T) -> MetricBuilder<'_, '_, Gauge> {
+        match value.try_to_value() {
+            Ok(v) => MetricBuilder::from_fmt(MetricFormatter::gauge(&self.prefix, key, v), &self),
+            Err(e) => MetricBuilder::from_error(e, &self),
+        }
     }
 }
 
-impl Setted for StatsdClient {
-    fn set_with_tags<'a>(&'a self, key: &'a str, value: i64) -> MetricBuilder<'_, '_, Set> {
-        let fmt = MetricFormatter::set(&self.prefix, key, value);
-        MetricBuilder::new(fmt, self)
+impl<T> Metered<T> for StatsdClient
+where
+    T: ToMeterValue,
+{
+    fn meter_with_tags<'a>(&'a self, key: &'a str, value: T) -> MetricBuilder<'_, '_, Meter> {
+        match value.try_to_value() {
+            Ok(v) => MetricBuilder::from_fmt(MetricFormatter::meter(&self.prefix, key, v), &self),
+            Err(e) => MetricBuilder::from_error(e, &self),
+        }
+    }
+}
+
+impl<T> Histogrammed<T> for StatsdClient
+where
+    T: ToHistogramValue,
+{
+    fn histogram_with_tags<'a>(&'a self, key: &'a str, value: T) -> MetricBuilder<'_, '_, Histogram> {
+        match value.try_to_value() {
+            Ok(v) => MetricBuilder::from_fmt(MetricFormatter::histogram(&self.prefix, key, v), &self),
+            Err(e) => MetricBuilder::from_error(e, &self),
+        }
+    }
+}
+
+impl<T> Distributed<T> for StatsdClient
+where
+    T: ToDistributionValue,
+{
+    fn distribution_with_tags<'a>(&'a self, key: &'a str, value: T) -> MetricBuilder<'_, '_, Distribution> {
+        match value.try_to_value() {
+            Ok(v) => MetricBuilder::from_fmt(MetricFormatter::distribution(&self.prefix, key, v), &self),
+            Err(e) => MetricBuilder::from_error(e, self),
+        }
+    }
+}
+
+impl<T> Setted<T> for StatsdClient
+where
+    T: ToSetValue,
+{
+    fn set_with_tags<'a>(&'a self, key: &'a str, value: T) -> MetricBuilder<'_, '_, Set> {
+        match value.try_to_value() {
+            Ok(v) => MetricBuilder::from_fmt(MetricFormatter::set(&self.prefix, key, v), &self),
+            Err(e) => MetricBuilder::from_error(e, &self),
+        }
     }
 }
 
@@ -833,7 +1017,9 @@ fn nop_error_handler(_err: MetricError) {
 
 #[cfg(test)]
 mod tests {
-    use super::{Counted, Distributed, Gauged, Histogrammed, Metered, MetricClient, Setted, StatsdClient, Timed};
+    use super::{
+        Counted, CountedExt, Distributed, Gauged, Histogrammed, Metered, MetricClient, Setted, StatsdClient, Timed,
+    };
     use crate::sinks::{MetricSink, NopMetricSink, QueuingMetricSink};
     use crate::types::{ErrorKind, Metric, MetricError};
     use std::cell::RefCell;
@@ -864,6 +1050,22 @@ mod tests {
     }
 
     #[test]
+    fn test_statsd_client_incr_with_tags() {
+        let client = StatsdClient::from_sink("prefix", NopMetricSink);
+        let res = client.incr_with_tags("some.counter").with_tag("foo", "bar").try_send();
+
+        assert_eq!("prefix.some.counter:1|c|#foo:bar", res.unwrap().as_metric_str());
+    }
+
+    #[test]
+    fn test_statsd_client_decr_with_tags() {
+        let client = StatsdClient::from_sink("prefix", NopMetricSink);
+        let res = client.decr_with_tags("some.counter").with_tag("foo", "bar").try_send();
+
+        assert_eq!("prefix.some.counter:-1|c|#foo:bar", res.unwrap().as_metric_str());
+    }
+
+    #[test]
     fn test_statsd_client_gauge_with_tags() {
         let client = StatsdClient::from_sink("prefix", NopMetricSink);
         let res = client
@@ -874,21 +1076,6 @@ mod tests {
 
         assert_eq!(
             "prefix.some.gauge:4|g|#bucket:A,file-server",
-            res.unwrap().as_metric_str()
-        );
-    }
-
-    #[test]
-    fn test_statsd_client_gauge_f64_with_tags() {
-        let client = StatsdClient::from_sink("prefix", NopMetricSink);
-        let res = client
-            .gauge_f64_with_tags("some.gauge", 4.5)
-            .with_tag("bucket", "A")
-            .with_tag_value("file-server")
-            .try_send();
-
-        assert_eq!(
-            "prefix.some.gauge:4.5|g|#bucket:A,file-server",
             res.unwrap().as_metric_str()
         );
     }
@@ -921,9 +1108,9 @@ mod tests {
     }
 
     #[test]
-    fn test_statsd_client_historgram_duration() {
+    fn test_statsd_client_histogram_duration() {
         let client = StatsdClient::from_sink("prefix", NopMetricSink);
-        let res = client.histogram_duration("key", Duration::from_nanos(210));
+        let res = client.histogram("key", Duration::from_nanos(210));
 
         assert_eq!("prefix.key:210|h", res.unwrap().as_metric_str());
     }
@@ -931,7 +1118,7 @@ mod tests {
     #[test]
     fn test_statsd_client_histogram_duration_with_overflow() {
         let client = StatsdClient::from_sink("prefix", NopMetricSink);
-        let res = client.histogram_duration("key", Duration::from_secs(u64::MAX));
+        let res = client.histogram("key", Duration::from_secs(u64::MAX));
 
         assert_eq!(ErrorKind::InvalidInput, res.unwrap_err().kind());
     }
@@ -940,7 +1127,7 @@ mod tests {
     fn test_statsd_client_histogram_duration_with_tags() {
         let client = StatsdClient::from_sink("prefix", NopMetricSink);
         let res = client
-            .histogram_duration_with_tags("key", Duration::from_nanos(4096))
+            .histogram_with_tags("key", Duration::from_nanos(4096))
             .with_tag("foo", "bar")
             .with_tag_value("beta")
             .try_send();
@@ -952,7 +1139,7 @@ mod tests {
     fn test_statsd_client_histogram_duration_with_tags_with_overflow() {
         let client = StatsdClient::from_sink("prefix", NopMetricSink);
         let res = client
-            .histogram_duration_with_tags("key", Duration::from_millis(u64::MAX))
+            .histogram_with_tags("key", Duration::from_millis(u64::MAX))
             .with_tag("foo", "bar")
             .with_tag_value("beta")
             .try_send();
@@ -978,7 +1165,7 @@ mod tests {
     #[test]
     fn test_statsd_client_time_duration() {
         let client = StatsdClient::from_sink("prefix", NopMetricSink);
-        let res = client.time_duration("key", Duration::from_millis(157));
+        let res = client.time("key", Duration::from_millis(157));
 
         assert_eq!("prefix.key:157|ms", res.unwrap().as_metric_str());
     }
@@ -986,7 +1173,7 @@ mod tests {
     #[test]
     fn test_statsd_client_time_duration_with_overflow() {
         let client = StatsdClient::from_sink("prefix", NopMetricSink);
-        let res = client.time_duration("key", Duration::from_secs(u64::MAX));
+        let res = client.time("key", Duration::from_secs(u64::MAX));
 
         assert_eq!(ErrorKind::InvalidInput, res.unwrap_err().kind())
     }
@@ -995,7 +1182,7 @@ mod tests {
     fn test_statsd_client_time_duration_with_tags() {
         let client = StatsdClient::from_sink("prefix", NopMetricSink);
         let res = client
-            .time_duration_with_tags("key", Duration::from_millis(157))
+            .time_with_tags("key", Duration::from_millis(157))
             .with_tag("foo", "bar")
             .with_tag_value("quux")
             .try_send();
@@ -1007,7 +1194,7 @@ mod tests {
     fn test_statsd_client_time_duration_with_tags_with_overflow() {
         let client = StatsdClient::from_sink("prefix", NopMetricSink);
         let res = client
-            .time_duration_with_tags("key", Duration::from_secs(u64::MAX))
+            .time_with_tags("key", Duration::from_secs(u64::MAX))
             .with_tag("foo", "bar")
             .with_tag_value("quux")
             .try_send();
@@ -1042,7 +1229,7 @@ mod tests {
             .with_error_handler(panic_handler)
             .build();
 
-        client.incr_with_tags("some.key").with_tag("test", "a").send();
+        client.count_with_tags("some.key", 1).with_tag("test", "a").send();
 
         let mutex = metrics.as_ref();
         let cell = mutex.lock().unwrap();
@@ -1071,7 +1258,7 @@ mod tests {
             .with_error_handler(handler)
             .build();
 
-        client.incr_with_tags("some.key").with_tag("tier", "web").send();
+        client.count_with_tags("some.key", 1).with_tag("tier", "web").send();
 
         assert_eq!(1, count.load(Ordering::Acquire));
     }
@@ -1090,42 +1277,56 @@ mod tests {
 
     #[test]
     fn test_statsd_client_as_counted() {
-        let client: Box<dyn Counted> = Box::new(StatsdClient::from_sink("prefix", NopMetricSink));
+        let client: Box<dyn Counted<i64>> = Box::new(StatsdClient::from_sink("prefix", NopMetricSink));
 
         client.count("some.counter", 5).unwrap();
     }
 
     #[test]
+    fn test_statsd_client_as_countedext() {
+        let client: Box<dyn CountedExt> = Box::new(StatsdClient::from_sink("prefix", NopMetricSink));
+
+        client.incr("some.counter").unwrap();
+    }
+
+    #[test]
     fn test_statsd_client_as_timed() {
-        let client: Box<dyn Timed> = Box::new(StatsdClient::from_sink("prefix", NopMetricSink));
+        let client: Box<dyn Timed<u64>> = Box::new(StatsdClient::from_sink("prefix", NopMetricSink));
 
         client.time("some.timer", 20).unwrap();
     }
 
     #[test]
     fn test_statsd_client_as_gauged() {
-        let client: Box<dyn Gauged> = Box::new(StatsdClient::from_sink("prefix", NopMetricSink));
+        let client: Box<dyn Gauged<u64>> = Box::new(StatsdClient::from_sink("prefix", NopMetricSink));
 
         client.gauge("some.gauge", 32).unwrap();
     }
 
     #[test]
     fn test_statsd_client_as_metered() {
-        let client: Box<dyn Metered> = Box::new(StatsdClient::from_sink("prefix", NopMetricSink));
+        let client: Box<dyn Metered<u64>> = Box::new(StatsdClient::from_sink("prefix", NopMetricSink));
 
         client.meter("some.meter", 9).unwrap();
     }
 
     #[test]
     fn test_statsd_client_as_histogrammed() {
-        let client: Box<dyn Histogrammed> = Box::new(StatsdClient::from_sink("prefix", NopMetricSink));
+        let client: Box<dyn Histogrammed<u64>> = Box::new(StatsdClient::from_sink("prefix", NopMetricSink));
 
         client.histogram("some.histogram", 4).unwrap();
     }
 
     #[test]
+    fn test_statsd_client_as_distributed() {
+        let client: Box<dyn Distributed<u64>> = Box::new(StatsdClient::from_sink("prefix", NopMetricSink));
+
+        client.distribution("some.distribution", 33).unwrap();
+    }
+
+    #[test]
     fn test_statsd_client_as_setted() {
-        let client: Box<dyn Setted> = Box::new(StatsdClient::from_sink("myapp", NopMetricSink));
+        let client: Box<dyn Setted<i64>> = Box::new(StatsdClient::from_sink("myapp", NopMetricSink));
 
         client.set("some.set", 5).unwrap();
     }
@@ -1136,9 +1337,11 @@ mod tests {
 
         client.count("some.counter", 3).unwrap();
         client.time("some.timer", 198).unwrap();
+        client.time("some.timer", Duration::from_millis(198)).unwrap();
         client.gauge("some.gauge", 4).unwrap();
         client.meter("some.meter", 29).unwrap();
         client.histogram("some.histogram", 32).unwrap();
+        client.histogram("some.histogram", Duration::from_nanos(32)).unwrap();
         client.set("some.set", 5).unwrap();
     }
 

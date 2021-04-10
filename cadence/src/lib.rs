@@ -60,7 +60,7 @@
 //! let client = StatsdClient::from_sink("my.metrics", sink);
 //!
 //! // Emit metrics!
-//! client.incr("some.counter");
+//! client.count("some.counter", 1);
 //! client.time("some.methodCall", 42);
 //! client.gauge("some.thing", 7);
 //! client.meter("some.value", 5);
@@ -92,7 +92,6 @@
 //!
 //! client.count("my.counter.thing", 29);
 //! client.time("my.service.call", 214);
-//! client.incr("some.event");
 //! ```
 //!
 //! As you can see, using this buffered UDP sink is no more complicated
@@ -142,7 +141,6 @@
 //!
 //! client.count("my.counter.thing", 29);
 //! client.time("my.service.call", 214);
-//! client.incr("some.event");
 //! ```
 //!
 //! In the example above, we use the default constructor for the queuing
@@ -171,7 +169,6 @@
 //!
 //! client.count("my.counter.thing", 29);
 //! client.time("my.service.call", 214);
-//! client.incr("some.event");
 //! ```
 //!
 //! Using a `QueuingMetricSink` with a capacity set means that when the queue
@@ -259,7 +256,7 @@
 //!
 //!     /// Get a new user by their ID
 //!     pub fn get_user_by_id(&self, id: u64) -> Option<User> {
-//!         self.metrics.incr("getUserById");
+//!         self.metrics.count("getUserById", 1);
 //!         None
 //!     }
 //! }
@@ -343,7 +340,7 @@
 //!
 //! client.count("my.counter.thing", 42);
 //! client.time("my.method.time", 25);
-//! client.incr("some.other.counter");
+//! client.count("some.other.counter", 1);
 //! ```
 //!
 //! ### Custom UDP Socket
@@ -368,7 +365,7 @@
 //!
 //! client.count("my.counter.thing", 29);
 //! client.time("my.service.call", 214);
-//! client.incr("some.event");
+//! client.count("some.event", 33);
 //! client.set("users.uniques", 42);
 //! ```
 //!
@@ -401,7 +398,7 @@
 //!
 //! client.count("my.counter.thing", 29);
 //! client.time("my.service.call", 214);
-//! client.incr("some.event");
+//! client.count("some.event", 33);
 //! client.set("users.uniques", 42);
 //! ```
 //!
@@ -415,8 +412,11 @@ pub const DEFAULT_PORT: u16 = 8125;
 pub use self::builder::MetricBuilder;
 
 pub use self::client::{
-    Counted, Distributed, Gauged, Histogrammed, Metered, MetricClient, Setted, StatsdClient, StatsdClientBuilder, Timed,
+    Counted, CountedExt, Distributed, Gauged, Histogrammed, Metered, MetricClient, Setted, StatsdClient,
+    StatsdClientBuilder, Timed,
 };
+
+pub use self::compat::Compat;
 
 pub use self::sinks::{
     BufferedSpyMetricSink, BufferedUdpMetricSink, MetricSink, NopMetricSink, QueuingMetricSink, SpyMetricSink,
@@ -429,6 +429,7 @@ pub use self::types::{
 
 mod builder;
 mod client;
+mod compat;
 pub mod ext;
 mod io;
 pub mod prelude;
@@ -443,3 +444,7 @@ pub mod test;
 // Sinks for sending metrics over Unix datagram sockets
 #[cfg(unix)]
 pub use crate::sinks::{BufferedUnixMetricSink, UnixMetricSink};
+
+mod sealed {
+    pub trait Sealed {}
+}

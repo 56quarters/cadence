@@ -4,9 +4,6 @@ use std::sync::Arc;
 use std::thread;
 use std::time::Duration;
 
-pub const NUM_THREADS: u64 = 10;
-pub const NUM_ITERATIONS: u64 = 1000;
-
 pub fn run_arc_threaded_test(client: StatsdClient, num_threads: u64, iterations: u64) {
     let shared_client = Arc::new(client);
 
@@ -19,7 +16,7 @@ pub fn run_arc_threaded_test(client: StatsdClient, num_threads: u64, iterations:
                     local_client.count("some.counter", i as i64).unwrap();
                     local_client.time("some.timer", i).unwrap();
                     local_client.gauge("some.gauge", i).unwrap();
-                    local_client.gauge_f64("some.gauge", i as f64).unwrap();
+                    local_client.gauge("some.gauge", i as f64).unwrap();
                     local_client.meter("some.meter", i).unwrap();
                     local_client.histogram("some.histogram", i).unwrap();
                     local_client.set("some.set", i as i64).unwrap();

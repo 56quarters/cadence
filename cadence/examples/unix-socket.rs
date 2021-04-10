@@ -38,6 +38,7 @@ fn main() {
             metrics.histogram("example.histogram", 22).unwrap();
             metrics.distribution("example.distribution", 33).unwrap();
             metrics.meter("example.meter", 8).unwrap();
+            metrics.set("example.set", 44).unwrap();
         },
     );
 }

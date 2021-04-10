@@ -1,5 +1,13 @@
 # Changelog
 
+## master / unreleased
+* **Breaking change** - Client traits are now generic across supported types of
+  values [#132](https://github.com/56quarters/cadence/issues/132). This change
+  should be source-compatible in most cases for users importing the Cadence
+  `prelude` module. Type-specific deprecated methods have been moved to a new
+  `Compat` trait to ease this migration. This trait and its implementation will
+  be removed in a future release.
+
 ## [v0.25.0](https://github.com/56quarters/cadence/tree/0.25.0) - 2021-03-21
 * **Breaking change** - Added support for
   [DataDog distribution](https://docs.datadoghq.com/developers/metrics/types/?tab=distribution#definition)

@@ -42,7 +42,6 @@ let client = StatsdClient::from_sink("my.prefix", queuing_sink);
 
 client.count("my.counter.thing", 29);
 client.time("my.service.call", 214);
-client.incr("some.event");
 ```
 
 ## Project layout
