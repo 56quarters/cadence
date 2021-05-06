@@ -33,6 +33,10 @@ impl Counter {
     pub fn new(prefix: &str, key: &str, count: i64) -> Counter {
         Self::from(MetricFormatter::counter(prefix, key, MetricValue::Signed(count)).format())
     }
+
+    pub fn new_f64(prefix: &str, key: &str, value: f64) -> Counter {
+        Self::from(MetricFormatter::counter(prefix, key, MetricValue::Float(value)).format())
+    }
 }
 
 impl From<String> for Counter {

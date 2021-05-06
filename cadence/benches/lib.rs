@@ -169,6 +169,9 @@ fn benchmark_statsdclient_queuing(c: &mut Criterion) {
 
 fn benchmark_new_metric_obj(c: &mut Criterion) {
     c.bench_function("counter_new", |b| b.iter(|| Counter::new("prefix", "some.counter", 5)));
+    c.bench_function("counter_new_f64", |b| {
+        b.iter(|| Counter::new_f64("prefix", "some.counter", 5.1))
+    });
     c.bench_function("timer_new", |b| b.iter(|| Timer::new("prefix", "some.timer", 5)));
     c.bench_function("gauge_new", |b| b.iter(|| Gauge::new("prefix", "some.gauge", 5)));
     c.bench_function("gauge_new_f64", |b| {

@@ -40,6 +40,12 @@ impl ToCounterValue for i64 {
     }
 }
 
+impl ToCounterValue for f64 {
+    fn try_to_value(self) -> MetricResult<MetricValue> {
+        Ok(MetricValue::Float(self))
+    }
+}
+
 /// Conversion trait for valid values for timers
 ///
 /// This trait must be implemented for any types that are used as timer

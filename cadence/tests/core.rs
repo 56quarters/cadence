@@ -17,6 +17,13 @@ fn test_statsd_client_count() {
 }
 
 #[test]
+fn test_statsd_client_count_f64() {
+    let client = new_nop_client("client.test");
+    let expected = Counter::new_f64("client.test.", "counter.key", 5.5);
+    assert_eq!(expected, client.count("counter.key", 5.5).unwrap());
+}
+
+#[test]
 fn test_statsd_client_time() {
     let client = new_nop_client("client.test");
     let expected = Timer::new("client.test.", "timer.key", 25);
