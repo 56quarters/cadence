@@ -128,6 +128,12 @@ impl ToHistogramValue for u64 {
     }
 }
 
+impl ToHistogramValue for f64 {
+    fn try_to_value(self) -> MetricResult<MetricValue> {
+        Ok(MetricValue::Float(self))
+    }
+}
+
 impl ToHistogramValue for Duration {
     fn try_to_value(self) -> MetricResult<MetricValue> {
         let as_nanos = self.as_nanos();
@@ -154,6 +160,12 @@ pub trait ToDistributionValue {
 impl ToDistributionValue for u64 {
     fn try_to_value(self) -> MetricResult<MetricValue> {
         Ok(MetricValue::Unsigned(self))
+    }
+}
+
+impl ToDistributionValue for f64 {
+    fn try_to_value(self) -> MetricResult<MetricValue> {
+        Ok(MetricValue::Float(self))
     }
 }
 
@@ -332,6 +344,7 @@ where
 ///
 /// The following types are valid for histograms:
 /// * `u64`
+/// * `f64`
 /// * `Duration`
 ///
 /// See the [Statsd spec](https://github.com/b/statsd_spec) for more
@@ -362,6 +375,7 @@ where
 ///
 /// The following types are valid for distributions:
 /// * `u64`
+/// * `f64`
 ///
 /// See the [Datadog docs](https://docs.datadoghq.com/developers/metrics/types/?tab=distribution#definition)
 /// for more information.
@@ -440,8 +454,10 @@ pub trait MetricClient:
     + Gauged<f64>
     + Metered<u64>
     + Histogrammed<u64>
+    + Histogrammed<f64>
     + Histogrammed<Duration>
     + Distributed<u64>
+    + Distributed<f64>
     + Setted<i64>
     + Compat
 {
@@ -1020,13 +1036,12 @@ mod tests {
     use super::{
         Counted, CountedExt, Distributed, Gauged, Histogrammed, Metered, MetricClient, Setted, StatsdClient, Timed,
     };
-    use crate::sinks::{MetricSink, NopMetricSink, QueuingMetricSink};
+    use crate::sinks::{MetricSink, NopMetricSink, QueuingMetricSink, SpyMetricSink};
     use crate::types::{ErrorKind, Metric, MetricError};
-    use std::cell::RefCell;
     use std::io;
     use std::panic::RefUnwindSafe;
     use std::sync::atomic::{AtomicUsize, Ordering};
-    use std::sync::{Arc, Mutex};
+    use std::sync::Arc;
     use std::time::Duration;
     use std::u64;
 
@@ -1078,6 +1093,47 @@ mod tests {
             "prefix.some.gauge:4|g|#bucket:A,file-server",
             res.unwrap().as_metric_str()
         );
+    }
+
+    #[test]
+    fn test_statsd_client_time_duration() {
+        let client = StatsdClient::from_sink("prefix", NopMetricSink);
+        let res = client.time("key", Duration::from_millis(157));
+
+        assert_eq!("prefix.key:157|ms", res.unwrap().as_metric_str());
+    }
+
+    #[test]
+    fn test_statsd_client_time_duration_with_overflow() {
+        let client = StatsdClient::from_sink("prefix", NopMetricSink);
+        let res = client.time("key", Duration::from_secs(u64::MAX));
+
+        assert_eq!(ErrorKind::InvalidInput, res.unwrap_err().kind())
+    }
+
+    #[test]
+    fn test_statsd_client_time_duration_with_tags() {
+        let client = StatsdClient::from_sink("prefix", NopMetricSink);
+        let res = client
+            .time_with_tags("key", Duration::from_millis(157))
+            .with_tag("foo", "bar")
+            .with_tag_value("quux")
+            .try_send();
+
+        assert_eq!("prefix.key:157|ms|#foo:bar,quux", res.unwrap().as_metric_str());
+    }
+
+    #[test]
+    fn test_statsd_client_time_duration_with_tags_with_overflow() {
+        let client = StatsdClient::from_sink("prefix", NopMetricSink);
+        let res = client
+            .time_with_tags("key", Duration::from_secs(u64::MAX))
+            .with_tag("foo", "bar")
+            .with_tag_value("quux")
+            .try_send();
+
+        assert!(res.is_err());
+        assert_eq!(ErrorKind::InvalidInput, res.unwrap_err().kind());
     }
 
     #[test]
@@ -1163,78 +1219,22 @@ mod tests {
     }
 
     #[test]
-    fn test_statsd_client_time_duration() {
-        let client = StatsdClient::from_sink("prefix", NopMetricSink);
-        let res = client.time("key", Duration::from_millis(157));
+    fn test_statsd_client_set_with_tags() {
+        let client = StatsdClient::from_sink("myapp", NopMetricSink);
+        let res = client.set_with_tags("some.set", 3).with_tag("foo", "bar").try_send();
 
-        assert_eq!("prefix.key:157|ms", res.unwrap().as_metric_str());
-    }
-
-    #[test]
-    fn test_statsd_client_time_duration_with_overflow() {
-        let client = StatsdClient::from_sink("prefix", NopMetricSink);
-        let res = client.time("key", Duration::from_secs(u64::MAX));
-
-        assert_eq!(ErrorKind::InvalidInput, res.unwrap_err().kind())
-    }
-
-    #[test]
-    fn test_statsd_client_time_duration_with_tags() {
-        let client = StatsdClient::from_sink("prefix", NopMetricSink);
-        let res = client
-            .time_with_tags("key", Duration::from_millis(157))
-            .with_tag("foo", "bar")
-            .with_tag_value("quux")
-            .try_send();
-
-        assert_eq!("prefix.key:157|ms|#foo:bar,quux", res.unwrap().as_metric_str());
-    }
-
-    #[test]
-    fn test_statsd_client_time_duration_with_tags_with_overflow() {
-        let client = StatsdClient::from_sink("prefix", NopMetricSink);
-        let res = client
-            .time_with_tags("key", Duration::from_secs(u64::MAX))
-            .with_tag("foo", "bar")
-            .with_tag_value("quux")
-            .try_send();
-
-        assert!(res.is_err());
-        assert_eq!(ErrorKind::InvalidInput, res.unwrap_err().kind());
+        assert_eq!("myapp.some.set:3|s|#foo:bar", res.unwrap().as_metric_str());
     }
 
     #[test]
     fn test_statsd_client_with_tags_send_success() {
-        struct StoringSink {
-            metrics: Arc<Mutex<RefCell<Vec<String>>>>,
-        }
-
-        impl MetricSink for StoringSink {
-            fn emit(&self, metric: &str) -> io::Result<usize> {
-                let mutex = self.metrics.as_ref();
-                let cell = mutex.lock().unwrap();
-                cell.borrow_mut().push(metric.to_owned());
-                Ok(0)
-            }
-        }
-
-        fn panic_handler(err: MetricError) {
-            panic!("Metric send error: {}", err);
-        }
-
-        let metrics = Arc::new(Mutex::new(RefCell::new(Vec::new())));
-        let metrics_ref = Arc::clone(&metrics);
-        let sink = StoringSink { metrics: metrics_ref };
-        let client = StatsdClient::builder("prefix", sink)
-            .with_error_handler(panic_handler)
-            .build();
+        let (rx, sink) = SpyMetricSink::new();
+        let client = StatsdClient::from_sink("prefix", sink);
 
         client.count_with_tags("some.key", 1).with_tag("test", "a").send();
+        let sent = rx.recv().unwrap();
 
-        let mutex = metrics.as_ref();
-        let cell = mutex.lock().unwrap();
-
-        assert_eq!(1, cell.borrow().len());
+        assert_eq!("prefix.some.key:1|c|#test:a", String::from_utf8(sent).unwrap());
     }
 
     #[test]
@@ -1263,14 +1263,6 @@ mod tests {
         assert_eq!(1, count.load(Ordering::Acquire));
     }
 
-    #[test]
-    fn test_statsd_client_set_with_tags() {
-        let client = StatsdClient::from_sink("myapp", NopMetricSink);
-        let res = client.set_with_tags("some.set", 3).with_tag("foo", "bar").try_send();
-
-        assert_eq!("myapp.some.set:3|s|#foo:bar", res.unwrap().as_metric_str());
-    }
-
     // The following tests really just ensure that we've actually
     // implemented all the traits we're supposed to correctly. If
     // we hadn't, this wouldn't compile.
@@ -1290,17 +1282,31 @@ mod tests {
     }
 
     #[test]
-    fn test_statsd_client_as_timed() {
+    fn test_statsd_client_as_timed_u64() {
         let client: Box<dyn Timed<u64>> = Box::new(StatsdClient::from_sink("prefix", NopMetricSink));
 
         client.time("some.timer", 20).unwrap();
     }
 
     #[test]
-    fn test_statsd_client_as_gauged() {
+    fn test_statsd_client_as_timed_duration() {
+        let client: Box<dyn Timed<Duration>> = Box::new(StatsdClient::from_sink("prefix", NopMetricSink));
+
+        client.time("some.timer", Duration::from_millis(20)).unwrap();
+    }
+
+    #[test]
+    fn test_statsd_client_as_gauged_u64() {
         let client: Box<dyn Gauged<u64>> = Box::new(StatsdClient::from_sink("prefix", NopMetricSink));
 
         client.gauge("some.gauge", 32).unwrap();
+    }
+
+    #[test]
+    fn test_statsd_client_as_gauged_f64() {
+        let client: Box<dyn Gauged<f64>> = Box::new(StatsdClient::from_sink("prefix", NopMetricSink));
+
+        client.gauge("some.gauge", 3.2).unwrap();
     }
 
     #[test]
@@ -1311,37 +1317,44 @@ mod tests {
     }
 
     #[test]
-    fn test_statsd_client_as_histogrammed() {
+    fn test_statsd_client_as_histogrammed_u64() {
         let client: Box<dyn Histogrammed<u64>> = Box::new(StatsdClient::from_sink("prefix", NopMetricSink));
 
         client.histogram("some.histogram", 4).unwrap();
     }
 
     #[test]
-    fn test_statsd_client_as_distributed() {
+    fn test_statsd_client_as_histogrammed_f64() {
+        let client: Box<dyn Histogrammed<f64>> = Box::new(StatsdClient::from_sink("prefix", NopMetricSink));
+
+        client.histogram("some.histogram", 4.0).unwrap();
+    }
+
+    #[test]
+    fn test_statsd_client_as_histogrammed_duration() {
+        let client: Box<dyn Histogrammed<Duration>> = Box::new(StatsdClient::from_sink("prefix", NopMetricSink));
+
+        client.histogram("some.histogram", Duration::from_nanos(4)).unwrap();
+    }
+
+    #[test]
+    fn test_statsd_client_as_distributed_u64() {
         let client: Box<dyn Distributed<u64>> = Box::new(StatsdClient::from_sink("prefix", NopMetricSink));
 
         client.distribution("some.distribution", 33).unwrap();
     }
 
     #[test]
-    fn test_statsd_client_as_setted() {
-        let client: Box<dyn Setted<i64>> = Box::new(StatsdClient::from_sink("myapp", NopMetricSink));
+    fn test_statsd_client_as_distributed_f64() {
+        let client: Box<dyn Distributed<f64>> = Box::new(StatsdClient::from_sink("prefix", NopMetricSink));
 
-        client.set("some.set", 5).unwrap();
+        client.distribution("some.distribution", 33.0).unwrap();
     }
 
     #[test]
-    fn test_statsd_client_as_metric_client() {
-        let client: Box<dyn MetricClient> = Box::new(StatsdClient::from_sink("prefix", NopMetricSink));
+    fn test_statsd_client_as_setted() {
+        let client: Box<dyn Setted<i64>> = Box::new(StatsdClient::from_sink("myapp", NopMetricSink));
 
-        client.count("some.counter", 3).unwrap();
-        client.time("some.timer", 198).unwrap();
-        client.time("some.timer", Duration::from_millis(198)).unwrap();
-        client.gauge("some.gauge", 4).unwrap();
-        client.meter("some.meter", 29).unwrap();
-        client.histogram("some.histogram", 32).unwrap();
-        client.histogram("some.histogram", Duration::from_nanos(32)).unwrap();
         client.set("some.set", 5).unwrap();
     }
 
@@ -1354,9 +1367,15 @@ mod tests {
 
         client.count("some.counter", 3).unwrap();
         client.time("some.timer", 198).unwrap();
+        client.time("some.timer", Duration::from_millis(198)).unwrap();
         client.gauge("some.gauge", 4).unwrap();
+        client.gauge("some.gauge", 4.0).unwrap();
         client.meter("some.meter", 29).unwrap();
         client.histogram("some.histogram", 32).unwrap();
+        client.histogram("some.histogram", 32.0).unwrap();
+        client.histogram("some.histogram", Duration::from_nanos(32)).unwrap();
+        client.distribution("some.distribution", 248).unwrap();
+        client.distribution("some.distribution", 248.0).unwrap();
         client.set("some.set", 5).unwrap();
     }
 }
