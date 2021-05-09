@@ -30,7 +30,7 @@ pub struct Counter {
 }
 
 impl Counter {
-    pub fn new(prefix: &str, key: &str, count: i64) -> Counter {
+    pub fn new(prefix: &str, key: &str, count: i64) -> Self {
         Self::from(MetricFormatter::counter(prefix, key, MetricValue::Signed(count)).format())
     }
 }
@@ -58,7 +58,7 @@ pub struct Timer {
 }
 
 impl Timer {
-    pub fn new(prefix: &str, key: &str, time: u64) -> Timer {
+    pub fn new(prefix: &str, key: &str, time: u64) -> Self {
         Self::from(MetricFormatter::timer(prefix, key, MetricValue::Unsigned(time)).format())
     }
 }
@@ -84,11 +84,11 @@ pub struct Gauge {
 }
 
 impl Gauge {
-    pub fn new(prefix: &str, key: &str, value: u64) -> Gauge {
+    pub fn new(prefix: &str, key: &str, value: u64) -> Self {
         Self::from(MetricFormatter::gauge(prefix, key, MetricValue::Unsigned(value)).format())
     }
 
-    pub fn new_f64(prefix: &str, key: &str, value: f64) -> Gauge {
+    pub fn new_f64(prefix: &str, key: &str, value: f64) -> Self {
         Self::from(MetricFormatter::gauge(prefix, key, MetricValue::Float(value)).format())
     }
 }
@@ -114,7 +114,7 @@ pub struct Meter {
 }
 
 impl Meter {
-    pub fn new(prefix: &str, key: &str, value: u64) -> Meter {
+    pub fn new(prefix: &str, key: &str, value: u64) -> Self {
         Self::from(MetricFormatter::meter(prefix, key, MetricValue::Unsigned(value)).format())
     }
 }
@@ -144,8 +144,12 @@ pub struct Histogram {
 }
 
 impl Histogram {
-    pub fn new(prefix: &str, key: &str, value: u64) -> Histogram {
+    pub fn new(prefix: &str, key: &str, value: u64) -> Self {
         Self::from(MetricFormatter::histogram(prefix, key, MetricValue::Unsigned(value)).format())
+    }
+
+    pub fn new_f64(prefix: &str, key: &str, value: f64) -> Self {
+        Self::from(MetricFormatter::histogram(prefix, key, MetricValue::Float(value)).format())
     }
 }
 
@@ -170,8 +174,12 @@ pub struct Distribution {
 }
 
 impl Distribution {
-    pub fn new(prefix: &str, key: &str, value: u64) -> Distribution {
+    pub fn new(prefix: &str, key: &str, value: u64) -> Self {
         Self::from(MetricFormatter::distribution(prefix, key, MetricValue::Unsigned(value)).format())
+    }
+
+    pub fn new_f64(prefix: &str, key: &str, value: f64) -> Self {
+        Self::from(MetricFormatter::distribution(prefix, key, MetricValue::Float(value)).format())
     }
 }
 
@@ -196,7 +204,7 @@ pub struct Set {
 }
 
 impl Set {
-    pub fn new(prefix: &str, key: &str, value: i64) -> Set {
+    pub fn new(prefix: &str, key: &str, value: i64) -> Self {
         Self::from(MetricFormatter::set(prefix, key, MetricValue::Signed(value)).format())
     }
 }

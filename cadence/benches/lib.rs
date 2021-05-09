@@ -1,7 +1,7 @@
 use cadence::prelude::*;
 use cadence::{
-    BufferedUdpMetricSink, Counter, Gauge, Histogram, Meter, NopMetricSink, QueuingMetricSink, Set, StatsdClient,
-    Timer, UdpMetricSink, DEFAULT_PORT,
+    BufferedUdpMetricSink, Counter, Distribution, Gauge, Histogram, Meter, NopMetricSink, QueuingMetricSink, Set,
+    StatsdClient, Timer, UdpMetricSink, DEFAULT_PORT,
 };
 use criterion::{criterion_group, criterion_main, Criterion};
 use std::net::UdpSocket;
@@ -177,6 +177,15 @@ fn benchmark_new_metric_obj(c: &mut Criterion) {
     c.bench_function("meter_new", |b| b.iter(|| Meter::new("prefix", "some.meter", 5)));
     c.bench_function("histogram_new", |b| {
         b.iter(|| Histogram::new("prefix", "some.histogram", 5))
+    });
+    c.bench_function("histogram_new_f64", |b| {
+        b.iter(|| Histogram::new_f64("prefix", "some.histogram", 5.0))
+    });
+    c.bench_function("distribution_new", |b| {
+        b.iter(|| Distribution::new("prefix", "some.distribution", 5))
+    });
+    c.bench_function("distribution_new_f64", |b| {
+        b.iter(|| Distribution::new_f64("prefix", "some.distribution", 5.0))
     });
     c.bench_function("set_new", |b| b.iter(|| Set::new("prefix", "some.set", 8)));
 }
