@@ -7,8 +7,10 @@
   `prelude` module. Type-specific deprecated methods have been moved to a new
   `Compat` trait to ease this migration. This trait and its implementation will
   be removed in a future release.
+* Add support for `f64` values for histogram and distribution metric types per
+  [#131](https://github.com/56quarters/cadence/issues/131).
 * Minimum supported Rust version for Cadence is now 1.41 per
-  [#138](https://github.com/56quarters/cadence/issues/138)
+  [#138](https://github.com/56quarters/cadence/issues/138).
 
 ## [v0.25.0](https://github.com/56quarters/cadence/tree/0.25.0) - 2021-03-21
 * **Breaking change** - Added support for
