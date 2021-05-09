@@ -12,11 +12,11 @@ workflows:
     - rust/test:
         matrix:
           parameters:
-            # Only test stable, beta, nightly, and 1.36 since we only have a limited
-            # amount of build credits each month. We test back to 1.36 since that's
+            # Only test stable, beta, nightly, and 1.41 since we only have a limited
+            # amount of build credits each month. We test back to 1.41 since that's
             # what our dependencies support and thus we should too.
             toolchain:
             - "stable"
             - "beta"
             - "nightly"
-            - "1.36.0"
+            - "1.41.0"
