@@ -42,6 +42,7 @@ set it as the default. After that, you can make use of the macros in this crate.
 
 ```rust
 use std::net::UdpSocket;
+use std::time::Duration;
 use cadence::prelude::*;
 use cadence::{StatsdClient, QueuingMetricSink, BufferedUdpMetricSink, DEFAULT_PORT};
 use cadence_macros::{statsd_count, statsd_time, statsd_gauge, statsd_meter, statsd_histogram, statsd_distribution, statsd_set};
@@ -66,10 +67,12 @@ statsd_count!("some.counter", 123, "tag" => "val", "another" => "thing");
 statsd_time!("some.timer", 123);
 statsd_time!("some.timer", 123, "tag" => "val");
 statsd_time!("some.timer", 123, "tag" => "val", "another" => "thing");
+statsd_time!("some.timer", Duration::from_millis(123), "tag" => "val", "another" => "thing");
 
 statsd_gauge!("some.gauge", 123);
 statsd_gauge!("some.gauge", 123, "tag" => "val");
 statsd_gauge!("some.gauge", 123, "tag" => "val", "another" => "thing");
+statsd_gauge!("some.gauge", 123.123, "tag" => "val", "another" => "thing");
 
 statsd_meter!("some.meter", 123);
 statsd_meter!("some.meter", 123, "tag" => "val");
@@ -78,10 +81,13 @@ statsd_meter!("some.meter", 123, "tag" => "val", "another" => "thing");
 statsd_histogram!("some.histogram", 123);
 statsd_histogram!("some.histogram", 123, "tag" => "val");
 statsd_histogram!("some.histogram", 123, "tag" => "val", "another" => "thing");
+statsd_histogram!("some.histogram", Duration::from_nanos(123), "tag" => "val", "another" => "thing");
+statsd_histogram!("some.histogram", 123.123, "tag" => "val", "another" => "thing");
 
 statsd_distribution!("some.distribution", 123);
 statsd_distribution!("some.distribution", 123, "tag" => "val");
 statsd_distribution!("some.distribution", 123, "tag" => "val", "another" => "thing");
+statsd_distribution!("some.distribution", 123.123, "tag" => "val", "another" => "thing");
 
 statsd_set!("some.set", 123);
 statsd_set!("some.set", 123, "tag" => "val");
