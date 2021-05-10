@@ -5,6 +5,7 @@ use cadence_macros::{
 };
 use crossbeam_channel::Receiver;
 use std::collections::HashSet;
+use std::time::Duration;
 
 static RX: SingletonHolder<Receiver<Vec<u8>>> = SingletonHolder::new();
 
@@ -52,19 +53,23 @@ fn test_macros() {
     fn test_timer_macros() {
         statsd_time!("some.timer", 334);
         statsd_time!("some.timer", 334, "type" => "api", "status" => "200");
+        statsd_time!("some.timer", Duration::from_millis(334), "type" => "web");
 
         let metrics = read_all_metrics();
         assert!(metrics.contains(&"my.prefix.some.timer:334|ms".to_owned()));
         assert!(metrics.contains(&"my.prefix.some.timer:334|ms|#type:api,status:200".to_owned()));
+        assert!(metrics.contains(&"my.prefix.some.timer:334|ms|#type:web".to_owned()));
     }
 
     fn test_gauge_macros() {
         statsd_gauge!("some.gauge", 42);
         statsd_gauge!("some.gauge", 42, "org" => "123", "service" => "gateway");
+        statsd_gauge!("some.gauge", 35.4, "org" => "456");
 
         let metrics = read_all_metrics();
         assert!(metrics.contains(&"my.prefix.some.gauge:42|g".to_owned()));
         assert!(metrics.contains(&"my.prefix.some.gauge:42|g|#org:123,service:gateway".to_owned()));
+        assert!(metrics.contains(&"my.prefix.some.gauge:35.4|g|#org:456".to_owned()));
     }
 
     fn test_meter_macros() {
@@ -79,19 +84,25 @@ fn test_macros() {
     fn test_histogram_macros() {
         statsd_histogram!("some.histogram", 223);
         statsd_histogram!("some.histogram", 223, "method" => "auth", "result" => "error");
+        statsd_histogram!("some.histogram", Duration::from_nanos(223), "method" => "list");
+        statsd_histogram!("some.histogram", 22.3, "method" => "list");
 
         let metrics = read_all_metrics();
         assert!(metrics.contains(&"my.prefix.some.histogram:223|h".to_owned()));
         assert!(metrics.contains(&"my.prefix.some.histogram:223|h|#method:auth,result:error".to_owned()));
+        assert!(metrics.contains(&"my.prefix.some.histogram:223|h|#method:list".to_owned()));
+        assert!(metrics.contains(&"my.prefix.some.histogram:22.3|h|#method:list".to_owned()));
     }
 
     fn test_distribution_macros() {
         statsd_distribution!("some.distribution", 22);
         statsd_distribution!("some.distribution", 22, "method" => "auth", "result" => "error");
+        statsd_distribution!("some.distribution", 2.21, "method" => "list");
 
         let metrics = read_all_metrics();
         assert!(metrics.contains(&"my.prefix.some.distribution:22|d".to_owned()));
         assert!(metrics.contains(&"my.prefix.some.distribution:22|d|#method:auth,result:error".to_owned()));
+        assert!(metrics.contains(&"my.prefix.some.distribution:2.21|d|#method:list".to_owned()));
     }
 
     fn test_set_macros() {
