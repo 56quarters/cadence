@@ -185,6 +185,8 @@ mod test {
         let (rx, sink) = BufferedSpyMetricSink::with_capacity(None, Some(64));
         sink.emit("foo:54|c").unwrap();
         sink.emit("foo:67|c").unwrap();
+
+        assert!(rx.is_empty());
         let flush = sink.flush();
 
         let sent = rx.recv().unwrap();
