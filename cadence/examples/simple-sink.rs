@@ -14,6 +14,7 @@
 use cadence::prelude::*;
 use cadence::{StatsdClient, UdpMetricSink, DEFAULT_PORT};
 use std::net::UdpSocket;
+use std::time::Duration;
 
 fn main() {
     let sock = UdpSocket::bind("0.0.0.0:0").unwrap();
@@ -22,9 +23,16 @@ fn main() {
 
     metrics.count("example.counter", 1).unwrap();
     metrics.gauge("example.gauge", 5).unwrap();
+    metrics.gauge("example.gauge", 5.0).unwrap();
     metrics.time("example.timer", 32).unwrap();
+    metrics.time("example.timer", Duration::from_millis(32)).unwrap();
     metrics.histogram("example.histogram", 22).unwrap();
+    metrics
+        .histogram("example.histogram", Duration::from_nanos(22))
+        .unwrap();
+    metrics.histogram("example.histogram", 22.0).unwrap();
     metrics.distribution("example.distribution", 33).unwrap();
+    metrics.distribution("example.distribution", 33.0).unwrap();
     metrics.meter("example.meter", 8).unwrap();
     metrics.set("example.set", 44).unwrap();
 }

@@ -12,6 +12,7 @@ use cadence_macros::{
     statsd_count, statsd_distribution, statsd_gauge, statsd_histogram, statsd_meter, statsd_set, statsd_time,
 };
 use std::net::UdpSocket;
+use std::time::Duration;
 
 fn main() {
     let sock = UdpSocket::bind("0.0.0.0:0").unwrap();
@@ -22,9 +23,14 @@ fn main() {
 
     statsd_count!("some.counter", 1, "tag" => "val");
     statsd_gauge!("some.gauge", 1, "tag" => "val");
+    statsd_gauge!("some.gauge", 1.0, "tag" => "val");
     statsd_time!("some.timer", 1, "tag" => "val");
+    statsd_time!("some.timer", Duration::from_millis(1), "tag" => "val");
     statsd_meter!("some.meter", 1, "tag" => "val");
     statsd_histogram!("some.histogram", 1, "tag" => "val");
+    statsd_histogram!("some.histogram", Duration::from_nanos(1), "tag" => "val");
+    statsd_histogram!("some.histogram", 1.0, "tag" => "val");
     statsd_distribution!("some.distribution", 1, "tag" => "val");
+    statsd_distribution!("some.distribution", 1.0, "tag" => "val");
     statsd_set!("some.set", 1, "tag" => "val");
 }
