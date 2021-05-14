@@ -417,8 +417,7 @@ where
 
 #[cfg(test)]
 mod tests {
-    use super::MetricFormatter;
-    use crate::builder::MetricValue;
+    use super::{MetricFormatter, MetricValue};
 
     #[test]
     fn test_metric_formatter_tag_size_hint_no_tags() {
