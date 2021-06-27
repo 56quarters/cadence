@@ -113,9 +113,9 @@ impl ToMeterValue for u64 {
 /// Conversion trait for valid values for histograms
 ///
 /// This trait must be implemented for any types that are used as histogram
-/// values (currently `u64` and `Duration`). This trait is internal to how
-/// values are formatted as part of metrics but is exposed publicly for
-/// documentation purposes.
+/// values (currently `u64`, `f64`, and `Duration`). This trait is internal
+/// to how values are formatted as part of metrics but is exposed publicly
+/// for documentation purposes.
 ///
 /// Typical use of Cadence shouldn't require interacting with this trait.
 pub trait ToHistogramValue {
@@ -148,7 +148,7 @@ impl ToHistogramValue for Duration {
 /// Conversion trait for valid values for distributions
 ///
 /// This trait must be implemented for any types that are used as distribution
-/// values (currently only `u64`). This trait is internal to how values are
+/// values (currently `u64` and `f64`). This trait is internal to how values are
 /// formatted as part of metrics but is exposed publicly for documentation
 /// purposes.
 ///
