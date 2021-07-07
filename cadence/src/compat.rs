@@ -18,6 +18,9 @@ use std::time::Duration;
 /// To allow people time to migrate, the removed methods are implemented here.
 /// These methods should be considered deprecated and not viable to use long-term
 /// (this trait will be removed in a future release).
+///
+/// For more information about how to migrate away from the methods in this
+/// trait, see the `MIGRATION.md` file in the root of the repository.
 pub trait Compat {
     #[deprecated(note = "Use `client.time(key, val)`")]
     #[allow(deprecated)]
