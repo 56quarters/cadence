@@ -6,7 +6,8 @@
   should be source-compatible in most cases for users importing the Cadence
   `prelude` module. Type-specific deprecated methods have been moved to a new
   `Compat` trait to ease this migration. This trait and its implementation will
-  be removed in a future release.
+  be removed in a future release. See [MIGRATION.md](MIGRATION.md) for more
+  information.
 * Add support for `f64` values for histogram and distribution metric types per
   [#131](https://github.com/56quarters/cadence/issues/131).
 * Minimum supported Rust version for Cadence is now 1.41 per

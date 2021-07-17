@@ -4,16 +4,16 @@ Guides for migrating to different versions of Cadence are below.
 
 ## Migrating To 0.26
 
-In version `0.26` of Cadence, the values for each type of metric were
-made generic in the methods to emit them. The implications of this and
-how to update your code are discussed below.
+In version `0.26` of Cadence, the values for each type of metric are
+generic in the methods to emit them. The implications of this and how
+to update your code are discussed below.
 
 ### Generic metric values
 
 Note the following example uses the `Timed` trait but this is applicable
 to all traits for emitting metrics.
 
-Methods to emit metrics were changed to accept generic types:
+Methods to emit metrics changed to accept generic types:
 
 ```rust
 pub trait Timed {
@@ -21,7 +21,7 @@ pub trait Timed {
     fn time_duration(&self, key: &str, time: Duration) -> MetricResult<Timer>;
 }
 ```
-Became
+Becomes
 
 ```rust
 pub trait Timed<T>
