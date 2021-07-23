@@ -1,6 +1,6 @@
 # Changelog
 
-## master / unreleased
+## [v0.26.0](https://github.com/56quarters/cadence/tree/0.26.0) - 2021-07-23
 * **Breaking change** - Client traits are now generic across supported types of
   values [#132](https://github.com/56quarters/cadence/issues/132). This change
   should be source-compatible in most cases for users importing the Cadence
