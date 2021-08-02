@@ -122,6 +122,16 @@ impl<'a> MetricFormatter<'a> {
         self.tags.push((None, value));
     }
 
+    fn with_tags<U>(&mut self, pairs: U)
+        where
+            U: IntoIterator<Item = (&'a str, &'a str)>
+
+    {
+        for (k, v) in pairs.into_iter() {
+            self.with_tag(k, v);
+        }
+    }
+
     fn write_base_metric(&self, out: &mut String) {
         let _ = write!(out, "{}{}:{}|{}", self.prefix, self.key, self.val, self.type_);
     }
@@ -291,6 +301,59 @@ where
             repr: BuilderRepr::Error(err, client),
             type_: PhantomData,
         }
+    }
+
+    /// Add a key-value tag to this metric.
+    ///
+    /// # Example
+    ///
+    /// Using a vector of tags
+    /// ```
+    /// use cadence::prelude::*;
+    /// use cadence::{StatsdClient, NopMetricSink, Metric};
+    ///
+    /// let tags = vec![("foo", "bar"), ("blah", "bar")];
+    ///
+    /// let client = StatsdClient::from_sink("some.prefix", NopMetricSink);
+    /// let res = client.count_with_tags("some.key", 1)
+    ///    .with_tags(tags)
+    ///    .try_send();
+    ///
+    /// assert_eq!(
+    ///    "some.prefix.some.key:1|c|#foo:bar,blah:bar",
+    ///    res.unwrap().as_metric_str()
+    /// );
+    /// ```
+    ///
+    /// Using a hashmap of tags
+    /// ```
+    /// use cadence::prelude::*;
+    /// use cadence::{StatsdClient, NopMetricSink, Metric};
+    /// use std::collections::HashMap;
+    ///
+    /// let mut tags = HashMap::new();
+    /// tags.insert("foo", "bar");
+    /// tags.insert("blah", "bar");
+    ///
+    /// let client = StatsdClient::from_sink("some.prefix", NopMetricSink);
+    /// let res = client.count_with_tags("some.key", 1)
+    ///    .with_tags(tags)
+    ///    .try_send();
+    ///
+    /// assert_eq!(
+    ///    "some.prefix.some.key:1|c|#foo:bar,blah:bar",
+    ///    res.unwrap().as_metric_str()
+    /// );
+    /// ```
+    pub fn with_tags<U>(mut self, pairs: U) -> Self
+    where
+        U: IntoIterator<Item = (&'m str, &'m str)>
+
+    {
+        if let BuilderRepr::Success(ref mut formatter, _) = self.repr {
+            formatter.with_tags(pairs);
+        }
+        self
     }
 
     /// Add a key-value tag to this metric.
