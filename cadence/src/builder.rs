@@ -123,11 +123,16 @@ impl<'a> MetricFormatter<'a> {
     }
 
     fn with_tags<U>(&mut self, pairs: U)
-        where
-            U: IntoIterator<Item = (&'a str, &'a str)>
-
+    where
+        U: IntoIterator<Item = (&'a str, &'a str)>,
     {
-        for (k, v) in pairs.into_iter() {
+        let iter = pairs.into_iter();
+        let (_, size) = iter.size_hint();
+        if let Some(v) = size {
+            self.tags.reserve(v);
+        }
+
+        for (k, v) in iter {
             self.with_tag(k, v);
         }
     }
@@ -303,16 +308,17 @@ where
         }
     }
 
-    /// Add a key-value tag to this metric.
+    /// Add multiple key-value tags to this metric using an iterable of key value tuples
     ///
-    /// # Example
+    /// # Vector Example
     ///
-    /// Using a vector of tags
     /// ```
     /// use cadence::prelude::*;
     /// use cadence::{StatsdClient, NopMetricSink, Metric};
     ///
-    /// let tags = vec![("foo", "bar"), ("blah", "bar")];
+    /// let mut tags = Vec::new();
+    /// tags.push(("foo", "bar"));
+    /// tags.push(("baz", "bing"));
     ///
     /// let client = StatsdClient::from_sink("some.prefix", NopMetricSink);
     /// let res = client.count_with_tags("some.key", 1)
@@ -320,12 +326,13 @@ where
     ///    .try_send();
     ///
     /// assert_eq!(
-    ///    "some.prefix.some.key:1|c|#foo:bar,blah:bar",
+    ///    "some.prefix.some.key:1|c|#foo:bar,baz:bing",
     ///    res.unwrap().as_metric_str()
     /// );
     /// ```
     ///
-    /// Using a hashmap of tags
+    /// # Hashmap Example
+    ///
     /// ```
     /// use cadence::prelude::*;
     /// use cadence::{StatsdClient, NopMetricSink, Metric};
@@ -333,7 +340,7 @@ where
     ///
     /// let mut tags = HashMap::new();
     /// tags.insert("foo", "bar");
-    /// tags.insert("blah", "bar");
+    /// tags.insert("baz", "bing");
     ///
     /// let client = StatsdClient::from_sink("some.prefix", NopMetricSink);
     /// let res = client.count_with_tags("some.key", 1)
@@ -341,14 +348,13 @@ where
     ///    .try_send();
     ///
     /// assert_eq!(
-    ///    "some.prefix.some.key:1|c|#foo:bar,blah:bar",
+    ///    "some.prefix.some.key:1|c|#foo:bar,baz:bing",
     ///    res.unwrap().as_metric_str()
     /// );
     /// ```
     pub fn with_tags<U>(mut self, pairs: U) -> Self
     where
-        U: IntoIterator<Item = (&'m str, &'m str)>
-
+        U: IntoIterator<Item = (&'m str, &'m str)>,
     {
         if let BuilderRepr::Success(ref mut formatter, _) = self.repr {
             formatter.with_tags(pairs);
