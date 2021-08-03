@@ -944,8 +944,8 @@ where
 {
     fn count_with_tags<'a>(&'a self, key: &'a str, value: T) -> MetricBuilder<'_, '_, Counter> {
         match value.try_to_value() {
-            Ok(v) => MetricBuilder::from_fmt(MetricFormatter::counter(&self.prefix, key, v), &self),
-            Err(e) => MetricBuilder::from_error(e, &self),
+            Ok(v) => MetricBuilder::from_fmt(MetricFormatter::counter(&self.prefix, key, v), self),
+            Err(e) => MetricBuilder::from_error(e, self),
         }
     }
 }
@@ -958,8 +958,8 @@ where
 {
     fn time_with_tags<'a>(&'a self, key: &'a str, time: T) -> MetricBuilder<'_, '_, Timer> {
         match time.try_to_value() {
-            Ok(v) => MetricBuilder::from_fmt(MetricFormatter::timer(&self.prefix, key, v), &self),
-            Err(e) => MetricBuilder::from_error(e, &self),
+            Ok(v) => MetricBuilder::from_fmt(MetricFormatter::timer(&self.prefix, key, v), self),
+            Err(e) => MetricBuilder::from_error(e, self),
         }
     }
 }
@@ -970,8 +970,8 @@ where
 {
     fn gauge_with_tags<'a>(&'a self, key: &'a str, value: T) -> MetricBuilder<'_, '_, Gauge> {
         match value.try_to_value() {
-            Ok(v) => MetricBuilder::from_fmt(MetricFormatter::gauge(&self.prefix, key, v), &self),
-            Err(e) => MetricBuilder::from_error(e, &self),
+            Ok(v) => MetricBuilder::from_fmt(MetricFormatter::gauge(&self.prefix, key, v), self),
+            Err(e) => MetricBuilder::from_error(e, self),
         }
     }
 }
@@ -982,8 +982,8 @@ where
 {
     fn meter_with_tags<'a>(&'a self, key: &'a str, value: T) -> MetricBuilder<'_, '_, Meter> {
         match value.try_to_value() {
-            Ok(v) => MetricBuilder::from_fmt(MetricFormatter::meter(&self.prefix, key, v), &self),
-            Err(e) => MetricBuilder::from_error(e, &self),
+            Ok(v) => MetricBuilder::from_fmt(MetricFormatter::meter(&self.prefix, key, v), self),
+            Err(e) => MetricBuilder::from_error(e, self),
         }
     }
 }
@@ -994,8 +994,8 @@ where
 {
     fn histogram_with_tags<'a>(&'a self, key: &'a str, value: T) -> MetricBuilder<'_, '_, Histogram> {
         match value.try_to_value() {
-            Ok(v) => MetricBuilder::from_fmt(MetricFormatter::histogram(&self.prefix, key, v), &self),
-            Err(e) => MetricBuilder::from_error(e, &self),
+            Ok(v) => MetricBuilder::from_fmt(MetricFormatter::histogram(&self.prefix, key, v), self),
+            Err(e) => MetricBuilder::from_error(e, self),
         }
     }
 }
@@ -1006,7 +1006,7 @@ where
 {
     fn distribution_with_tags<'a>(&'a self, key: &'a str, value: T) -> MetricBuilder<'_, '_, Distribution> {
         match value.try_to_value() {
-            Ok(v) => MetricBuilder::from_fmt(MetricFormatter::distribution(&self.prefix, key, v), &self),
+            Ok(v) => MetricBuilder::from_fmt(MetricFormatter::distribution(&self.prefix, key, v), self),
             Err(e) => MetricBuilder::from_error(e, self),
         }
     }
@@ -1018,8 +1018,8 @@ where
 {
     fn set_with_tags<'a>(&'a self, key: &'a str, value: T) -> MetricBuilder<'_, '_, Set> {
         match value.try_to_value() {
-            Ok(v) => MetricBuilder::from_fmt(MetricFormatter::set(&self.prefix, key, v), &self),
-            Err(e) => MetricBuilder::from_error(e, &self),
+            Ok(v) => MetricBuilder::from_fmt(MetricFormatter::set(&self.prefix, key, v), self),
+            Err(e) => MetricBuilder::from_error(e, self),
         }
     }
 }

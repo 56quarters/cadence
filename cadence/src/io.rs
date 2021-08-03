@@ -137,7 +137,7 @@ mod tests {
         let write2 = buffered.write("baz:5678|c".as_bytes()).unwrap();
         let written_after_write2 = buffered.get_ref().len();
 
-        let written = str::from_utf8(&buffered.get_ref()).unwrap();
+        let written = str::from_utf8(buffered.get_ref()).unwrap();
 
         assert_eq!(10, write1);
         assert_eq!(0, written_after_write1);
@@ -191,7 +191,7 @@ mod tests {
         let mut buffered = MultiLineWriter::new(vec![], 8);
 
         let bytes_written = buffered.write("foo:42|c".as_bytes()).unwrap();
-        let written = str::from_utf8(&buffered.get_ref()).unwrap();
+        let written = str::from_utf8(buffered.get_ref()).unwrap();
         let buf_metrics = buffered.get_metrics();
 
         assert_eq!("foo:42|c", written);
@@ -210,7 +210,7 @@ mod tests {
         let len_after_writes = buffered.get_ref().len();
 
         buffered.flush().unwrap();
-        let written = str::from_utf8(&buffered.get_ref()).unwrap();
+        let written = str::from_utf8(buffered.get_ref()).unwrap();
 
         assert_eq!(0, len_after_writes);
         assert_eq!("xyz\nabc\n", written);
