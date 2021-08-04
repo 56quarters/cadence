@@ -131,10 +131,10 @@ mod tests {
     fn test_write_needs_flush() {
         let mut buffered = MultiLineWriter::new(vec![], 16);
 
-        let write1 = buffered.write("foo:1234|c".as_bytes()).unwrap();
+        let write1 = buffered.write(b"foo:1234|c").unwrap();
         let written_after_write1 = buffered.get_ref().len();
 
-        let write2 = buffered.write("baz:5678|c".as_bytes()).unwrap();
+        let write2 = buffered.write(b"baz:5678|c").unwrap();
         let written_after_write2 = buffered.get_ref().len();
 
         let written = str::from_utf8(buffered.get_ref()).unwrap();
@@ -152,10 +152,10 @@ mod tests {
     fn test_write_no_flush() {
         let mut buffered = MultiLineWriter::new(vec![], 32);
 
-        let write1 = buffered.write("abc:3|g".as_bytes()).unwrap();
+        let write1 = buffered.write(b"abc:3|g").unwrap();
         let written_after_write1 = buffered.get_ref().len();
 
-        let write2 = buffered.write("def:4|g".as_bytes()).unwrap();
+        let write2 = buffered.write(b"def:4|g").unwrap();
         let written_after_write2 = buffered.get_ref().len();
 
         assert_eq!(7, write1);
@@ -169,11 +169,11 @@ mod tests {
     fn test_write_bigger_than_buffer() {
         let mut buffered = MultiLineWriter::new(vec![], 16);
 
-        let write1 = buffered.write("some_really_long_metric:456|c".as_bytes()).unwrap();
+        let write1 = buffered.write(b"some_really_long_metric:456|c").unwrap();
         let written_after_write1 = buffered.get_ref().len();
         let in_buffer_after_write1 = buffered.written;
 
-        let write2 = buffered.write("abc:4|g".as_bytes()).unwrap();
+        let write2 = buffered.write(b"abc:4|g").unwrap();
         let written_after_write2 = buffered.get_ref().len();
         let in_buffer_after_write2 = buffered.written;
 
@@ -190,7 +190,7 @@ mod tests {
     fn test_buffer_write_equal_capacity() {
         let mut buffered = MultiLineWriter::new(vec![], 8);
 
-        let bytes_written = buffered.write("foo:42|c".as_bytes()).unwrap();
+        let bytes_written = buffered.write(b"foo:42|c").unwrap();
         let written = str::from_utf8(buffered.get_ref()).unwrap();
         let buf_metrics = buffered.get_metrics();
 
@@ -205,8 +205,8 @@ mod tests {
     fn test_flush_still_buffered() {
         let mut buffered = MultiLineWriter::new(vec![], 32);
 
-        buffered.write_all("xyz".as_bytes()).unwrap();
-        buffered.write_all("abc".as_bytes()).unwrap();
+        buffered.write_all(b"xyz").unwrap();
+        buffered.write_all(b"abc").unwrap();
         let len_after_writes = buffered.get_ref().len();
 
         buffered.flush().unwrap();
@@ -225,7 +225,7 @@ mod tests {
         // of scope and anything that was buffered gets written out.
         {
             let mut writer = MultiLineWriter::new(&mut buf, 32);
-            writer.write_all("something".as_bytes()).unwrap();
+            writer.write_all(b"something").unwrap();
             assert_eq!(0, writer.get_ref().len());
         }
 

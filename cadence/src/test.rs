@@ -12,8 +12,6 @@
 //!
 //! Functionality exported to be used by integration tests. This module
 //! is NOT part of the Cadence API and is subject to change at any time.
-//!
-//! IF YOU USE THIS CODE YOUR PROJECT WILL BREAK.
 
 use crate::MetricSink;
 use std::fs;
@@ -186,7 +184,7 @@ impl UnixServerHarness {
         let socket = temp.new_path("cadence.sock");
 
         let server = Arc::new(UnixSocketServer::new(&socket, Duration::from_millis(100), consumer));
-        let server_local = Arc::clone(&server);
+        let server_local = server.clone();
 
         let t = thread::spawn(move || {
             server_local.run().unwrap();
