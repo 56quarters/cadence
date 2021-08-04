@@ -1248,7 +1248,7 @@ mod tests {
         }
 
         let count = Arc::new(AtomicUsize::new(0));
-        let count_ref = Arc::clone(&count);
+        let count_ref = count.clone();
 
         let handler = move |_err: MetricError| {
             count_ref.fetch_add(1, Ordering::Release);

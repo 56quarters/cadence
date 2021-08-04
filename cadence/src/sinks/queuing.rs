@@ -151,7 +151,7 @@ impl QueuingMetricSink {
         let worker = Arc::new(Worker::new(capacity, move |v: String| {
             let _r = sink.emit(&v);
         }));
-        spawn_worker_in_thread(Arc::clone(&worker));
+        spawn_worker_in_thread(worker.clone());
 
         QueuingMetricSink { worker }
     }
@@ -304,7 +304,7 @@ impl<'a> Drop for Sentinel<'a> {
             // that this was a panic and spawn a new thread with an Arc of
             // the worker.
             self.worker.stats.incr_panic();
-            spawn_worker_in_thread(Arc::clone(self.worker));
+            spawn_worker_in_thread(self.worker.clone());
         }
     }
 }

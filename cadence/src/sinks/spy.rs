@@ -160,7 +160,7 @@ mod test {
         sink.emit("buz:1|c").unwrap();
 
         let sent = rx.recv().unwrap();
-        assert_eq!("buz:1|c".as_bytes(), sent.as_slice());
+        assert_eq!(b"buz:1|c", sent.as_slice());
     }
 
     #[test]
@@ -175,7 +175,7 @@ mod test {
         };
 
         let sent = rx.recv().unwrap();
-        assert_eq!("foo:54|c\nfoo:67|c\n".as_bytes(), sent.as_slice());
+        assert_eq!(b"foo:54|c\nfoo:67|c\n", sent.as_slice());
     }
 
     #[test]
@@ -190,7 +190,7 @@ mod test {
         let flush = sink.flush();
 
         let sent = rx.recv().unwrap();
-        assert_eq!("foo:54|c\nfoo:67|c\n".as_bytes(), sent.as_slice());
+        assert_eq!(b"foo:54|c\nfoo:67|c\n", sent.as_slice());
         assert!(flush.is_ok());
     }
 }

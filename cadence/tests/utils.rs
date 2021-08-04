@@ -9,7 +9,7 @@ pub fn run_arc_threaded_test(client: StatsdClient, num_threads: u64, iterations:
 
     let threads: Vec<_> = (0..num_threads)
         .map(|_| {
-            let local_client = Arc::clone(&shared_client);
+            let local_client = shared_client.clone();
 
             thread::spawn(move || {
                 for i in 0..iterations {
