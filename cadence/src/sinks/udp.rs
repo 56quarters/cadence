@@ -256,6 +256,12 @@ impl MetricSink for BufferedUdpMetricSink {
     }
 }
 
+impl Drop for BufferedUdpMetricSink {
+    fn drop(&mut self) {
+        self.flush().expect("metrcis were not flushed on drop")
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::{get_addr, BufferedUdpMetricSink, MetricSink, UdpMetricSink};
