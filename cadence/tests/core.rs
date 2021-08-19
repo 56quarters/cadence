@@ -1,9 +1,9 @@
 use cadence::prelude::*;
 use cadence::{Counter, Gauge, Histogram, Meter, NopMetricSink, StatsdClient, Timer};
 use std::time::Duration;
+use utils::run_arc_threaded_test;
 
 mod utils;
-use utils::run_arc_threaded_test;
 
 fn new_nop_client(prefix: &str) -> StatsdClient {
     StatsdClient::from_sink(prefix, NopMetricSink)

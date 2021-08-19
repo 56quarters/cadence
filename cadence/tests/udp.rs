@@ -1,8 +1,8 @@
 use cadence::{BufferedUdpMetricSink, QueuingMetricSink, StatsdClient, UdpMetricSink, DEFAULT_PORT};
 use std::net::UdpSocket;
+use utils::run_arc_threaded_test;
 
 mod utils;
-use utils::run_arc_threaded_test;
 
 const TARGET_HOST: (&str, u16) = ("127.0.0.1", DEFAULT_PORT);
 

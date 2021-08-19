@@ -4,9 +4,9 @@ use cadence::test::UnixServerHarness;
 use cadence::{BufferedUnixMetricSink, QueuingMetricSink, StatsdClient, UnixMetricSink};
 use std::os::unix::net::UnixDatagram;
 use std::path::Path;
+use utils::run_arc_threaded_test;
 
 mod utils;
-use utils::run_arc_threaded_test;
 
 fn new_unix_client<P>(prefix: &str, path: P) -> StatsdClient
 where
