@@ -1,8 +1,8 @@
 use cadence::{BufferedSpyMetricSink, SpyMetricSink, StatsdClient};
-
-mod utils;
 use crossbeam_channel::Receiver;
 use utils::run_arc_threaded_test;
+
+mod utils;
 
 fn new_spy_client(prefix: &str) -> (Receiver<Vec<u8>>, StatsdClient) {
     let (rx, sink) = SpyMetricSink::new();
