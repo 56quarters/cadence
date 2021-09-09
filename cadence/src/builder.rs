@@ -71,6 +71,8 @@ pub(crate) struct MetricFormatter<'a> {
     val: MetricValue,
     type_: MetricType,
     tags: Vec<(Option<&'a str>, &'a str)>,
+    base_size: usize,
+    kv_size: usize,
 }
 
 impl<'a> MetricFormatter<'a> {
@@ -104,6 +106,7 @@ impl<'a> MetricFormatter<'a> {
         Self::from_val(prefix, key, val, MetricType::Set)
     }
 
+    #[rustfmt::skip]
     fn from_val(prefix: &'a str, key: &'a str, val: MetricValue, type_: MetricType) -> Self {
         MetricFormatter {
             prefix,
@@ -111,15 +114,24 @@ impl<'a> MetricFormatter<'a> {
             type_,
             val,
             tags: Vec::new(),
+            // keep track of the number of bytes we expect to use for both the key-value
+            // part of the tags for this metric as well as the base metric (name, value,
+            // and type). incrementing these counters when tags are added saves us from
+            // having to loop through the tags to count the expected number of bytes to
+            // allocate.
+            kv_size: 0,
+            base_size: prefix.len() + key.len() + 1 /* : */ + 10 /* value */ + 1 /* | */ + 2, /* type */
         }
     }
 
     fn with_tag(&mut self, key: &'a str, value: &'a str) {
         self.tags.push((Some(key), value));
+        self.kv_size += key.len() + 1 /* : */ + value.len();
     }
 
     fn with_tag_value(&mut self, value: &'a str) {
         self.tags.push((None, value));
+        self.kv_size += value.len();
     }
 
     fn write_base_metric(&self, out: &mut String) {
@@ -142,39 +154,17 @@ impl<'a> MetricFormatter<'a> {
         }
     }
 
-    // Don't have rustfmt do anything to this method because it keeps wrapping
-    // the line when we don't want it to.
-    #[rustfmt::skip]
-    fn base_metric_size_hint(&self) -> usize {
-        // Justification for "10" bytes: the max number of digits we could possibly
-        // need for the string representation of our value is 20 (for both u64::MAX
-        // and i64::MIN including the minus sign). So, 10 digits covers a pretty
-        // large range of values that will actually be seen in practice. Plus, using
-        // a constant is faster than computing the `val.log(10)` of our value which
-        // we would need to know exactly how many digits it takes up.
-        self.prefix.len() + self.key.len() + 1 /* : */ + 10 /* value */ + 1 /* | */ + 2 /* type */
-    }
-
     fn tag_size_hint(&self) -> usize {
-        if self.tags.is_empty() {
+        if self.kv_size == 0 {
             return 0;
         }
 
-        let kv_size: usize = self
-            .tags
-            .iter()
-            .map(|(key, val)| {
-                // keys are optional so either include its length and ':' or zero
-                key.map(|s| s.len() + 1 /* : */).unwrap_or(0) + val.len()
-            })
-            .sum();
-
         // prefix, keys and values, commas
-        Self::TAG_PREFIX.len() + kv_size + self.tags.len() - 1
+        Self::TAG_PREFIX.len() + self.kv_size + self.tags.len() - 1
     }
 
     pub(crate) fn format(&self) -> String {
-        let size_hint = self.base_metric_size_hint() + self.tag_size_hint();
+        let size_hint = self.base_size + self.tag_size_hint();
         let mut metric_string = String::with_capacity(size_hint);
         self.write_base_metric(&mut metric_string);
         self.write_tags(&mut metric_string);
