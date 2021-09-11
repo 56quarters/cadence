@@ -155,7 +155,7 @@ impl<'a> MetricFormatter<'a> {
     }
 
     fn tag_size_hint(&self) -> usize {
-        if self.kv_size == 0 {
+        if self.tags.is_empty() {
             return 0;
         }
 
