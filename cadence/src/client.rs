@@ -18,7 +18,6 @@ use crate::types::{
 use std::fmt;
 use std::net::{ToSocketAddrs, UdpSocket};
 use std::panic::RefUnwindSafe;
-use std::sync::Arc;
 use std::time::Duration;
 use std::u64;
 
@@ -596,7 +595,7 @@ impl StatsdClientBuilder {
     {
         StatsdClientBuilder {
             // required
-            prefix: Self::get_formatted_prefix(prefix),
+            prefix: Self::formatted_prefix(prefix),
             sink: Box::new(sink),
 
             // optional with defaults
@@ -626,7 +625,7 @@ impl StatsdClientBuilder {
         StatsdClient::from_builder(self)
     }
 
-    fn get_formatted_prefix(prefix: &str) -> String {
+    fn formatted_prefix(prefix: &str) -> String {
         if prefix.is_empty() {
             String::new()
         } else {
@@ -670,19 +669,19 @@ impl StatsdClientBuilder {
 ///
 /// The `StatsdClient` is designed to work in a multithreaded application. All
 /// parts of the client can be shared between threads (i.e. it is `Send` and
-/// `Sync`). Some common ways to use the client in a multithreaded environment
-/// are given below.
+/// `Sync`). An example of how to use the client in a multithreaded environment
+/// is given below.
 ///
-/// In each of these examples, we create a struct `MyRequestHandler` that has a
+/// In the following example, we create a struct `MyRequestHandler` that has a
 /// single method that spawns a thread to do some work and emit a metric.
 ///
 /// ## Wrapping With An `Arc`
 ///
-/// One option is to put all accesses to the client behind an atomic reference
-/// counting pointer (`std::sync::Arc`). If you are doing this, it makes sense
-/// to just refer to the client by the trait of all its methods for recording
-/// metrics (`MetricClient`) as well as the `Send` and `Sync` traits since the
-/// idea is to share this between threads.
+/// In order to share a client between multiple threads, you'll need to wrap it
+/// with an atomic reference counting pointer (`std::sync::Arc`). You should refer
+/// to the client by the trait of all its methods for recording metrics
+/// (`MetricClient`) as well as the `Send` and `Sync` traits since the idea is to
+/// share this between threads.
 ///
 /// ``` no_run
 /// use std::panic::RefUnwindSafe;
@@ -717,53 +716,10 @@ impl StatsdClientBuilder {
 ///     }
 /// }
 /// ```
-///
-/// ## Clone Per Thread
-///
-/// Another option for sharing the client between threads is just to clone
-/// client itself. Clones of the client are relatively cheap, typically only
-/// requiring a single heap allocation (of a `String`). While this cost isn't
-/// nothing, it's not too bad. An example of this is given below.
-///
-/// ``` no_run
-/// use std::net::UdpSocket;
-/// use std::thread;
-/// use cadence::prelude::*;
-/// use cadence::{StatsdClient, BufferedUdpMetricSink, DEFAULT_PORT};
-///
-/// struct MyRequestHandler {
-///     metrics: StatsdClient,
-/// }
-///
-/// impl MyRequestHandler {
-///     fn new() -> MyRequestHandler {
-///         let socket = UdpSocket::bind("0.0.0.0:0").unwrap();
-///         let host = ("localhost", DEFAULT_PORT);
-///         let sink = BufferedUdpMetricSink::from(host, socket).unwrap();
-///         MyRequestHandler {
-///             metrics: StatsdClient::from_sink("some.prefix", sink)
-///         }
-///     }
-///
-///     fn handle_some_request(&self) -> Result<(), String> {
-///         let metric_clone = self.metrics.clone();
-///         let _t = thread::spawn(move || {
-///             println!("Hello from the thread!");
-///             metric_clone.count("request.handler", 1);
-///         });
-///
-///         Ok(())
-///     }
-/// }
-/// ```
-///
-/// As you can see, cloning the client itself looks a lot like using it with
-/// an `Arc`.
-#[derive(Clone)]
 pub struct StatsdClient {
     prefix: String,
-    sink: Arc<dyn MetricSink + Sync + Send + RefUnwindSafe>,
-    errors: Arc<dyn Fn(MetricError) + Sync + Send + RefUnwindSafe>,
+    sink: Box<dyn MetricSink + Sync + Send + RefUnwindSafe>,
+    errors: Box<dyn Fn(MetricError) + Sync + Send + RefUnwindSafe>,
 }
 
 impl StatsdClient {
@@ -905,8 +861,8 @@ impl StatsdClient {
     fn from_builder(builder: StatsdClientBuilder) -> Self {
         StatsdClient {
             prefix: builder.prefix,
-            sink: Arc::from(builder.sink),
-            errors: Arc::from(builder.errors),
+            sink: builder.sink,
+            errors: builder.errors,
         }
     }
 }
