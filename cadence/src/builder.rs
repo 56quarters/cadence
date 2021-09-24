@@ -407,7 +407,13 @@ where
 
 #[cfg(test)]
 mod tests {
-    use super::{MetricFormatter, MetricValue};
+    use super::{MetricBuilder, MetricFormatter, MetricValue};
+    use crate::client::StatsdClient;
+    use crate::sinks::NopMetricSink;
+    use crate::test::ErrorMetricSink;
+    use crate::types::Counter;
+    use std::sync::atomic::{AtomicU64, Ordering};
+    use std::sync::Arc;
 
     #[test]
     fn test_metric_formatter_tag_size_hint_no_tags() {
@@ -539,5 +545,59 @@ mod tests {
             ),
             &fmt.format()
         );
+    }
+
+    #[test]
+    fn test_metric_builder_send_success() {
+        let fmt = MetricFormatter::counter("prefix.", "some.counter", MetricValue::Signed(11));
+        let client = StatsdClient::builder("prefix.", NopMetricSink)
+            .with_error_handler(|e| {
+                panic!("unexpected error sending metric: {}", e);
+            })
+            .build();
+
+        // if the send failed the test would have called the error handler and panicked
+        let builder: MetricBuilder<'_, '_, Counter> = MetricBuilder::from_fmt(fmt, &client);
+        builder.send();
+    }
+
+    #[test]
+    fn test_metric_builder_send_error() {
+        let errors = Arc::new(AtomicU64::new(0));
+        let errors_ref = errors.clone();
+
+        let fmt = MetricFormatter::counter("prefix.", "some.counter", MetricValue::Signed(11));
+        let client = StatsdClient::builder("prefix.", ErrorMetricSink::always())
+            .with_error_handler(move |_e| {
+                errors_ref.fetch_add(1, Ordering::Release);
+            })
+            .build();
+
+        let builder: MetricBuilder<'_, '_, Counter> = MetricBuilder::from_fmt(fmt, &client);
+        builder.send();
+
+        assert_eq!(1, errors.load(Ordering::Acquire));
+    }
+
+    #[test]
+    fn test_metric_builder_try_send_success() {
+        let fmt = MetricFormatter::counter("prefix.", "some.counter", MetricValue::Signed(11));
+        let client = StatsdClient::from_sink("prefix.", NopMetricSink);
+
+        let builder: MetricBuilder<'_, '_, Counter> = MetricBuilder::from_fmt(fmt, &client);
+        let res = builder.try_send();
+
+        assert!(res.is_ok(), "expected Ok result from try_send");
+    }
+
+    #[test]
+    fn test_metric_builder_try_send_error() {
+        let fmt = MetricFormatter::counter("prefix.", "some.counter", MetricValue::Signed(11));
+        let client = StatsdClient::from_sink("prefix.", ErrorMetricSink::always());
+
+        let builder: MetricBuilder<'_, '_, Counter> = MetricBuilder::from_fmt(fmt, &client);
+        let res = builder.try_send();
+
+        assert!(res.is_err(), "expected Err result from try_send");
     }
 }

@@ -13,13 +13,12 @@
 //! Functionality exported to be used by integration tests. This module
 //! is NOT part of the Cadence API and is subject to change at any time.
 
-use crate::MetricSink;
+use crate::sinks::MetricSink;
 use std::fs;
 use std::io::{self, ErrorKind};
 use std::os::unix::net::UnixDatagram;
-use std::panic::RefUnwindSafe;
 use std::path::{Path, PathBuf};
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::Arc;
 use std::thread::JoinHandle;
 use std::time::Duration;
@@ -152,6 +151,7 @@ impl UnixSocketServer {
         self.shutdown.store(true, Ordering::Release);
     }
 }
+
 /// Wrapper around a `UnixSocketServer` to start and stop it in the course
 /// of running a single test.
 ///
@@ -220,25 +220,76 @@ impl Drop for UnixServerHarness {
     }
 }
 
-/// `MetricSink` implementation that wraps another reference counted
-/// `MetricSink` so that the caller can keep a reference to it (useful
-/// for testing the `QueuingMetricSink` so that we can inspect the
-/// number of pending metrics and the like).
-pub struct DelegatingMetricSink {
-    delegate: Arc<dyn MetricSink + Send + Sync + RefUnwindSafe>,
+struct Every {
+    modulo: u64,
+    counter: AtomicU64,
 }
 
-impl DelegatingMetricSink {
-    pub fn new<S>(delegate: Arc<S>) -> Self
-    where
-        S: MetricSink + Send + Sync + RefUnwindSafe + 'static,
-    {
-        DelegatingMetricSink { delegate }
+impl Every {
+    fn new(modulo: u64) -> Self {
+        assert_ne!(modulo, 0, "modulo must be >= 1");
+
+        Every {
+            modulo,
+            counter: AtomicU64::new(1),
+        }
+    }
+
+    fn allow(&self) -> bool {
+        self.counter.fetch_add(1, Ordering::SeqCst) % self.modulo == 0
     }
 }
 
-impl MetricSink for DelegatingMetricSink {
-    fn emit(&self, metric: &str) -> io::Result<usize> {
-        self.delegate.emit(metric)
+/// `MetricSink` implementation that can panic.
+pub struct PanickingMetricSink {
+    every: Every,
+}
+
+impl PanickingMetricSink {
+    pub fn every(every: u64) -> Self {
+        PanickingMetricSink {
+            every: Every::new(every),
+        }
+    }
+
+    pub fn always() -> Self {
+        Self::every(1)
+    }
+}
+
+impl MetricSink for PanickingMetricSink {
+    fn emit(&self, m: &str) -> io::Result<usize> {
+        if self.every.allow() {
+            panic!("This sink is supposed to panic");
+        } else {
+            Ok(m.len())
+        }
+    }
+}
+
+/// `MetricSink` implementation that can return an error
+pub struct ErrorMetricSink {
+    every: Every,
+}
+
+impl ErrorMetricSink {
+    pub fn every(every: u64) -> Self {
+        ErrorMetricSink {
+            every: Every::new(every),
+        }
+    }
+
+    pub fn always() -> Self {
+        Self::every(1)
+    }
+}
+
+impl MetricSink for ErrorMetricSink {
+    fn emit(&self, m: &str) -> io::Result<usize> {
+        if self.every.allow() {
+            io::Result::Err(io::Error::from(io::ErrorKind::TimedOut))
+        } else {
+            Ok(m.len())
+        }
     }
 }
