@@ -425,11 +425,13 @@ impl fmt::Debug for Worker {
 #[cfg(test)]
 mod tests {
     use super::{QueuingMetricSink, Worker};
-    use crate::sinks::core::MetricSink;
+    use crate::sinks::MetricSink;
+    use crate::sinks::SpyMetricSink;
+    use crate::test::PanickingMetricSink;
     use std::io;
     use std::panic;
-    use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
-    use std::sync::{Arc, Mutex};
+    use std::sync::atomic::{AtomicBool, Ordering};
+    use std::sync::Arc;
     use std::thread;
 
     const QUEUE_SIZE: Option<usize> = Some(128);
@@ -541,49 +543,27 @@ mod tests {
 
     #[test]
     fn test_queuing_sink_emit() {
-        struct TestMetricSink {
-            metrics: Arc<Mutex<Vec<String>>>,
-        }
-
-        impl TestMetricSink {
-            fn new(metrics: Arc<Mutex<Vec<String>>>) -> TestMetricSink {
-                TestMetricSink { metrics }
-            }
-        }
-
-        impl MetricSink for TestMetricSink {
-            fn emit(&self, m: &str) -> io::Result<usize> {
-                let mut store = self.metrics.lock().unwrap();
-                store.push(m.to_string());
-                Ok(m.len())
-            }
-        }
-
-        let store = Arc::new(Mutex::new(vec![]));
-        let wrapped = TestMetricSink::new(store.clone());
-        let queuing = QueuingMetricSink::from(wrapped);
+        let (rx, spy) = SpyMetricSink::new();
+        let queuing = QueuingMetricSink::from(spy);
 
         queuing.emit("foo.counter:1|c").unwrap();
         queuing.emit("bar.counter:2|c").unwrap();
         queuing.emit("baz.counter:3|c").unwrap();
         queuing.worker.stop_and_wait();
 
-        assert_eq!("foo.counter:1|c".to_string(), store.lock().unwrap()[0]);
-        assert_eq!("bar.counter:2|c".to_string(), store.lock().unwrap()[1]);
-        assert_eq!("baz.counter:3|c".to_string(), store.lock().unwrap()[2]);
+        let m1 = rx.try_recv().unwrap();
+        let m2 = rx.try_recv().unwrap();
+        let m3 = rx.try_recv().unwrap();
+
+        assert_eq!("foo.counter:1|c".as_bytes(), m1.as_slice());
+        assert_eq!("bar.counter:2|c".as_bytes(), m2.as_slice());
+        assert_eq!("baz.counter:3|c".as_bytes(), m3.as_slice());
     }
 
     #[test]
     fn test_queuing_sink_emit_panics() {
-        struct PanickingMetricSink;
+        let queuing = QueuingMetricSink::from(PanickingMetricSink::always());
 
-        impl MetricSink for PanickingMetricSink {
-            fn emit(&self, _m: &str) -> io::Result<usize> {
-                panic!("This thread is supposed to panic");
-            }
-        }
-
-        let queuing = QueuingMetricSink::from(PanickingMetricSink);
         queuing.emit("foo.counter:4|c").unwrap();
         queuing.emit("foo.counter:5|c").unwrap();
         queuing.emit("foo.timer:34|ms").unwrap();
@@ -597,35 +577,7 @@ mod tests {
     // is restarted correctly and the worker and channel are in the correct state.
     #[test]
     fn test_queuing_sink_emit_recover_from_panics() {
-        struct SometimesPanickingMetricSink {
-            metrics: Arc<Mutex<Vec<String>>>,
-            counter: AtomicUsize,
-        }
-
-        impl SometimesPanickingMetricSink {
-            fn new(metrics: Arc<Mutex<Vec<String>>>) -> Self {
-                SometimesPanickingMetricSink {
-                    metrics,
-                    counter: AtomicUsize::new(0),
-                }
-            }
-        }
-
-        impl MetricSink for SometimesPanickingMetricSink {
-            fn emit(&self, m: &str) -> io::Result<usize> {
-                let val = self.counter.fetch_add(1, Ordering::Acquire);
-                if val == 0 {
-                    panic!("This thread is supposed to panic");
-                }
-
-                let mut store = self.metrics.lock().unwrap();
-                store.push(m.to_string());
-                Ok(m.len())
-            }
-        }
-
-        let store = Arc::new(Mutex::new(vec![]));
-        let queuing = QueuingMetricSink::from(SometimesPanickingMetricSink::new(store.clone()));
+        let queuing = QueuingMetricSink::from(PanickingMetricSink::every(2));
 
         queuing.emit("foo.counter:4|c").unwrap();
         queuing.emit("foo.counter:5|c").unwrap();
@@ -633,8 +585,7 @@ mod tests {
         queuing.worker.stop_and_wait();
 
         assert_eq!(1, queuing.panics());
-        assert_eq!("foo.counter:5|c".to_string(), store.lock().unwrap()[0]);
-        assert_eq!("foo.timer:34|ms".to_string(), store.lock().unwrap()[1]);
+        assert_eq!(3, queuing.drained());
     }
 
     // Make sure that our queuing sink is unwind safe (it has the auto trait) and
@@ -642,15 +593,8 @@ mod tests {
     // seeing any panics.
     #[test]
     fn test_queuing_sink_panic_handler() {
-        struct PanickingMetricSink;
+        let queuing = QueuingMetricSink::from(PanickingMetricSink::always());
 
-        impl MetricSink for PanickingMetricSink {
-            fn emit(&self, _m: &str) -> io::Result<usize> {
-                panic!("This thread is supposed to panic");
-            }
-        }
-
-        let queuing = QueuingMetricSink::from(PanickingMetricSink);
         let res = panic::catch_unwind(move || {
             queuing.emit("foo.counter:4|c").unwrap();
             queuing.emit("foo.counter:5|c").unwrap();
