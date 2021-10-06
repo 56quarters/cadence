@@ -1,5 +1,14 @@
 # Changelog
 
+## [v0.27.0](https://github.com/56quarters/cadence/tree/0.27.0) - Unreleased
+* **Breaking change** - `StatsdClient` no longer implements the `Clone` trait
+  due to now using `Box` internally instead of `Arc` per
+  [#163](https://github.com/56quarters/cadence/pull/163). Where `StatsdClient`
+  was `.clone()`'d previously, it should now be wrapped with an `Arc` to enable
+  it to be cloned.
+* Minor performance improvement in the way metric tags are formatted per
+  [#161](https://github.com/56quarters/cadence/pull/161).
+
 ## [v0.26.0](https://github.com/56quarters/cadence/tree/0.26.0) - 2021-07-23
 * **Breaking change** - Client traits are now generic across supported types of
   values [#132](https://github.com/56quarters/cadence/issues/132). This change
