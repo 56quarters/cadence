@@ -52,6 +52,12 @@ use std::io;
 /// some.set:2|s
 /// ```
 ///
+/// ## Distribution
+///
+/// ``` text
+/// some.distribution:2|d
+/// ```
+///
 /// See the [Statsd spec](https://github.com/b/statsd_spec) for more
 /// information.
 pub trait MetricSink {
@@ -80,8 +86,7 @@ pub trait MetricSink {
 pub struct NopMetricSink;
 
 impl MetricSink for NopMetricSink {
-    #[allow(unused_variables)]
-    fn emit(&self, metric: &str) -> io::Result<usize> {
+    fn emit(&self, _metric: &str) -> io::Result<usize> {
         Ok(0)
     }
 }
