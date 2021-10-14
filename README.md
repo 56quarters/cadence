@@ -101,11 +101,16 @@ $ cargo doc
 
 ## License
 
-Licensed under either of
+Cadence is licensed under either of
+
 * Apache License, Version 2.0 ([LICENSE-APACHE](LICENSE-APACHE) or http://www.apache.org/licenses/LICENSE-2.0)
 * MIT license ([LICENSE-MIT](LICENSE-MIT) or http://opensource.org/licenses/MIT)
 
 at your option.
+
+Example code in Cadence (`cadence/examples` or `cadence-macros/examples`) is available under the CC0 Public Domain
+Dedication ([LICENSE-CC0](cadence/examples/LICENSE-CC0) or
+https://creativecommons.org/share-your-work/public-domain/cc0/).
 
 ### Contribution
 
