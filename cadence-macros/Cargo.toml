@@ -16,4 +16,4 @@ autobenches = false
 cadence = { path = "../cadence", version = "0.26" }
 
 [dev-dependencies]
-crossbeam-channel = "0.5.0"
+crossbeam-channel = "0.5.1"
