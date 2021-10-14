@@ -24,6 +24,7 @@
 //! client.meter("some.meter", 67).unwrap();
 //! client.histogram("some.histogram", 89).unwrap();
 //! client.set("some.set", 123).unwrap();
+//! client.distribution("some.distribution", 45.5).unwrap();
 //! ```
 
 pub use crate::client::{Counted, CountedExt, Distributed, Gauged, Histogrammed, Metered, MetricClient, Setted, Timed};
