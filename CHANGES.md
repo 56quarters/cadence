@@ -1,6 +1,6 @@
 # Changelog
 
-## [v0.27.0](https://github.com/56quarters/cadence/tree/0.27.0) - Unreleased
+## [v0.27.0](https://github.com/56quarters/cadence/tree/0.27.0) - 2021-12-26
 * **Breaking change** - `StatsdClient` no longer implements the `Clone` trait
   due to now using `Box` internally instead of `Arc` per
   [#163](https://github.com/56quarters/cadence/pull/163). Where `StatsdClient`
