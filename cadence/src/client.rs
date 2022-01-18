@@ -30,12 +30,12 @@ use std::u64;
 ///
 /// Typical use of Cadence shouldn't require interacting with this trait.
 pub trait ToCounterValue {
-    fn try_to_value(self) -> MetricResult<MetricValue>;
+    fn try_to_value(self) -> MetricResult<Vec<MetricValue>>;
 }
 
 impl ToCounterValue for i64 {
-    fn try_to_value(self) -> MetricResult<MetricValue> {
-        Ok(MetricValue::Signed(self))
+    fn try_to_value(self) -> MetricResult<Vec<MetricValue>> {
+        Ok(vec![MetricValue::Signed(self)])
     }
 }
 
@@ -48,22 +48,22 @@ impl ToCounterValue for i64 {
 ///
 /// Typical use of Cadence shouldn't require interacting with this trait.
 pub trait ToTimerValue {
-    fn try_to_value(self) -> MetricResult<MetricValue>;
+    fn try_to_value(self) -> MetricResult<Vec<MetricValue>>;
 }
 
 impl ToTimerValue for u64 {
-    fn try_to_value(self) -> MetricResult<MetricValue> {
-        Ok(MetricValue::Unsigned(self))
+    fn try_to_value(self) -> MetricResult<Vec<MetricValue>> {
+        Ok(vec![MetricValue::Unsigned(self)])
     }
 }
 
 impl ToTimerValue for Duration {
-    fn try_to_value(self) -> MetricResult<MetricValue> {
+    fn try_to_value(self) -> MetricResult<Vec<MetricValue>> {
         let as_millis = self.as_millis();
         if as_millis > u64::MAX as u128 {
             Err(MetricError::from((ErrorKind::InvalidInput, "u64 overflow")))
         } else {
-            Ok(MetricValue::Unsigned(as_millis as u64))
+            Ok(vec![MetricValue::Unsigned(as_millis as u64)])
         }
     }
 }
@@ -77,17 +77,17 @@ impl ToTimerValue for Duration {
 ///
 /// Typical use of Cadence shouldn't require interacting with this trait.
 pub trait ToGaugeValue {
-    fn try_to_value(self) -> MetricResult<MetricValue>;
+    fn try_to_value(self) -> MetricResult<Vec<MetricValue>>;
 }
 
 impl ToGaugeValue for u64 {
-    fn try_to_value(self) -> MetricResult<MetricValue> {
-        Ok(MetricValue::Unsigned(self))
+    fn try_to_value(self) -> MetricResult<Vec<MetricValue>> {
+        Ok(vec![MetricValue::Unsigned(self)])
     }
 }
 impl ToGaugeValue for f64 {
-    fn try_to_value(self) -> MetricResult<MetricValue> {
-        Ok(MetricValue::Float(self))
+    fn try_to_value(self) -> MetricResult<Vec<MetricValue>> {
+        Ok(vec![MetricValue::Float(self)])
     }
 }
 
@@ -100,12 +100,12 @@ impl ToGaugeValue for f64 {
 ///
 /// Typical use of Cadence shouldn't require interacting with this trait.
 pub trait ToMeterValue {
-    fn try_to_value(self) -> MetricResult<MetricValue>;
+    fn try_to_value(self) -> MetricResult<Vec<MetricValue>>;
 }
 
 impl ToMeterValue for u64 {
-    fn try_to_value(self) -> MetricResult<MetricValue> {
-        Ok(MetricValue::Unsigned(self))
+    fn try_to_value(self) -> MetricResult<Vec<MetricValue>> {
+        Ok(vec![MetricValue::Unsigned(self)])
     }
 }
 
@@ -118,28 +118,28 @@ impl ToMeterValue for u64 {
 ///
 /// Typical use of Cadence shouldn't require interacting with this trait.
 pub trait ToHistogramValue {
-    fn try_to_value(self) -> MetricResult<MetricValue>;
+    fn try_to_value(self) -> MetricResult<Vec<MetricValue>>;
 }
 
 impl ToHistogramValue for u64 {
-    fn try_to_value(self) -> MetricResult<MetricValue> {
-        Ok(MetricValue::Unsigned(self))
+    fn try_to_value(self) -> MetricResult<Vec<MetricValue>> {
+        Ok(vec![MetricValue::Unsigned(self)])
     }
 }
 
 impl ToHistogramValue for f64 {
-    fn try_to_value(self) -> MetricResult<MetricValue> {
-        Ok(MetricValue::Float(self))
+    fn try_to_value(self) -> MetricResult<Vec<MetricValue>> {
+        Ok(vec![MetricValue::Float(self)])
     }
 }
 
 impl ToHistogramValue for Duration {
-    fn try_to_value(self) -> MetricResult<MetricValue> {
+    fn try_to_value(self) -> MetricResult<Vec<MetricValue>> {
         let as_nanos = self.as_nanos();
         if as_nanos > u64::MAX as u128 {
             Err(MetricError::from((ErrorKind::InvalidInput, "u64 overflow")))
         } else {
-            Ok(MetricValue::Unsigned(as_nanos as u64))
+            Ok(vec![MetricValue::Unsigned(as_nanos as u64)])
         }
     }
 }
@@ -153,18 +153,30 @@ impl ToHistogramValue for Duration {
 ///
 /// Typical use of Cadence shouldn't require interacting with this trait.
 pub trait ToDistributionValue {
-    fn try_to_value(self) -> MetricResult<MetricValue>;
+    fn try_to_value(self) -> MetricResult<Vec<MetricValue>>;
 }
 
 impl ToDistributionValue for u64 {
-    fn try_to_value(self) -> MetricResult<MetricValue> {
-        Ok(MetricValue::Unsigned(self))
+    fn try_to_value(self) -> MetricResult<Vec<MetricValue>> {
+        Ok(vec![MetricValue::Unsigned(self)])
     }
 }
 
 impl ToDistributionValue for f64 {
-    fn try_to_value(self) -> MetricResult<MetricValue> {
-        Ok(MetricValue::Float(self))
+    fn try_to_value(self) -> MetricResult<Vec<MetricValue>> {
+        Ok(vec![MetricValue::Float(self)])
+    }
+}
+
+impl ToDistributionValue for Vec<u64> {
+    fn try_to_value(self) -> MetricResult<Vec<MetricValue>> {
+        Ok(self.into_iter().map(|x| MetricValue::Unsigned(x)).rev().collect())
+    }
+}
+
+impl ToDistributionValue for Vec<f64> {
+    fn try_to_value(self) -> MetricResult<Vec<MetricValue>> {
+        Ok(self.into_iter().map(|x| MetricValue::Float(x)).rev().collect())
     }
 }
 
@@ -177,12 +189,12 @@ impl ToDistributionValue for f64 {
 ///
 /// Typical use of Cadence shouldn't require interacting with this trait.
 pub trait ToSetValue {
-    fn try_to_value(self) -> MetricResult<MetricValue>;
+    fn try_to_value(self) -> MetricResult<Vec<MetricValue>>;
 }
 
 impl ToSetValue for i64 {
-    fn try_to_value(self) -> MetricResult<MetricValue> {
-        Ok(MetricValue::Signed(self))
+    fn try_to_value(self) -> MetricResult<Vec<MetricValue>> {
+        Ok(vec![MetricValue::Signed(self)])
     }
 }
 

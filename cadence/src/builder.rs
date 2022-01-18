@@ -68,7 +68,7 @@ impl fmt::Display for MetricValue {
 pub(crate) struct MetricFormatter<'a> {
     prefix: &'a str,
     key: &'a str,
-    val: MetricValue,
+    val: Vec<MetricValue>,
     type_: MetricType,
     tags: Vec<(Option<&'a str>, &'a str)>,
     base_size: usize,
@@ -78,36 +78,36 @@ pub(crate) struct MetricFormatter<'a> {
 impl<'a> MetricFormatter<'a> {
     const TAG_PREFIX: &'static str = "|#";
 
-    pub(crate) fn counter(prefix: &'a str, key: &'a str, val: MetricValue) -> Self {
+    pub(crate) fn counter(prefix: &'a str, key: &'a str, val: Vec<MetricValue>) -> Self {
         Self::from_val(prefix, key, val, MetricType::Counter)
     }
 
-    pub(crate) fn timer(prefix: &'a str, key: &'a str, val: MetricValue) -> Self {
+    pub(crate) fn timer(prefix: &'a str, key: &'a str, val: Vec<MetricValue>) -> Self {
         Self::from_val(prefix, key, val, MetricType::Timer)
     }
 
-    pub(crate) fn gauge(prefix: &'a str, key: &'a str, val: MetricValue) -> Self {
+    pub(crate) fn gauge(prefix: &'a str, key: &'a str, val: Vec<MetricValue>) -> Self {
         Self::from_val(prefix, key, val, MetricType::Gauge)
     }
 
-    pub(crate) fn meter(prefix: &'a str, key: &'a str, val: MetricValue) -> Self {
+    pub(crate) fn meter(prefix: &'a str, key: &'a str, val: Vec<MetricValue>) -> Self {
         Self::from_val(prefix, key, val, MetricType::Meter)
     }
 
-    pub(crate) fn histogram(prefix: &'a str, key: &'a str, val: MetricValue) -> Self {
+    pub(crate) fn histogram(prefix: &'a str, key: &'a str, val: Vec<MetricValue>) -> Self {
         Self::from_val(prefix, key, val, MetricType::Histogram)
     }
 
-    pub(crate) fn distribution(prefix: &'a str, key: &'a str, val: MetricValue) -> Self {
+    pub(crate) fn distribution(prefix: &'a str, key: &'a str, val: Vec<MetricValue>) -> Self {
         Self::from_val(prefix, key, val, MetricType::Distribution)
     }
 
-    pub(crate) fn set(prefix: &'a str, key: &'a str, val: MetricValue) -> Self {
+    pub(crate) fn set(prefix: &'a str, key: &'a str, val: Vec<MetricValue>) -> Self {
         Self::from_val(prefix, key, val, MetricType::Set)
     }
 
     #[rustfmt::skip]
-    fn from_val(prefix: &'a str, key: &'a str, val: MetricValue, type_: MetricType) -> Self {
+    fn from_val(prefix: &'a str, key: &'a str, val: Vec<MetricValue>, type_: MetricType) -> Self {
         MetricFormatter {
             prefix,
             key,
@@ -134,8 +134,21 @@ impl<'a> MetricFormatter<'a> {
         self.kv_size += value.len();
     }
 
+    fn write_value(&self) -> String {
+        let mut out = String::new();
+
+        for (i, value) in self.val.iter().enumerate() {
+            if i > 0 {
+                out.push(':');
+            }
+            out.push_str(format!("{}", value).as_str());
+        }
+
+        out
+    }
+
     fn write_base_metric(&self, out: &mut String) {
-        let _ = write!(out, "{}{}:{}|{}", self.prefix, self.key, self.val, self.type_);
+        let _ = write!(out, "{}{}:{}|{}", self.prefix, self.key, self.write_value(), self.type_);
     }
 
     fn write_tags(&self, out: &mut String) {
@@ -417,13 +430,13 @@ mod tests {
 
     #[test]
     fn test_metric_formatter_tag_size_hint_no_tags() {
-        let fmt = MetricFormatter::counter("prefix.", "some.key", MetricValue::Signed(1));
+        let fmt = MetricFormatter::counter("prefix.", "some.key", vec![MetricValue::Signed(1)]);
         assert_eq!(0, fmt.tag_size_hint());
     }
 
     #[test]
     fn test_metric_formatter_tag_size_hint_value() {
-        let mut fmt = MetricFormatter::counter("prefix.", "some.key", MetricValue::Signed(1));
+        let mut fmt = MetricFormatter::counter("prefix.", "some.key", vec![MetricValue::Signed(1)]);
         fmt.with_tag_value("test");
 
         assert_eq!(6, fmt.tag_size_hint());
@@ -431,7 +444,7 @@ mod tests {
 
     #[test]
     fn test_metric_formatter_tag_size_hint_key_value() {
-        let mut fmt = MetricFormatter::counter("prefix.", "some.key", MetricValue::Signed(1));
+        let mut fmt = MetricFormatter::counter("prefix.", "some.key", vec![MetricValue::Signed(1)]);
         fmt.with_tag("host", "web");
         fmt.with_tag("user", "123");
 
@@ -440,13 +453,13 @@ mod tests {
 
     #[test]
     fn test_metric_formatter_counter_no_tags() {
-        let fmt = MetricFormatter::counter("prefix.", "some.key", MetricValue::Signed(4));
+        let fmt = MetricFormatter::counter("prefix.", "some.key", vec![MetricValue::Signed(4)]);
         assert_eq!("prefix.some.key:4|c", &fmt.format());
     }
 
     #[test]
     fn test_metric_formatter_counter_with_tags() {
-        let mut fmt = MetricFormatter::counter("prefix.", "some.key", MetricValue::Signed(4));
+        let mut fmt = MetricFormatter::counter("prefix.", "some.key", vec![MetricValue::Signed(4)]);
         fmt.with_tag("host", "app03.example.com");
         fmt.with_tag("bucket", "2");
         fmt.with_tag_value("beta");
@@ -459,14 +472,14 @@ mod tests {
 
     #[test]
     fn test_metric_formatter_timer_no_tags() {
-        let fmt = MetricFormatter::timer("prefix.", "some.method", MetricValue::Unsigned(21));
+        let fmt = MetricFormatter::timer("prefix.", "some.method", vec![MetricValue::Unsigned(21)]);
 
         assert_eq!("prefix.some.method:21|ms", &fmt.format());
     }
 
     #[test]
     fn test_metric_formatter_timer_with_tags() {
-        let mut fmt = MetricFormatter::timer("prefix.", "some.method", MetricValue::Unsigned(21));
+        let mut fmt = MetricFormatter::timer("prefix.", "some.method", vec![MetricValue::Unsigned(21)]);
         fmt.with_tag("app", "metrics");
         fmt.with_tag_value("async");
 
@@ -475,14 +488,14 @@ mod tests {
 
     #[test]
     fn test_metric_formatter_gauge_no_tags() {
-        let fmt = MetricFormatter::gauge("prefix.", "num.failures", MetricValue::Unsigned(7));
+        let fmt = MetricFormatter::gauge("prefix.", "num.failures", vec![MetricValue::Unsigned(7)]);
 
         assert_eq!("prefix.num.failures:7|g", &fmt.format());
     }
 
     #[test]
     fn test_metric_formatter_gauge_with_tags() {
-        let mut fmt = MetricFormatter::gauge("prefix.", "num.failures", MetricValue::Unsigned(7));
+        let mut fmt = MetricFormatter::gauge("prefix.", "num.failures", vec![MetricValue::Unsigned(7)]);
         fmt.with_tag("window", "300");
         fmt.with_tag_value("best-effort");
 
@@ -491,14 +504,14 @@ mod tests {
 
     #[test]
     fn test_metric_formatter_meter_no_tags() {
-        let fmt = MetricFormatter::meter("prefix.", "user.logins", MetricValue::Unsigned(3));
+        let fmt = MetricFormatter::meter("prefix.", "user.logins", vec![MetricValue::Unsigned(3)]);
 
         assert_eq!("prefix.user.logins:3|m", &fmt.format());
     }
 
     #[test]
     fn test_metric_formatter_meter_with_tags() {
-        let mut fmt = MetricFormatter::meter("prefix.", "user.logins", MetricValue::Unsigned(3));
+        let mut fmt = MetricFormatter::meter("prefix.", "user.logins", vec![MetricValue::Unsigned(3)]);
         fmt.with_tag("user-type", "verified");
         fmt.with_tag_value("bucket1");
 
@@ -507,14 +520,14 @@ mod tests {
 
     #[test]
     fn test_metric_formatter_histogram_no_tags() {
-        let fmt = MetricFormatter::histogram("prefix.", "num.results", MetricValue::Unsigned(44));
+        let fmt = MetricFormatter::histogram("prefix.", "num.results", vec![MetricValue::Unsigned(44)]);
 
         assert_eq!("prefix.num.results:44|h", &fmt.format());
     }
 
     #[test]
     fn test_metric_formatter_histogram_with_tags() {
-        let mut fmt = MetricFormatter::histogram("prefix.", "num.results", MetricValue::Unsigned(44));
+        let mut fmt = MetricFormatter::histogram("prefix.", "num.results", vec![MetricValue::Unsigned(44)]);
         fmt.with_tag("user-type", "authenticated");
         fmt.with_tag_value("source=search");
 
@@ -526,14 +539,14 @@ mod tests {
 
     #[test]
     fn test_metric_formatter_set_no_tags() {
-        let fmt = MetricFormatter::set("prefix.", "users.uniques", MetricValue::Signed(44));
+        let fmt = MetricFormatter::set("prefix.", "users.uniques", vec![MetricValue::Signed(44)]);
 
         assert_eq!("prefix.users.uniques:44|s", &fmt.format());
     }
 
     #[test]
     fn test_metric_formatter_set_with_tags() {
-        let mut fmt = MetricFormatter::set("prefix.", "users.uniques", MetricValue::Signed(44));
+        let mut fmt = MetricFormatter::set("prefix.", "users.uniques", vec![MetricValue::Signed(44)]);
         fmt.with_tag("user-type", "authenticated");
         fmt.with_tag_value("source=search");
 
@@ -549,7 +562,7 @@ mod tests {
 
     #[test]
     fn test_metric_builder_send_success() {
-        let fmt = MetricFormatter::counter("prefix.", "some.counter", MetricValue::Signed(11));
+        let fmt = MetricFormatter::counter("prefix.", "some.counter", vec![MetricValue::Signed(11)]);
         let client = StatsdClient::builder("prefix.", NopMetricSink)
             .with_error_handler(|e| {
                 panic!("unexpected error sending metric: {}", e);
@@ -566,7 +579,7 @@ mod tests {
         let errors = Arc::new(AtomicU64::new(0));
         let errors_ref = errors.clone();
 
-        let fmt = MetricFormatter::counter("prefix.", "some.counter", MetricValue::Signed(11));
+        let fmt = MetricFormatter::counter("prefix.", "some.counter", vec![MetricValue::Signed(11)]);
         let client = StatsdClient::builder("prefix.", ErrorMetricSink::always())
             .with_error_handler(move |_e| {
                 errors_ref.fetch_add(1, Ordering::Release);
@@ -581,7 +594,7 @@ mod tests {
 
     #[test]
     fn test_metric_builder_try_send_success() {
-        let fmt = MetricFormatter::counter("prefix.", "some.counter", MetricValue::Signed(11));
+        let fmt = MetricFormatter::counter("prefix.", "some.counter", vec![MetricValue::Signed(11)]);
         let client = StatsdClient::from_sink("prefix.", NopMetricSink);
 
         let builder: MetricBuilder<'_, '_, Counter> = MetricBuilder::from_fmt(fmt, &client);
@@ -592,7 +605,7 @@ mod tests {
 
     #[test]
     fn test_metric_builder_try_send_error() {
-        let fmt = MetricFormatter::counter("prefix.", "some.counter", MetricValue::Signed(11));
+        let fmt = MetricFormatter::counter("prefix.", "some.counter", vec![MetricValue::Signed(11)]);
         let client = StatsdClient::from_sink("prefix.", ErrorMetricSink::always());
 
         let builder: MetricBuilder<'_, '_, Counter> = MetricBuilder::from_fmt(fmt, &client);
