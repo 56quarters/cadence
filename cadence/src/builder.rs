@@ -108,6 +108,7 @@ impl<'a> MetricFormatter<'a> {
 
     #[rustfmt::skip]
     fn from_val(prefix: &'a str, key: &'a str, val: Vec<MetricValue>, type_: MetricType) -> Self {
+        let num_val = val.len();
         MetricFormatter {
             prefix,
             key,
@@ -120,7 +121,7 @@ impl<'a> MetricFormatter<'a> {
             // having to loop through the tags to count the expected number of bytes to
             // allocate.
             kv_size: 0,
-            base_size: prefix.len() + key.len() + 1 /* : */ + 10 /* value */ + 1 /* | */ + 2, /* type */
+            base_size: prefix.len() + key.len() + 1 /* : */ + 10 * num_val /* value(s) */ + 1 /* | */ + 2, /* type */
         }
     }
 
