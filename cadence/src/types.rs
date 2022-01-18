@@ -205,7 +205,7 @@ pub struct Set {
 
 impl Set {
     pub fn new(prefix: &str, key: &str, value: i64) -> Self {
-        Self::from(MetricFormatter::set(prefix, key, vec![MetricValue::Signed(value)]).format())
+        Self::from(MetricFormatter::set(prefix, key, MetricValue::Signed(value)).format())
     }
 }
 

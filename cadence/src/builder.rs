@@ -79,35 +79,35 @@ impl<'a> MetricFormatter<'a> {
     const TAG_PREFIX: &'static str = "|#";
 
     pub(crate) fn counter(prefix: &'a str, key: &'a str, val: Vec<MetricValue>) -> Self {
-        Self::from_val(prefix, key, val, MetricType::Counter)
+        Self::from_vals(prefix, key, val, MetricType::Counter)
     }
 
     pub(crate) fn timer(prefix: &'a str, key: &'a str, val: Vec<MetricValue>) -> Self {
-        Self::from_val(prefix, key, val, MetricType::Timer)
+        Self::from_vals(prefix, key, val, MetricType::Timer)
     }
 
     pub(crate) fn gauge(prefix: &'a str, key: &'a str, val: Vec<MetricValue>) -> Self {
-        Self::from_val(prefix, key, val, MetricType::Gauge)
+        Self::from_vals(prefix, key, val, MetricType::Gauge)
     }
 
     pub(crate) fn meter(prefix: &'a str, key: &'a str, val: Vec<MetricValue>) -> Self {
-        Self::from_val(prefix, key, val, MetricType::Meter)
+        Self::from_vals(prefix, key, val, MetricType::Meter)
     }
 
     pub(crate) fn histogram(prefix: &'a str, key: &'a str, val: Vec<MetricValue>) -> Self {
-        Self::from_val(prefix, key, val, MetricType::Histogram)
+        Self::from_vals(prefix, key, val, MetricType::Histogram)
     }
 
     pub(crate) fn distribution(prefix: &'a str, key: &'a str, val: Vec<MetricValue>) -> Self {
-        Self::from_val(prefix, key, val, MetricType::Distribution)
+        Self::from_vals(prefix, key, val, MetricType::Distribution)
     }
 
-    pub(crate) fn set(prefix: &'a str, key: &'a str, val: Vec<MetricValue>) -> Self {
+    pub(crate) fn set(prefix: &'a str, key: &'a str, val: MetricValue) -> Self {
         Self::from_val(prefix, key, val, MetricType::Set)
     }
 
     #[rustfmt::skip]
-    fn from_val(prefix: &'a str, key: &'a str, val: Vec<MetricValue>, type_: MetricType) -> Self {
+    fn from_vals(prefix: &'a str, key: &'a str, val: Vec<MetricValue>, type_: MetricType) -> Self {
         let num_val = val.len();
         MetricFormatter {
             prefix,
@@ -122,6 +122,24 @@ impl<'a> MetricFormatter<'a> {
             // allocate.
             kv_size: 0,
             base_size: prefix.len() + key.len() + 1 /* : */ + 10 * num_val /* value(s) */ + 1 /* | */ + 2, /* type */
+        }
+    }
+
+    #[rustfmt::skip]
+    fn from_val(prefix: &'a str, key: &'a str, val: MetricValue, type_: MetricType) -> Self {
+        MetricFormatter {
+            prefix,
+            key,
+            type_,
+            val: vec![val],
+            tags: Vec::new(),
+            // keep track of the number of bytes we expect to use for both the key-value
+            // part of the tags for this metric as well as the base metric (name, value,
+            // and type). incrementing these counters when tags are added saves us from
+            // having to loop through the tags to count the expected number of bytes to
+            // allocate.
+            kv_size: 0,
+            base_size: prefix.len() + key.len() + 1 /* : */ + 10 /* value */ + 1 /* | */ + 2, /* type */
         }
     }
 
@@ -540,14 +558,14 @@ mod tests {
 
     #[test]
     fn test_metric_formatter_set_no_tags() {
-        let fmt = MetricFormatter::set("prefix.", "users.uniques", vec![MetricValue::Signed(44)]);
+        let fmt = MetricFormatter::set("prefix.", "users.uniques", MetricValue::Signed(44));
 
         assert_eq!("prefix.users.uniques:44|s", &fmt.format());
     }
 
     #[test]
     fn test_metric_formatter_set_with_tags() {
-        let mut fmt = MetricFormatter::set("prefix.", "users.uniques", vec![MetricValue::Signed(44)]);
+        let mut fmt = MetricFormatter::set("prefix.", "users.uniques", MetricValue::Signed(44));
         fmt.with_tag("user-type", "authenticated");
         fmt.with_tag_value("source=search");
 

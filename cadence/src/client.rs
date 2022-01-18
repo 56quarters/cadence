@@ -189,12 +189,12 @@ impl ToDistributionValue for Vec<f64> {
 ///
 /// Typical use of Cadence shouldn't require interacting with this trait.
 pub trait ToSetValue {
-    fn try_to_value(self) -> MetricResult<Vec<MetricValue>>;
+    fn try_to_value(self) -> MetricResult<MetricValue>;
 }
 
 impl ToSetValue for i64 {
-    fn try_to_value(self) -> MetricResult<Vec<MetricValue>> {
-        Ok(vec![MetricValue::Signed(self)])
+    fn try_to_value(self) -> MetricResult<MetricValue> {
+        Ok(MetricValue::Signed(self))
     }
 }
 
