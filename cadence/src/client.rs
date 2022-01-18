@@ -39,6 +39,12 @@ impl ToCounterValue for i64 {
     }
 }
 
+impl ToCounterValue for Vec<i64> {
+    fn try_to_value(self) -> MetricResult<Vec<MetricValue>> {
+        Ok(self.into_iter().map(|x| MetricValue::Signed(x)).rev().collect())
+    }
+}
+
 /// Conversion trait for valid values for timers
 ///
 /// This trait must be implemented for any types that are used as timer
@@ -57,6 +63,12 @@ impl ToTimerValue for u64 {
     }
 }
 
+impl ToTimerValue for Vec<u64> {
+    fn try_to_value(self) -> MetricResult<Vec<MetricValue>> {
+        Ok(self.into_iter().map(|x| MetricValue::Unsigned(x)).rev().collect())
+    }
+}
+
 impl ToTimerValue for Duration {
     fn try_to_value(self) -> MetricResult<Vec<MetricValue>> {
         let as_millis = self.as_millis();
@@ -64,6 +76,17 @@ impl ToTimerValue for Duration {
             Err(MetricError::from((ErrorKind::InvalidInput, "u64 overflow")))
         } else {
             Ok(vec![MetricValue::Unsigned(as_millis as u64)])
+        }
+    }
+}
+
+impl ToTimerValue for Vec<Duration> {
+    fn try_to_value(self) -> MetricResult<Vec<MetricValue>> {
+        let mut vals = self.iter().map(|x| x.as_millis());
+        if vals.any(|x| x > u64::MAX as u128) {
+            Err(MetricError::from((ErrorKind::InvalidInput, "u64 overflow")))
+        } else {
+            Ok(vals.map(|x| MetricValue::Unsigned(x as u64)).rev().collect())
         }
     }
 }
@@ -91,6 +114,18 @@ impl ToGaugeValue for f64 {
     }
 }
 
+impl ToGaugeValue for Vec<u64> {
+    fn try_to_value(self) -> MetricResult<Vec<MetricValue>> {
+        Ok(self.into_iter().map(|x| MetricValue::Unsigned(x)).rev().collect())
+    }
+}
+
+impl ToGaugeValue for Vec<f64> {
+    fn try_to_value(self) -> MetricResult<Vec<MetricValue>> {
+        Ok(self.into_iter().map(|x| MetricValue::Float(x)).rev().collect())
+    }
+}
+
 /// Conversion trait for valid values for meters
 ///
 /// This trait must be implemented for any types that are used as meter
@@ -106,6 +141,12 @@ pub trait ToMeterValue {
 impl ToMeterValue for u64 {
     fn try_to_value(self) -> MetricResult<Vec<MetricValue>> {
         Ok(vec![MetricValue::Unsigned(self)])
+    }
+}
+
+impl ToMeterValue for Vec<u64> {
+    fn try_to_value(self) -> MetricResult<Vec<MetricValue>> {
+        Ok(self.into_iter().map(|x| MetricValue::Unsigned(x)).rev().collect())
     }
 }
 
@@ -140,6 +181,29 @@ impl ToHistogramValue for Duration {
             Err(MetricError::from((ErrorKind::InvalidInput, "u64 overflow")))
         } else {
             Ok(vec![MetricValue::Unsigned(as_nanos as u64)])
+        }
+    }
+}
+
+impl ToHistogramValue for Vec<u64> {
+    fn try_to_value(self) -> MetricResult<Vec<MetricValue>> {
+        Ok(self.into_iter().map(|x| MetricValue::Unsigned(x)).rev().collect())
+    }
+}
+
+impl ToHistogramValue for Vec<f64> {
+    fn try_to_value(self) -> MetricResult<Vec<MetricValue>> {
+        Ok(self.into_iter().map(|x| MetricValue::Float(x)).rev().collect())
+    }
+}
+
+impl ToHistogramValue for Vec<Duration> {
+    fn try_to_value(self) -> MetricResult<Vec<MetricValue>> {
+        let mut vals = self.iter().map(|x| x.as_nanos());
+        if vals.any(|x| x > u64::MAX as u128) {
+            Err(MetricError::from((ErrorKind::InvalidInput, "u64 overflow")))
+        } else {
+            Ok(vals.map(|x| MetricValue::Unsigned(x as u64)).rev().collect())
         }
     }
 }
