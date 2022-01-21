@@ -21,14 +21,14 @@ enum UserHappiness {
 }
 
 impl ToGaugeValue for UserHappiness {
-    fn try_to_value(self) -> MetricResult<MetricValue> {
+    fn try_to_value(self) -> MetricResult<Vec<MetricValue>> {
         let v = match self {
             UserHappiness::VeryHappy => 1.0,
             UserHappiness::KindaHappy => 0.5,
             UserHappiness::Sad => 0.0,
         };
 
-        Ok(MetricValue::Float(v))
+        Ok(vec![MetricValue::Float(v)])
     }
 }
 

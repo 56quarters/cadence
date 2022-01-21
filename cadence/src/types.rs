@@ -31,7 +31,7 @@ pub struct Counter {
 
 impl Counter {
     pub fn new(prefix: &str, key: &str, count: i64) -> Self {
-        Self::from(MetricFormatter::counter(prefix, key, MetricValue::Signed(count)).format())
+        Self::from(MetricFormatter::counter(prefix, key, vec![MetricValue::Signed(count)]).format())
     }
 }
 
@@ -59,7 +59,7 @@ pub struct Timer {
 
 impl Timer {
     pub fn new(prefix: &str, key: &str, time: u64) -> Self {
-        Self::from(MetricFormatter::timer(prefix, key, MetricValue::Unsigned(time)).format())
+        Self::from(MetricFormatter::timer(prefix, key, vec![MetricValue::Unsigned(time)]).format())
     }
 }
 
@@ -85,11 +85,11 @@ pub struct Gauge {
 
 impl Gauge {
     pub fn new(prefix: &str, key: &str, value: u64) -> Self {
-        Self::from(MetricFormatter::gauge(prefix, key, MetricValue::Unsigned(value)).format())
+        Self::from(MetricFormatter::gauge(prefix, key, vec![MetricValue::Unsigned(value)]).format())
     }
 
     pub fn new_f64(prefix: &str, key: &str, value: f64) -> Self {
-        Self::from(MetricFormatter::gauge(prefix, key, MetricValue::Float(value)).format())
+        Self::from(MetricFormatter::gauge(prefix, key, vec![MetricValue::Float(value)]).format())
     }
 }
 
@@ -115,7 +115,7 @@ pub struct Meter {
 
 impl Meter {
     pub fn new(prefix: &str, key: &str, value: u64) -> Self {
-        Self::from(MetricFormatter::meter(prefix, key, MetricValue::Unsigned(value)).format())
+        Self::from(MetricFormatter::meter(prefix, key, vec![MetricValue::Unsigned(value)]).format())
     }
 }
 
@@ -145,11 +145,11 @@ pub struct Histogram {
 
 impl Histogram {
     pub fn new(prefix: &str, key: &str, value: u64) -> Self {
-        Self::from(MetricFormatter::histogram(prefix, key, MetricValue::Unsigned(value)).format())
+        Self::from(MetricFormatter::histogram(prefix, key, vec![MetricValue::Unsigned(value)]).format())
     }
 
     pub fn new_f64(prefix: &str, key: &str, value: f64) -> Self {
-        Self::from(MetricFormatter::histogram(prefix, key, MetricValue::Float(value)).format())
+        Self::from(MetricFormatter::histogram(prefix, key, vec![MetricValue::Float(value)]).format())
     }
 }
 
@@ -175,11 +175,11 @@ pub struct Distribution {
 
 impl Distribution {
     pub fn new(prefix: &str, key: &str, value: u64) -> Self {
-        Self::from(MetricFormatter::distribution(prefix, key, MetricValue::Unsigned(value)).format())
+        Self::from(MetricFormatter::distribution(prefix, key, vec![MetricValue::Unsigned(value)]).format())
     }
 
     pub fn new_f64(prefix: &str, key: &str, value: f64) -> Self {
-        Self::from(MetricFormatter::distribution(prefix, key, MetricValue::Float(value)).format())
+        Self::from(MetricFormatter::distribution(prefix, key, vec![MetricValue::Float(value)]).format())
     }
 }
 

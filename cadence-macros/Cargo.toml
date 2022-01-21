@@ -13,7 +13,7 @@ edition = "2018"
 autobenches = false
 
 [dependencies]
-cadence = { path = "../cadence", version = "0.27" }
+cadence = { path = "../cadence", version = "0.28" }
 
 [dev-dependencies]
 crossbeam-channel = "0.5.1"
