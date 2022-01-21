@@ -1,7 +1,7 @@
 # Changelog
 
 ## [v0.28.0](https://github.com/56quarters/cadence/tree/0.28.0) - 2022-01-19
-* Add support for (value packing)[https://docs.datadoghq.com/developers/dogstatsd/datagram_shell/?tab=metrics#dogstatsd-protocol-v11] in the Datadog Datagram which is available for Datadog agent
+* Add support for [value packing](https://docs.datadoghq.com/developers/dogstatsd/datagram_shell/?tab=metrics#dogstatsd-protocol-v11) in the Datadog Datagram which is available for Datadog agent
 versions `>=v6.25.0 && <v7.0.0` or `>=v7.25.0`. All metric types except set support this, since `:`
 could be in the value of a set. This allows clients to buffer histogram and distribution values
 and send them in fewer payload to the agent.
