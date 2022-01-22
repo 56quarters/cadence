@@ -216,6 +216,37 @@ assert_eq!(
 );
 ```
 
+### Value Packing
+
+Value packing is supported for `HISTOGRAM`, `DISTRIBUTION`, and `TIMING` metrics for Datadog agent
+versions `>=v6.25.0 && <v7.0.0` or `>=v7.25.0`. This feature allows clients to buffer values
+and send them in fewer payload to the agent.
+
+For example, `<METRIC_NAME>:<VALUE1>:<VALUE2>:<VALUE3>|<TYPE>|@<SAMPLE_RATE>|#<TAG_KEY_1>:<TAG_VALUE_1>,<TAG_2>`
+
+See the [Datadog Docs](https://docs.datadoghq.com/developers/dogstatsd/datagram_shell/?tab=metrics#dogstatsd-protocol-v11) for more information.
+
+```rust
+use cadence::prelude::*;
+use cadence::{Metric, StatsdClient, NopMetricSink};
+
+let client = StatsdClient::from_sink("my.prefix", NopMetricSink);
+
+let res = client.distribution_with_tags("my.distribution", vec![29, 30, 31, 32])
+    .with_tag("host", "web03.example.com")
+    .with_tag_value("beta-test")
+    .try_send();
+
+assert_eq!(
+    concat!(
+        "my.prefix.my.counter:29:30:31:32|d|#",
+        "host:web03.example.com,",
+        "beta-test"
+    ),
+    res.unwrap().as_metric_str()
+);
+```
+
 ### Implemented Traits
 
 Each of the methods that the Cadence `StatsdClient` struct uses to send

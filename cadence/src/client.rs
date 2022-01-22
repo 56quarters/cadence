@@ -77,7 +77,7 @@ impl ToTimerValue for Duration {
 impl ToTimerValue for Vec<Duration> {
     fn try_to_value(self) -> MetricResult<MetricValue> {
         let mut vals = self.iter().map(|x| x.as_millis() as u64);
-        if vals.any(|x| x > u64::MAX ) {
+        if vals.any(|x| x > u64::MAX) {
             Err(MetricError::from((ErrorKind::InvalidInput, "u64 overflow")))
         } else {
             Ok(MetricValue::PackedUnsigned(vals.collect()))

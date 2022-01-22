@@ -69,7 +69,9 @@ impl MetricValue {
 }
 
 fn write_value<T>(vals: &Vec<T>) -> String
-where T: fmt::Display {
+where
+    T: fmt::Display,
+{
     let mut out = String::new();
 
     for (i, value) in vals.iter().enumerate() {
@@ -89,17 +91,17 @@ impl fmt::Display for MetricValue {
             MetricValue::PackedSigned(v) => {
                 let out = write_value(&v);
                 out.fmt(f)
-            },
+            }
             MetricValue::Unsigned(v) => v.fmt(f),
             MetricValue::PackedUnsigned(v) => {
                 let out = write_value(&v);
                 out.fmt(f)
-            },
+            }
             MetricValue::Float(v) => v.fmt(f),
             MetricValue::PackedFloat(v) => {
                 let out = write_value(&v);
                 out.fmt(f)
-            },
+            }
         }
     }
 }
