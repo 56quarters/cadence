@@ -4,7 +4,7 @@
 * Add support for [value packing](https://docs.datadoghq.com/developers/dogstatsd/datagram_shell/?tab=metrics#dogstatsd-protocol-v11) in the Datadog Datagram which is available for Datadog agent
 versions `>=v6.25.0 && <v7.0.0` or `>=v7.25.0`. All metric types except set support this, since `:`
 could be in the value of a set. This allows clients to buffer histogram and distribution values
-and send them in fewer payload to the agent. This feature was added by @Jason8Ni.
+and send them in fewer payloads to the agent. This feature was added by @Jason8Ni.
 
 ## [v0.27.0](https://github.com/56quarters/cadence/tree/0.27.0) - 2021-12-26
 * **Breaking change** - `StatsdClient` no longer implements the `Clone` trait

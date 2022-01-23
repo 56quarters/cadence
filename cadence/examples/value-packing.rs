@@ -7,7 +7,7 @@
 // You should have received a copy of the CC0 Public Domain Dedication along with this
 // software. If not, see <http://creativecommons.org/publicdomain/zero/1.0/>.
 
-// This example shows how you might use Cadence to send DataDog-style tags
+// This example shows how you might use Cadence to send multiple values with each request
 // either with a method the returns the result of sending them, or with a
 // method the delegates any errors to a predefined error handler.
 

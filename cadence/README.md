@@ -220,7 +220,7 @@ assert_eq!(
 
 Value packing is supported for `HISTOGRAM`, `DISTRIBUTION`, and `TIMING` metrics for Datadog agent
 versions `>=v6.25.0 && <v7.0.0` or `>=v7.25.0`. This feature allows clients to buffer values
-and send them in fewer payload to the agent.
+and send them in fewer payloads to the agent.
 
 For example, `<METRIC_NAME>:<VALUE1>:<VALUE2>:<VALUE3>|<TYPE>|@<SAMPLE_RATE>|#<TAG_KEY_1>:<TAG_VALUE_1>,<TAG_2>`
 
@@ -239,7 +239,7 @@ let res = client.distribution_with_tags("my.distribution", vec![29, 30, 31, 32])
 
 assert_eq!(
     concat!(
-        "my.prefix.my.counter:29:30:31:32|d|#",
+        "my.prefix.my.distribution:29:30:31:32|d|#",
         "host:web03.example.com,",
         "beta-test"
     ),
