@@ -68,7 +68,7 @@ impl MetricValue {
     }
 }
 
-fn write_value<T>(vals: &Vec<T>) -> String
+fn write_value<T>(vals: &[T]) -> String
 where
     T: fmt::Display,
 {
@@ -89,17 +89,17 @@ impl fmt::Display for MetricValue {
         match &*self {
             MetricValue::Signed(v) => v.fmt(f),
             MetricValue::PackedSigned(v) => {
-                let out = write_value(&v);
+                let out = write_value(v);
                 out.fmt(f)
             }
             MetricValue::Unsigned(v) => v.fmt(f),
             MetricValue::PackedUnsigned(v) => {
-                let out = write_value(&v);
+                let out = write_value(v);
                 out.fmt(f)
             }
             MetricValue::Float(v) => v.fmt(f),
             MetricValue::PackedFloat(v) => {
-                let out = write_value(&v);
+                let out = write_value(v);
                 out.fmt(f)
             }
         }
@@ -155,7 +155,7 @@ impl<'a> MetricFormatter<'a> {
             prefix,
             key,
             type_,
-            val: val,
+            val,
             tags: Vec::new(),
             // keep track of the number of bytes we expect to use for both the key-value
             // part of the tags for this metric as well as the base metric (name, value,
@@ -508,12 +508,28 @@ mod tests {
     }
 
     #[test]
+    fn test_metric_formatter_timer_no_tags_multiple_values() {
+        let fmt = MetricFormatter::timer("prefix.", "some.method", MetricValue::PackedUnsigned(vec![21, 22, 23]));
+
+        assert_eq!("prefix.some.method:21:22:23|ms", &fmt.format());
+    }
+
+    #[test]
     fn test_metric_formatter_timer_with_tags() {
         let mut fmt = MetricFormatter::timer("prefix.", "some.method", MetricValue::Unsigned(21));
         fmt.with_tag("app", "metrics");
         fmt.with_tag_value("async");
 
         assert_eq!("prefix.some.method:21|ms|#app:metrics,async", &fmt.format());
+    }
+
+    #[test]
+    fn test_metric_formatter_timer_with_tags_multiple_values() {
+        let mut fmt = MetricFormatter::timer("prefix.", "some.method", MetricValue::PackedUnsigned(vec![21, 22, 23]));
+        fmt.with_tag("app", "metrics");
+        fmt.with_tag_value("async");
+
+        assert_eq!("prefix.some.method:21:22:23|ms|#app:metrics,async", &fmt.format());
     }
 
     #[test]
@@ -556,6 +572,13 @@ mod tests {
     }
 
     #[test]
+    fn test_metric_formatter_histogram_no_tags_multiple_values() {
+        let fmt = MetricFormatter::histogram("prefix.", "num.results", MetricValue::PackedUnsigned(vec![44, 45, 46]));
+
+        assert_eq!("prefix.num.results:44:45:46|h", &fmt.format());
+    }
+
+    #[test]
     fn test_metric_formatter_histogram_with_tags() {
         let mut fmt = MetricFormatter::histogram("prefix.", "num.results", MetricValue::Unsigned(44));
         fmt.with_tag("user-type", "authenticated");
@@ -563,6 +586,65 @@ mod tests {
 
         assert_eq!(
             "prefix.num.results:44|h|#user-type:authenticated,source=search",
+            &fmt.format()
+        );
+    }
+
+    #[test]
+    fn test_metric_formatter_histogram_with_tags_multiple_values() {
+        let mut fmt =
+            MetricFormatter::histogram("prefix.", "num.results", MetricValue::PackedUnsigned(vec![44, 45, 46]));
+        fmt.with_tag("user-type", "authenticated");
+        fmt.with_tag_value("source=search");
+
+        assert_eq!(
+            "prefix.num.results:44:45:46|h|#user-type:authenticated,source=search",
+            &fmt.format()
+        );
+    }
+
+    #[test]
+    fn test_metric_formatter_distribution_no_tags() {
+        let fmt = MetricFormatter::distribution("prefix.", "latency.milliseconds", MetricValue::Unsigned(44));
+
+        assert_eq!("prefix.latency.milliseconds:44|d", &fmt.format());
+    }
+
+    #[test]
+    fn test_metric_formatter_distribution_no_tags_multiple_values() {
+        let fmt = MetricFormatter::distribution(
+            "prefix.",
+            "latency.milliseconds",
+            MetricValue::PackedUnsigned(vec![44, 45, 46]),
+        );
+
+        assert_eq!("prefix.latency.milliseconds:44:45:46|d", &fmt.format());
+    }
+
+    #[test]
+    fn test_metric_formatter_distribution_with_tags() {
+        let mut fmt = MetricFormatter::distribution("prefix.", "latency.milliseconds", MetricValue::Unsigned(44));
+        fmt.with_tag("user-type", "authenticated");
+        fmt.with_tag_value("source=search");
+
+        assert_eq!(
+            "prefix.latency.milliseconds:44|d|#user-type:authenticated,source=search",
+            &fmt.format()
+        );
+    }
+
+    #[test]
+    fn test_metric_formatter_distribution_with_tags_multiple_values() {
+        let mut fmt = MetricFormatter::distribution(
+            "prefix.",
+            "latency.milliseconds",
+            MetricValue::PackedUnsigned(vec![44, 45, 46]),
+        );
+        fmt.with_tag("user-type", "authenticated");
+        fmt.with_tag_value("source=search");
+
+        assert_eq!(
+            "prefix.latency.milliseconds:44:45:46|d|#user-type:authenticated,source=search",
             &fmt.format()
         );
     }

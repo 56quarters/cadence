@@ -76,11 +76,12 @@ impl ToTimerValue for Duration {
 
 impl ToTimerValue for Vec<Duration> {
     fn try_to_value(self) -> MetricResult<MetricValue> {
-        let mut vals = self.iter().map(|x| x.as_millis() as u64);
-        if vals.any(|x| x > u64::MAX) {
+        if self.iter().any(|x| x.as_millis() > u64::MAX as u128) {
             Err(MetricError::from((ErrorKind::InvalidInput, "u64 overflow")))
         } else {
-            Ok(MetricValue::PackedUnsigned(vals.collect()))
+            Ok(MetricValue::PackedUnsigned(
+                self.iter().map(|x| x.as_millis() as u64).collect(),
+            ))
         }
     }
 }
@@ -175,11 +176,12 @@ impl ToHistogramValue for Vec<f64> {
 
 impl ToHistogramValue for Vec<Duration> {
     fn try_to_value(self) -> MetricResult<MetricValue> {
-        let mut vals = self.iter().map(|x| x.as_nanos() as u64);
-        if vals.any(|x| x > u64::MAX) {
+        if self.iter().any(|x| x.as_nanos() > u64::MAX as u128) {
             Err(MetricError::from((ErrorKind::InvalidInput, "u64 overflow")))
         } else {
-            Ok(MetricValue::PackedUnsigned(vals.collect()))
+            Ok(MetricValue::PackedUnsigned(
+                self.iter().map(|x| x.as_nanos() as u64).collect(),
+            ))
         }
     }
 }
@@ -1112,9 +1114,35 @@ mod tests {
     }
 
     #[test]
+    fn test_statsd_client_time_multiple_durations() {
+        let client = StatsdClient::from_sink("prefix", NopMetricSink);
+        let durations = vec![
+            Duration::from_millis(157),
+            Duration::from_millis(158),
+            Duration::from_millis(159),
+        ];
+        let res = client.time("key", durations);
+
+        assert_eq!("prefix.key:157:158:159|ms", res.unwrap().as_metric_str());
+    }
+
+    #[test]
     fn test_statsd_client_time_duration_with_overflow() {
         let client = StatsdClient::from_sink("prefix", NopMetricSink);
         let res = client.time("key", Duration::from_secs(u64::MAX));
+
+        assert_eq!(ErrorKind::InvalidInput, res.unwrap_err().kind())
+    }
+
+    #[test]
+    fn test_statsd_client_time_multiple_durations_with_overflow() {
+        let client = StatsdClient::from_sink("prefix", NopMetricSink);
+        let durations = vec![
+            Duration::from_millis(157),
+            Duration::from_secs(u64::MAX),
+            Duration::from_millis(159),
+        ];
+        let res = client.time("key", durations);
 
         assert_eq!(ErrorKind::InvalidInput, res.unwrap_err().kind())
     }
@@ -1132,10 +1160,45 @@ mod tests {
     }
 
     #[test]
+    fn test_statsd_client_time_multiple_durations_with_tags_() {
+        let client = StatsdClient::from_sink("prefix", NopMetricSink);
+        let durations = vec![
+            Duration::from_millis(157),
+            Duration::from_millis(158),
+            Duration::from_millis(159),
+        ];
+        let res = client
+            .time_with_tags("key", durations)
+            .with_tag("foo", "bar")
+            .with_tag_value("quux")
+            .try_send();
+
+        assert_eq!("prefix.key:157:158:159|ms|#foo:bar,quux", res.unwrap().as_metric_str());
+    }
+
+    #[test]
     fn test_statsd_client_time_duration_with_tags_with_overflow() {
         let client = StatsdClient::from_sink("prefix", NopMetricSink);
         let res = client
             .time_with_tags("key", Duration::from_secs(u64::MAX))
+            .with_tag("foo", "bar")
+            .with_tag_value("quux")
+            .try_send();
+
+        assert!(res.is_err());
+        assert_eq!(ErrorKind::InvalidInput, res.unwrap_err().kind());
+    }
+
+    #[test]
+    fn test_statsd_client_time_multiple_durations_with_tags_with_overflow() {
+        let client = StatsdClient::from_sink("prefix", NopMetricSink);
+        let durations = vec![
+            Duration::from_millis(157),
+            Duration::from_secs(u64::MAX),
+            Duration::from_millis(159),
+        ];
+        let res = client
+            .time_with_tags("key", durations)
             .with_tag("foo", "bar")
             .with_tag_value("quux")
             .try_send();
@@ -1172,6 +1235,14 @@ mod tests {
     }
 
     #[test]
+    fn test_statsd_client_histogram_with_multiple_values() {
+        let client = StatsdClient::from_sink("prefix", NopMetricSink);
+        let res = client.histogram_with_tags("some.histo", vec![27, 28, 29]).try_send();
+
+        assert_eq!("prefix.some.histo:27:28:29|h", res.unwrap().as_metric_str());
+    }
+
+    #[test]
     fn test_statsd_client_histogram_duration() {
         let client = StatsdClient::from_sink("prefix", NopMetricSink);
         let res = client.histogram("key", Duration::from_nanos(210));
@@ -1180,9 +1251,36 @@ mod tests {
     }
 
     #[test]
+    fn test_statsd_client_histogram_multiple_durations() {
+        let client = StatsdClient::from_sink("prefix", NopMetricSink);
+        let durations = vec![
+            Duration::from_nanos(210),
+            Duration::from_nanos(211),
+            Duration::from_nanos(212),
+        ];
+        let res = client.histogram("key", durations);
+
+        assert_eq!("prefix.key:210:211:212|h", res.unwrap().as_metric_str());
+    }
+
+    #[test]
     fn test_statsd_client_histogram_duration_with_overflow() {
         let client = StatsdClient::from_sink("prefix", NopMetricSink);
         let res = client.histogram("key", Duration::from_secs(u64::MAX));
+
+        assert_eq!(ErrorKind::InvalidInput, res.unwrap_err().kind());
+    }
+
+    #[test]
+    fn test_statsd_client_histogram_multiple_durations_with_overflow() {
+        let client = StatsdClient::from_sink("prefix", NopMetricSink);
+        let durations = vec![
+            Duration::from_nanos(210),
+            Duration::from_secs(u64::MAX),
+            Duration::from_nanos(212),
+        ];
+
+        let res = client.histogram("key", durations);
 
         assert_eq!(ErrorKind::InvalidInput, res.unwrap_err().kind());
     }
@@ -1222,6 +1320,21 @@ mod tests {
 
         assert_eq!(
             "prefix.some.distr:27|d|#host:www03.example.com,rc1",
+            res.unwrap().as_metric_str()
+        );
+    }
+
+    #[test]
+    fn test_statsd_client_distribution_multiple_values_with_tags() {
+        let client = StatsdClient::from_sink("prefix", NopMetricSink);
+        let res = client
+            .distribution_with_tags("some.distr", vec![27, 28, 29])
+            .with_tag("host", "www03.example.com")
+            .with_tag_value("rc1")
+            .try_send();
+
+        assert_eq!(
+            "prefix.some.distr:27:28:29|d|#host:www03.example.com,rc1",
             res.unwrap().as_metric_str()
         );
     }
@@ -1304,6 +1417,14 @@ mod tests {
     }
 
     #[test]
+    fn test_statsd_client_as_timed_packed_duration() {
+        let client: Box<dyn Timed<Vec<Duration>>> = Box::new(StatsdClient::from_sink("prefix", NopMetricSink));
+        let durations = vec![Duration::from_millis(20), Duration::from_millis(21)];
+
+        client.time("some.timer", durations).unwrap();
+    }
+
+    #[test]
     fn test_statsd_client_as_gauged_u64() {
         let client: Box<dyn Gauged<u64>> = Box::new(StatsdClient::from_sink("prefix", NopMetricSink));
 
@@ -1332,10 +1453,24 @@ mod tests {
     }
 
     #[test]
+    fn test_statsd_client_as_histogrammed_packed_u64() {
+        let client: Box<dyn Histogrammed<Vec<u64>>> = Box::new(StatsdClient::from_sink("prefix", NopMetricSink));
+
+        client.histogram("some.histogram", vec![4, 5, 6]).unwrap();
+    }
+
+    #[test]
     fn test_statsd_client_as_histogrammed_f64() {
         let client: Box<dyn Histogrammed<f64>> = Box::new(StatsdClient::from_sink("prefix", NopMetricSink));
 
         client.histogram("some.histogram", 4.0).unwrap();
+    }
+
+    #[test]
+    fn test_statsd_client_as_histogrammed_packed_f64() {
+        let client: Box<dyn Histogrammed<Vec<f64>>> = Box::new(StatsdClient::from_sink("prefix", NopMetricSink));
+
+        client.histogram("some.histogram", vec![4.0, 5.0, 6.0]).unwrap();
     }
 
     #[test]
@@ -1346,6 +1481,14 @@ mod tests {
     }
 
     #[test]
+    fn test_statsd_client_as_histogrammed_packed_duration() {
+        let client: Box<dyn Histogrammed<Vec<Duration>>> = Box::new(StatsdClient::from_sink("prefix", NopMetricSink));
+        let durations = vec![Duration::from_nanos(4), Duration::from_nanos(5)];
+
+        client.histogram("some.histogram", durations).unwrap();
+    }
+
+    #[test]
     fn test_statsd_client_as_distributed_u64() {
         let client: Box<dyn Distributed<u64>> = Box::new(StatsdClient::from_sink("prefix", NopMetricSink));
 
@@ -1353,10 +1496,24 @@ mod tests {
     }
 
     #[test]
+    fn test_statsd_client_as_distributed_packed_u64() {
+        let client: Box<dyn Distributed<Vec<u64>>> = Box::new(StatsdClient::from_sink("prefix", NopMetricSink));
+
+        client.distribution("some.distribution", vec![33, 34]).unwrap();
+    }
+
+    #[test]
     fn test_statsd_client_as_distributed_f64() {
         let client: Box<dyn Distributed<f64>> = Box::new(StatsdClient::from_sink("prefix", NopMetricSink));
 
         client.distribution("some.distribution", 33.0).unwrap();
+    }
+
+    #[test]
+    fn test_statsd_client_as_distributed_packed_f64() {
+        let client: Box<dyn Distributed<Vec<f64>>> = Box::new(StatsdClient::from_sink("prefix", NopMetricSink));
+
+        client.distribution("some.distribution", vec![33.0, 34.0]).unwrap();
     }
 
     #[test]
