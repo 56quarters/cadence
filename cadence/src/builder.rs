@@ -68,40 +68,29 @@ impl MetricValue {
     }
 }
 
-fn write_value<T>(vals: &[T]) -> String
+fn write_value<T>(f: &mut fmt::Formatter<'_>, vals: &[T]) -> fmt::Result
 where
     T: fmt::Display,
 {
-    let mut out = String::new();
-
     for (i, value) in vals.iter().enumerate() {
         if i > 0 {
-            out.push(':');
+            f.write_char(':')?;
         }
-        out.push_str(format!("{}", value).as_str());
+        value.fmt(f)?;
     }
 
-    out
+    fmt::Result::Ok(())
 }
 
 impl fmt::Display for MetricValue {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match &*self {
             MetricValue::Signed(v) => v.fmt(f),
-            MetricValue::PackedSigned(v) => {
-                let out = write_value(v);
-                out.fmt(f)
-            }
+            MetricValue::PackedSigned(v) => write_value(f, v),
             MetricValue::Unsigned(v) => v.fmt(f),
-            MetricValue::PackedUnsigned(v) => {
-                let out = write_value(v);
-                out.fmt(f)
-            }
+            MetricValue::PackedUnsigned(v) => write_value(f, v),
             MetricValue::Float(v) => v.fmt(f),
-            MetricValue::PackedFloat(v) => {
-                let out = write_value(v);
-                out.fmt(f)
-            }
+            MetricValue::PackedFloat(v) => write_value(f, v),
         }
     }
 }
