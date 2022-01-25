@@ -218,7 +218,7 @@ assert_eq!(
 
 ### Value Packing
 
-Value packing is supported for `HISTOGRAM`, `DISTRIBUTION`, and `TIMING` metrics for Datadog agent
+Value packing is supported for histograms, distributions, and timers when writing to the Datadog agent with the `UnixMetricSink` or `BufferedUnixMetricSink` sinks ... 
 versions `>=v6.25.0 && <v7.0.0` or `>=v7.25.0`. This feature allows clients to buffer values
 and send them in fewer payloads to the agent.
 
