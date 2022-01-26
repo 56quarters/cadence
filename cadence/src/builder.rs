@@ -47,19 +47,50 @@ impl fmt::Display for MetricType {
 /// implemented but is exposed for documentation purposes and advanced use cases.
 ///
 /// Typical use of Cadence shouldn't require interacting with this type.
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 pub enum MetricValue {
     Signed(i64),
+    PackedSigned(Vec<i64>),
     Unsigned(u64),
+    PackedUnsigned(Vec<u64>),
     Float(f64),
+    PackedFloat(Vec<f64>),
+}
+
+impl MetricValue {
+    fn count(&self) -> usize {
+        match self {
+            Self::PackedSigned(x) => x.len(),
+            Self::PackedUnsigned(x) => x.len(),
+            Self::PackedFloat(x) => x.len(),
+            _ => 1,
+        }
+    }
+}
+
+fn write_value<T>(f: &mut fmt::Formatter<'_>, vals: &[T]) -> fmt::Result
+where
+    T: fmt::Display,
+{
+    for (i, value) in vals.iter().enumerate() {
+        if i > 0 {
+            f.write_char(':')?;
+        }
+        value.fmt(f)?;
+    }
+
+    fmt::Result::Ok(())
 }
 
 impl fmt::Display for MetricValue {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match *self {
+        match &*self {
             MetricValue::Signed(v) => v.fmt(f),
+            MetricValue::PackedSigned(v) => write_value(f, v),
             MetricValue::Unsigned(v) => v.fmt(f),
+            MetricValue::PackedUnsigned(v) => write_value(f, v),
             MetricValue::Float(v) => v.fmt(f),
+            MetricValue::PackedFloat(v) => write_value(f, v),
         }
     }
 }
@@ -108,6 +139,7 @@ impl<'a> MetricFormatter<'a> {
 
     #[rustfmt::skip]
     fn from_val(prefix: &'a str, key: &'a str, val: MetricValue, type_: MetricType) -> Self {
+        let value_count = val.count();
         MetricFormatter {
             prefix,
             key,
@@ -120,7 +152,7 @@ impl<'a> MetricFormatter<'a> {
             // having to loop through the tags to count the expected number of bytes to
             // allocate.
             kv_size: 0,
-            base_size: prefix.len() + key.len() + 1 /* : */ + 10 /* value */ + 1 /* | */ + 2, /* type */
+            base_size: prefix.len() + key.len() + 1 /* : */ + 10 * value_count /* value(s) */ + 1 /* | */ + 2, /* type */
         }
     }
 
@@ -465,12 +497,28 @@ mod tests {
     }
 
     #[test]
+    fn test_metric_formatter_timer_no_tags_multiple_values() {
+        let fmt = MetricFormatter::timer("prefix.", "some.method", MetricValue::PackedUnsigned(vec![21, 22, 23]));
+
+        assert_eq!("prefix.some.method:21:22:23|ms", &fmt.format());
+    }
+
+    #[test]
     fn test_metric_formatter_timer_with_tags() {
         let mut fmt = MetricFormatter::timer("prefix.", "some.method", MetricValue::Unsigned(21));
         fmt.with_tag("app", "metrics");
         fmt.with_tag_value("async");
 
         assert_eq!("prefix.some.method:21|ms|#app:metrics,async", &fmt.format());
+    }
+
+    #[test]
+    fn test_metric_formatter_timer_with_tags_multiple_values() {
+        let mut fmt = MetricFormatter::timer("prefix.", "some.method", MetricValue::PackedUnsigned(vec![21, 22, 23]));
+        fmt.with_tag("app", "metrics");
+        fmt.with_tag_value("async");
+
+        assert_eq!("prefix.some.method:21:22:23|ms|#app:metrics,async", &fmt.format());
     }
 
     #[test]
@@ -513,6 +561,13 @@ mod tests {
     }
 
     #[test]
+    fn test_metric_formatter_histogram_no_tags_multiple_values() {
+        let fmt = MetricFormatter::histogram("prefix.", "num.results", MetricValue::PackedUnsigned(vec![44, 45, 46]));
+
+        assert_eq!("prefix.num.results:44:45:46|h", &fmt.format());
+    }
+
+    #[test]
     fn test_metric_formatter_histogram_with_tags() {
         let mut fmt = MetricFormatter::histogram("prefix.", "num.results", MetricValue::Unsigned(44));
         fmt.with_tag("user-type", "authenticated");
@@ -520,6 +575,65 @@ mod tests {
 
         assert_eq!(
             "prefix.num.results:44|h|#user-type:authenticated,source=search",
+            &fmt.format()
+        );
+    }
+
+    #[test]
+    fn test_metric_formatter_histogram_with_tags_multiple_values() {
+        let mut fmt =
+            MetricFormatter::histogram("prefix.", "num.results", MetricValue::PackedUnsigned(vec![44, 45, 46]));
+        fmt.with_tag("user-type", "authenticated");
+        fmt.with_tag_value("source=search");
+
+        assert_eq!(
+            "prefix.num.results:44:45:46|h|#user-type:authenticated,source=search",
+            &fmt.format()
+        );
+    }
+
+    #[test]
+    fn test_metric_formatter_distribution_no_tags() {
+        let fmt = MetricFormatter::distribution("prefix.", "latency.milliseconds", MetricValue::Unsigned(44));
+
+        assert_eq!("prefix.latency.milliseconds:44|d", &fmt.format());
+    }
+
+    #[test]
+    fn test_metric_formatter_distribution_no_tags_multiple_values() {
+        let fmt = MetricFormatter::distribution(
+            "prefix.",
+            "latency.milliseconds",
+            MetricValue::PackedUnsigned(vec![44, 45, 46]),
+        );
+
+        assert_eq!("prefix.latency.milliseconds:44:45:46|d", &fmt.format());
+    }
+
+    #[test]
+    fn test_metric_formatter_distribution_with_tags() {
+        let mut fmt = MetricFormatter::distribution("prefix.", "latency.milliseconds", MetricValue::Unsigned(44));
+        fmt.with_tag("user-type", "authenticated");
+        fmt.with_tag_value("source=search");
+
+        assert_eq!(
+            "prefix.latency.milliseconds:44|d|#user-type:authenticated,source=search",
+            &fmt.format()
+        );
+    }
+
+    #[test]
+    fn test_metric_formatter_distribution_with_tags_multiple_values() {
+        let mut fmt = MetricFormatter::distribution(
+            "prefix.",
+            "latency.milliseconds",
+            MetricValue::PackedUnsigned(vec![44, 45, 46]),
+        );
+        fmt.with_tag("user-type", "authenticated");
+        fmt.with_tag_value("source=search");
+
+        assert_eq!(
+            "prefix.latency.milliseconds:44:45:46|d|#user-type:authenticated,source=search",
             &fmt.format()
         );
     }

@@ -1,5 +1,11 @@
 # Changelog
 
+## [v0.28.0](https://github.com/56quarters/cadence/tree/0.28.0) - Unreleased
+* Add support for [value packing](https://docs.datadoghq.com/developers/dogstatsd/datagram_shell/?tab=metrics#dogstatsd-protocol-v11) in the Datadog Datagram which is available for Datadog agent
+versions `>=v6.25.0 && <v7.0.0` or `>=v7.25.0`. All metric types except set support this, since `:`
+could be in the value of a set. This allows clients to buffer histogram and distribution values
+and send them in fewer payloads to the agent. This feature was added by @Jason8Ni.
+
 ## [v0.27.0](https://github.com/56quarters/cadence/tree/0.27.0) - 2021-12-26
 * **Breaking change** - `StatsdClient` no longer implements the `Clone` trait
   due to now using `Box` internally instead of `Arc` per
@@ -35,7 +41,7 @@
   the sink. This avoids accidental cases of [mutex poisoning](https://doc.rust-lang.org/nomicon/poisoning.html)
   which can happen when the `Mutex` is held when an assertion fails as part of
   a test per [#124](https://github.com/56quarters/cadence/issues/124).
-  
+
   Examples of how to use the newly rewritten sinks can be found in:
   * [cadence/examples/spy-sink.rs](cadence/examples/spy-sink.rs)
   * [cadence-macros/tests/lib.rs](cadence-macros/tests/lib.rs)
@@ -58,7 +64,7 @@
   contract per [#117](https://github.com/56quarters/cadence/issues/117).
 
 ## [v0.23.0](https://github.com/56quarters/cadence/tree/0.23.0) - 2020-12-14
-* **Breaking change** - Add method to emit `f64` types as gauges per 
+* **Breaking change** - Add method to emit `f64` types as gauges per
   [#106](https://github.com/56quarters/cadence/issues/106).
 * Update `crossbeam-channel` dependency to `0.5` per
   [#110](https://github.com/56quarters/cadence/pull/110).
@@ -116,7 +122,7 @@
   for more information.
 
 ## [v0.17.1](https://github.com/56quarters/cadence/tree/0.17.1) - 2019-03-30
-* Replace internal use of crossbeam `MsQueue` with channels from the 
+* Replace internal use of crossbeam `MsQueue` with channels from the
   `crossbeam_channel` crate per [#79](https://github.com/56quarters/cadence/issues/79).
   This change improves performance of the `QueuingMetricSink`, reducing
   the time taken to submit a metric by about 50%. This is a non-breaking
