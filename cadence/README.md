@@ -218,13 +218,20 @@ assert_eq!(
 
 ### Value Packing
 
-Value packing is supported for histograms, distributions, and timers when writing to the Datadog agent with the `UnixMetricSink` or `BufferedUnixMetricSink` sinks ... 
-versions `>=v6.25.0 && <v7.0.0` or `>=v7.25.0`. This feature allows clients to buffer values
-and send them in fewer payloads to the agent.
+Value packing allows multiple values to be sent as a single metric for histograms,
+distributions, and timer types. The Cadence client accepts `Vec<T>` for histogram,
+distribution, and timer methods and will format multiple values as described below.
+Note that this feature is a Datadog extension and so may not be supported by your
+server. It is supported by versions `>=v6.25.0 && <v7.0.0` or `>=v7.25.0` of the
+Datadog agent.
 
-For example, `<METRIC_NAME>:<VALUE1>:<VALUE2>:<VALUE3>|<TYPE>|@<SAMPLE_RATE>|#<TAG_KEY_1>:<TAG_VALUE_1>,<TAG_2>`
+Packed metrics have the following format:
+```text
+<METRIC_NAME>:<VALUE1>:<VALUE2>:<VALUE3>|<TYPE>|#<TAG_KEY_1>:<TAG_VALUE_1>,<TAG_2>`
+```
 
-See the [Datadog Docs](https://docs.datadoghq.com/developers/dogstatsd/datagram_shell/?tab=metrics#dogstatsd-protocol-v11) for more information.
+See the [Datadog Docs](https://docs.datadoghq.com/developers/dogstatsd/datagram_shell/?tab=metrics#dogstatsd-protocol-v11)
+for more information.
 
 ```rust
 use cadence::prelude::*;

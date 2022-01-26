@@ -2,6 +2,34 @@
 
 Guides for migrating to different versions of Cadence are below.
 
+## Migrating to 0.28
+
+In version `0.28` of Cadence, support was added for packed values.
+While this is a backwards incompatible change due to new variants of
+the `MetricValue` type and extensions to the types supported by the
+`MetricClient` trait, no changes are required for typical use of Cadence.
+
+If you find this is not the case, please open an issue.
+
+## Migrating to 0.27
+
+In version `0.27` of Cadence, the `StatsdClient` struct no longer
+implements the `Clone` trait. If you wish to clone instances of it
+you must now wrap it with a container that can be cloned.
+
+### Cloning using and `Arc`
+
+```rust
+use cadence::prelude::*;
+use cadence::{NopMetricSink, StatsdClient};
+
+fn main() {
+    let client = Arc::new(StatsdClient::from_sink("some.prefix", NopMetricSink));
+    let client_ref = client.clone();
+    client_ref.count("some.counter", 123).unwrap();
+}
+```
+
 ## Migrating To 0.26
 
 In version `0.26` of Cadence, the values for each type of metric are
@@ -38,15 +66,20 @@ of your metric values can be unambiguously determined.
 For example, give them explicit types
 
 ```rust
-let v: u64 = 42;
-client.time("some.key", v).unwrap();
+fn main() {
+    let v: u64 = 42;
+    client.time("some.key", v).unwrap();
+}
+
 ```
 
 Or cast them when passing to Cadence
 
 ```rust
-let v = 42;
-client.time("some.key", v as u64).unwrap();
+fn main() {
+    let v = 42;
+    client.time("some.key", v as u64).unwrap();
+}
 ```
 
 ### Moved methods

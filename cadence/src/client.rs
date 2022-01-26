@@ -42,9 +42,9 @@ impl ToCounterValue for i64 {
 /// Conversion trait for valid values for timers
 ///
 /// This trait must be implemented for any types that are used as timer
-/// values (currently `u64` and `Duration`). This trait is internal to how
-/// values are formatted as part of metrics but is exposed publicly for
-/// documentation purposes.
+/// values (currently `u64`, `Duration`, and `Vec`s of those types).
+/// This trait is internal to how values are formatted as part of metrics
+/// but is exposed publicly for documentation purposes.
 ///
 /// Typical use of Cadence shouldn't require interacting with this trait.
 pub trait ToTimerValue {
@@ -130,9 +130,9 @@ impl ToMeterValue for u64 {
 /// Conversion trait for valid values for histograms
 ///
 /// This trait must be implemented for any types that are used as histogram
-/// values (currently `u64`, `f64`, and `Duration`). This trait is internal
-/// to how values are formatted as part of metrics but is exposed publicly
-/// for documentation purposes.
+/// values (currently `u64`, `f64`, `Duration`, and `Vec`s of those types).
+/// This trait is internal to how values are formatted as part of metrics
+/// but is exposed publicly for documentation purposes.
 ///
 /// Typical use of Cadence shouldn't require interacting with this trait.
 pub trait ToHistogramValue {
@@ -189,9 +189,9 @@ impl ToHistogramValue for Vec<Duration> {
 /// Conversion trait for valid values for distributions
 ///
 /// This trait must be implemented for any types that are used as distribution
-/// values (currently `u64` and `f64`). This trait is internal to how values are
-/// formatted as part of metrics but is exposed publicly for documentation
-/// purposes.
+/// values (currently `u64`, `f64`, and `Vec`s of those types). This trait is
+/// internal to how values are formatted as part of metrics but is exposed
+/// publicly for documentation purposes.
 ///
 /// Typical use of Cadence shouldn't require interacting with this trait.
 pub trait ToDistributionValue {
@@ -491,11 +491,16 @@ where
 /// client.count("some.counter", 1).unwrap();
 /// client.time("some.timer", 42).unwrap();
 /// client.time("some.timer", Duration::from_millis(42)).unwrap();
+/// client.time("some.timer", vec![42]).unwrap();
+/// client.time("some.timer", vec![Duration::from_millis(42)]).unwrap();
 /// client.gauge("some.gauge", 8).unwrap();
 /// client.meter("some.meter", 13).unwrap();
 /// client.histogram("some.histogram", 4).unwrap();
 /// client.histogram("some.histogram", Duration::from_nanos(4)).unwrap();
+/// client.histogram("some.histogram", vec![4]).unwrap();
+/// client.histogram("some.histogram", vec![Duration::from_nanos(4)]).unwrap();
 /// client.distribution("some.distribution", 4).unwrap();
+/// client.distribution("some.distribution", vec![4]).unwrap();
 /// client.set("some.set", 5).unwrap();
 /// ```
 pub trait MetricClient:
@@ -503,14 +508,21 @@ pub trait MetricClient:
     + CountedExt
     + Timed<u64>
     + Timed<Duration>
+    + Timed<Vec<u64>>
+    + Timed<Vec<Duration>>
     + Gauged<u64>
     + Gauged<f64>
     + Metered<u64>
     + Histogrammed<u64>
     + Histogrammed<f64>
     + Histogrammed<Duration>
+    + Histogrammed<Vec<u64>>
+    + Histogrammed<Vec<f64>>
+    + Histogrammed<Vec<Duration>>
     + Distributed<u64>
     + Distributed<f64>
+    + Distributed<Vec<u64>>
+    + Distributed<Vec<f64>>
     + Setted<i64>
     + Compat
 {
@@ -1533,14 +1545,23 @@ mod tests {
         client.count("some.counter", 3).unwrap();
         client.time("some.timer", 198).unwrap();
         client.time("some.timer", Duration::from_millis(198)).unwrap();
+        client.time("some.timer", vec![198]).unwrap();
+        client.time("some.timer", vec![Duration::from_millis(198)]).unwrap();
         client.gauge("some.gauge", 4).unwrap();
         client.gauge("some.gauge", 4.0).unwrap();
         client.meter("some.meter", 29).unwrap();
         client.histogram("some.histogram", 32).unwrap();
         client.histogram("some.histogram", 32.0).unwrap();
         client.histogram("some.histogram", Duration::from_nanos(32)).unwrap();
+        client.histogram("some.histogram", vec![32]).unwrap();
+        client.histogram("some.histogram", vec![32.0]).unwrap();
+        client
+            .histogram("some.histogram", vec![Duration::from_nanos(32)])
+            .unwrap();
         client.distribution("some.distribution", 248).unwrap();
         client.distribution("some.distribution", 248.0).unwrap();
+        client.distribution("some.distribution", vec![248]).unwrap();
+        client.distribution("some.distribution", vec![248.0]).unwrap();
         client.set("some.set", 5).unwrap();
     }
 }
