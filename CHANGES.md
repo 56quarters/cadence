@@ -1,6 +1,6 @@
 # Changelog
 
-## [v0.28.0](https://github.com/56quarters/cadence/tree/0.28.0) - Unreleased
+## [v0.28.0](https://github.com/56quarters/cadence/tree/0.28.0) - 2022-01-28
 * **Breaking change** - Add support for [packed values](https://docs.datadoghq.com/developers/dogstatsd/datagram_shell/?tab=metrics#dogstatsd-protocol-v11)
   which allows multiple values to be sent as a single metric for histogram,
   distribution, and timer types. The Cadence client now accepts `Vec<T>` for
