@@ -3,11 +3,11 @@
 ## [v0.28.0](https://github.com/56quarters/cadence/tree/0.28.0) - 2022-01-28
 * **Breaking change** - Add support for [packed values](https://docs.datadoghq.com/developers/dogstatsd/datagram_shell/?tab=metrics#dogstatsd-protocol-v11)
   which allows multiple values to be sent as a single metric for histogram,
-  distribution, and timer types. The Cadence client now accepts `Vec<T>` for
-  histogram, distribution, and timer methods. Note that this feature is a Datadog
-  extension and so may not be supported by your server. It is supported by versions
-  `>=v6.25.0 && <v7.0.0` or `>=v7.25.0` of the Datadog agent. Thanks to @Jason8Ni for
-  this contribution.
+  distribution, and timer types per [#169](https://github.com/56quarters/cadence/pull/169).
+  The Cadence client now accepts `Vec<T>` for histogram, distribution, and timer
+  methods. Note that this feature is a Datadog extension and so may not be supported
+  by your server. It is supported by versions `>=v6.25.0 && <v7.0.0` or `>=v7.25.0`
+  of the Datadog agent. Thanks to @Jason8Ni for this contribution.
 
 ## [v0.27.0](https://github.com/56quarters/cadence/tree/0.27.0) - 2021-12-26
 * **Breaking change** - `StatsdClient` no longer implements the `Clone` trait
