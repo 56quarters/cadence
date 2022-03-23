@@ -365,6 +365,40 @@ where
         self
     }
 
+    /// Add tags to this metric.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use cadence::prelude::*;
+    /// use cadence::{StatsdClient, NopMetricSink, Metric};
+    ///
+    /// let client = StatsdClient::from_sink("some.prefix", NopMetricSink);
+    /// let res = client.count_with_tags("some.key", 4)
+    ///    .with_tags(vec![(None, "beta-testing"), (Some("env"), "production")])
+    ///    .try_send();
+    ///
+    /// assert_eq!(
+    ///    "some.prefix.some.key:4|c|#beta-testing,env:production",
+    ///    res.unwrap().as_metric_str()
+    /// );
+    /// ```
+    pub fn with_tags<V>(mut self, tags: V) -> Self
+    where
+        V: IntoIterator<Item = (Option<&'m str>, &'m str)>,
+    {
+        if let BuilderRepr::Success(ref mut formatter, _) = self.repr {
+            for tag in tags.into_iter() {
+                match tag {
+                    (Some(key), value) => formatter.with_tag(key, value),
+                    (None, value) => formatter.with_tag_value(value),
+                }
+            }
+        }
+
+        self
+    }
+
     /// Send a metric using the client that created this builder.
     ///
     /// Note that the builder is consumed by this method and thus `.try_send()`

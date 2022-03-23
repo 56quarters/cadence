@@ -994,16 +994,8 @@ where
 {
     fn count_with_tags<'a>(&'a self, key: &'a str, value: T) -> MetricBuilder<'_, '_, Counter> {
         match value.try_to_value() {
-            Ok(v) => {
-                let mut builder = MetricBuilder::from_fmt(MetricFormatter::counter(&self.prefix, key, v), self);
-                for tag in self.tags.iter() {
-                    match tag {
-                        (Some(key), value) => builder = builder.with_tag(key, value),
-                        (None, value) => builder = builder.with_tag_value(value),
-                    }
-                }
-                builder
-            }
+            Ok(v) => MetricBuilder::from_fmt(MetricFormatter::counter(&self.prefix, key, v), self)
+                .with_tags(self.tags.iter().map(|(k, v)| (k.as_deref(), v.as_str()))),
             Err(e) => MetricBuilder::from_error(e, self),
         }
     }
