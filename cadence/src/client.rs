@@ -640,6 +640,8 @@ pub trait MetricBackend: Sealed {
 ///
 /// let client = StatsdClient::builder("prefix", NopMetricSink)
 ///     .with_error_handler(my_error_handler)
+///     .with_tag("environment", "production")
+///     .with_tag_value("rust")
 ///     .build();
 ///
 /// client.count("something", 123);
@@ -651,6 +653,7 @@ pub struct StatsdClientBuilder {
     prefix: String,
     sink: Box<dyn MetricSink + Sync + Send + RefUnwindSafe>,
     errors: Box<dyn Fn(MetricError) + Sync + Send + RefUnwindSafe>,
+    tags: Vec<(Option<String>, String)>,
 }
 
 impl StatsdClientBuilder {
@@ -666,6 +669,7 @@ impl StatsdClientBuilder {
 
             // optional with defaults
             errors: Box::new(nop_error_handler),
+            tags: vec![],
         }
     }
 
@@ -683,6 +687,28 @@ impl StatsdClientBuilder {
         F: Fn(MetricError) + Sync + Send + RefUnwindSafe + 'static,
     {
         self.errors = Box::new(errors);
+        self
+    }
+
+    /// Add a default tag with key and value to every metric published by the
+    /// built [StatsdClient].
+    pub fn with_tag<K, V>(mut self, key: K, value: V) -> Self
+    where
+        K: AsRef<str>,
+        V: AsRef<str>,
+    {
+        self.tags
+            .push((Some(key.as_ref().to_string()), value.as_ref().to_string()));
+        self
+    }
+
+    /// Add a default tag with only a value to every metric published by the built
+    /// [StatsdClient].
+    pub fn with_tag_value<K>(mut self, value: K) -> Self
+    where
+        K: AsRef<str>,
+    {
+        self.tags.push((None, value.as_ref().to_string()));
         self
     }
 
@@ -786,6 +812,7 @@ pub struct StatsdClient {
     prefix: String,
     sink: Box<dyn MetricSink + Sync + Send + RefUnwindSafe>,
     errors: Box<dyn Fn(MetricError) + Sync + Send + RefUnwindSafe>,
+    tags: Vec<(Option<String>, String)>,
 }
 
 impl StatsdClient {
@@ -929,6 +956,7 @@ impl StatsdClient {
             prefix: builder.prefix,
             sink: builder.sink,
             errors: builder.errors,
+            tags: builder.tags,
         }
     }
 }
@@ -954,8 +982,8 @@ impl fmt::Debug for StatsdClient {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             f,
-            "StatsdClient {{ prefix: {:?}, sink: ..., errors: ... }}",
-            self.prefix
+            "StatsdClient {{ prefix: {:?}, sink: ..., errors: ..., tags: {:?} }}",
+            self.prefix, self.tags,
         )
     }
 }
@@ -966,7 +994,16 @@ where
 {
     fn count_with_tags<'a>(&'a self, key: &'a str, value: T) -> MetricBuilder<'_, '_, Counter> {
         match value.try_to_value() {
-            Ok(v) => MetricBuilder::from_fmt(MetricFormatter::counter(&self.prefix, key, v), self),
+            Ok(v) => {
+                let mut builder = MetricBuilder::from_fmt(MetricFormatter::counter(&self.prefix, key, v), self);
+                for tag in self.tags.iter() {
+                    match tag {
+                        (Some(key), value) => builder = builder.with_tag(key, value),
+                        (None, value) => builder = builder.with_tag_value(value),
+                    }
+                }
+                builder
+            }
             Err(e) => MetricBuilder::from_error(e, self),
         }
     }
@@ -1060,6 +1097,7 @@ mod tests {
     };
     use crate::sinks::{MetricSink, NopMetricSink, QueuingMetricSink, SpyMetricSink};
     use crate::types::{ErrorKind, Metric, MetricError};
+    use crate::StatsdClientBuilder;
     use std::io;
     use std::panic::RefUnwindSafe;
     use std::sync::atomic::{AtomicUsize, Ordering};
@@ -1084,6 +1122,16 @@ mod tests {
             .try_send();
 
         assert_eq!("prefix.some.counter:3|c|#foo:bar", res.unwrap().as_metric_str());
+    }
+
+    #[test]
+    fn test_statsd_client_count_with_default_tags() {
+        let client = StatsdClientBuilder::new("prefix", NopMetricSink)
+            .with_tag("hello", "world")
+            .build();
+        let res = client.count_with_tags("some.counter", 3).try_send();
+
+        assert_eq!("prefix.some.counter:3|c|#hello:world", res.unwrap().as_metric_str());
     }
 
     #[test]
