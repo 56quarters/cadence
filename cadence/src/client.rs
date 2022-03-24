@@ -694,11 +694,10 @@ impl StatsdClientBuilder {
     /// built [StatsdClient].
     pub fn with_tag<K, V>(mut self, key: K, value: V) -> Self
     where
-        K: AsRef<str>,
-        V: AsRef<str>,
+        K: ToString,
+        V: ToString,
     {
-        self.tags
-            .push((Some(key.as_ref().to_string()), value.as_ref().to_string()));
+        self.tags.push((Some(key.to_string()), value.to_string()));
         self
     }
 
@@ -706,9 +705,9 @@ impl StatsdClientBuilder {
     /// [StatsdClient].
     pub fn with_tag_value<K>(mut self, value: K) -> Self
     where
-        K: AsRef<str>,
+        K: ToString,
     {
-        self.tags.push((None, value.as_ref().to_string()));
+        self.tags.push((None, value.to_string()));
         self
     }
 
