@@ -1369,7 +1369,7 @@ mod tests {
             .build();
         let res = client.histogram_with_tags("some.histo", 27).try_send();
 
-        assert_eq!("prefix.some.histo:27|h|#foo,bar", res.unwrap().as_metric_str());
+        assert_eq!("prefix.some.histo:27|h|#foo:bar", res.unwrap().as_metric_str());
     }
 
     #[test]
