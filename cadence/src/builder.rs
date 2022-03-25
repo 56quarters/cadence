@@ -383,7 +383,7 @@ where
     ///    res.unwrap().as_metric_str()
     /// );
     /// ```
-    pub fn with_tags<V>(mut self, tags: V) -> Self
+    pub(crate) fn with_tags<V>(mut self, tags: V) -> Self
     where
         V: IntoIterator<Item = (Option<&'m str>, &'m str)>,
     {
