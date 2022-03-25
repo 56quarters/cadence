@@ -669,7 +669,7 @@ impl StatsdClientBuilder {
 
             // optional with defaults
             errors: Box::new(nop_error_handler),
-            tags: vec![],
+            tags: Vec::new(),
         }
     }
 
