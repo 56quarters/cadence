@@ -640,6 +640,8 @@ pub trait MetricBackend: Sealed {
 ///
 /// let client = StatsdClient::builder("prefix", NopMetricSink)
 ///     .with_error_handler(my_error_handler)
+///     .with_tag("environment", "production")
+///     .with_tag_value("rust")
 ///     .build();
 ///
 /// client.count("something", 123);
@@ -651,6 +653,7 @@ pub struct StatsdClientBuilder {
     prefix: String,
     sink: Box<dyn MetricSink + Sync + Send + RefUnwindSafe>,
     errors: Box<dyn Fn(MetricError) + Sync + Send + RefUnwindSafe>,
+    tags: Vec<(Option<String>, String)>,
 }
 
 impl StatsdClientBuilder {
@@ -666,6 +669,7 @@ impl StatsdClientBuilder {
 
             // optional with defaults
             errors: Box::new(nop_error_handler),
+            tags: Vec::new(),
         }
     }
 
@@ -683,6 +687,27 @@ impl StatsdClientBuilder {
         F: Fn(MetricError) + Sync + Send + RefUnwindSafe + 'static,
     {
         self.errors = Box::new(errors);
+        self
+    }
+
+    /// Add a default tag with key and value to every metric published by the
+    /// built [StatsdClient].
+    pub fn with_tag<K, V>(mut self, key: K, value: V) -> Self
+    where
+        K: ToString,
+        V: ToString,
+    {
+        self.tags.push((Some(key.to_string()), value.to_string()));
+        self
+    }
+
+    /// Add a default tag with only a value to every metric published by the built
+    /// [StatsdClient].
+    pub fn with_tag_value<K>(mut self, value: K) -> Self
+    where
+        K: ToString,
+    {
+        self.tags.push((None, value.to_string()));
         self
     }
 
@@ -786,6 +811,7 @@ pub struct StatsdClient {
     prefix: String,
     sink: Box<dyn MetricSink + Sync + Send + RefUnwindSafe>,
     errors: Box<dyn Fn(MetricError) + Sync + Send + RefUnwindSafe>,
+    tags: Vec<(Option<String>, String)>,
 }
 
 impl StatsdClient {
@@ -929,7 +955,12 @@ impl StatsdClient {
             prefix: builder.prefix,
             sink: builder.sink,
             errors: builder.errors,
+            tags: builder.tags,
         }
+    }
+
+    fn tags(&self) -> impl IntoIterator<Item = (Option<&str>, &str)> {
+        self.tags.iter().map(|(k, v)| (k.as_deref(), v.as_str()))
     }
 }
 
@@ -954,8 +985,8 @@ impl fmt::Debug for StatsdClient {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             f,
-            "StatsdClient {{ prefix: {:?}, sink: ..., errors: ... }}",
-            self.prefix
+            "StatsdClient {{ prefix: {:?}, sink: ..., errors: ..., tags: {:?} }}",
+            self.prefix, self.tags,
         )
     }
 }
@@ -966,7 +997,9 @@ where
 {
     fn count_with_tags<'a>(&'a self, key: &'a str, value: T) -> MetricBuilder<'_, '_, Counter> {
         match value.try_to_value() {
-            Ok(v) => MetricBuilder::from_fmt(MetricFormatter::counter(&self.prefix, key, v), self),
+            Ok(v) => {
+                MetricBuilder::from_fmt(MetricFormatter::counter(&self.prefix, key, v), self).with_tags(self.tags())
+            }
             Err(e) => MetricBuilder::from_error(e, self),
         }
     }
@@ -980,7 +1013,7 @@ where
 {
     fn time_with_tags<'a>(&'a self, key: &'a str, time: T) -> MetricBuilder<'_, '_, Timer> {
         match time.try_to_value() {
-            Ok(v) => MetricBuilder::from_fmt(MetricFormatter::timer(&self.prefix, key, v), self),
+            Ok(v) => MetricBuilder::from_fmt(MetricFormatter::timer(&self.prefix, key, v), self).with_tags(self.tags()),
             Err(e) => MetricBuilder::from_error(e, self),
         }
     }
@@ -992,7 +1025,7 @@ where
 {
     fn gauge_with_tags<'a>(&'a self, key: &'a str, value: T) -> MetricBuilder<'_, '_, Gauge> {
         match value.try_to_value() {
-            Ok(v) => MetricBuilder::from_fmt(MetricFormatter::gauge(&self.prefix, key, v), self),
+            Ok(v) => MetricBuilder::from_fmt(MetricFormatter::gauge(&self.prefix, key, v), self).with_tags(self.tags()),
             Err(e) => MetricBuilder::from_error(e, self),
         }
     }
@@ -1004,7 +1037,7 @@ where
 {
     fn meter_with_tags<'a>(&'a self, key: &'a str, value: T) -> MetricBuilder<'_, '_, Meter> {
         match value.try_to_value() {
-            Ok(v) => MetricBuilder::from_fmt(MetricFormatter::meter(&self.prefix, key, v), self),
+            Ok(v) => MetricBuilder::from_fmt(MetricFormatter::meter(&self.prefix, key, v), self).with_tags(self.tags()),
             Err(e) => MetricBuilder::from_error(e, self),
         }
     }
@@ -1016,7 +1049,9 @@ where
 {
     fn histogram_with_tags<'a>(&'a self, key: &'a str, value: T) -> MetricBuilder<'_, '_, Histogram> {
         match value.try_to_value() {
-            Ok(v) => MetricBuilder::from_fmt(MetricFormatter::histogram(&self.prefix, key, v), self),
+            Ok(v) => {
+                MetricBuilder::from_fmt(MetricFormatter::histogram(&self.prefix, key, v), self).with_tags(self.tags())
+            }
             Err(e) => MetricBuilder::from_error(e, self),
         }
     }
@@ -1040,7 +1075,7 @@ where
 {
     fn set_with_tags<'a>(&'a self, key: &'a str, value: T) -> MetricBuilder<'_, '_, Set> {
         match value.try_to_value() {
-            Ok(v) => MetricBuilder::from_fmt(MetricFormatter::set(&self.prefix, key, v), self),
+            Ok(v) => MetricBuilder::from_fmt(MetricFormatter::set(&self.prefix, key, v), self).with_tags(self.tags()),
             Err(e) => MetricBuilder::from_error(e, self),
         }
     }
@@ -1060,6 +1095,7 @@ mod tests {
     };
     use crate::sinks::{MetricSink, NopMetricSink, QueuingMetricSink, SpyMetricSink};
     use crate::types::{ErrorKind, Metric, MetricError};
+    use crate::StatsdClientBuilder;
     use std::io;
     use std::panic::RefUnwindSafe;
     use std::sync::atomic::{AtomicUsize, Ordering};
@@ -1076,6 +1112,25 @@ mod tests {
     }
 
     #[test]
+    fn test_statsd_client_merging_default_tags_with_tags() {
+        let client = StatsdClientBuilder::new("prefix", NopMetricSink)
+            .with_tag("hello", "world")
+            .with_tag_value("production")
+            .build();
+        let res = client
+            .count_with_tags("some.counter", 3)
+            .with_tag("foo", "bar")
+            .with_tag_value("fizz")
+            .with_tag("bucket", "123")
+            .try_send();
+
+        assert_eq!(
+            "prefix.some.counter:3|c|#hello:world,production,foo:bar,fizz,bucket:123",
+            res.unwrap().as_metric_str()
+        );
+    }
+
+    #[test]
     fn test_statsd_client_count_with_tags() {
         let client = StatsdClient::from_sink("prefix", NopMetricSink);
         let res = client
@@ -1087,6 +1142,16 @@ mod tests {
     }
 
     #[test]
+    fn test_statsd_client_count_with_default_tags() {
+        let client = StatsdClientBuilder::new("prefix", NopMetricSink)
+            .with_tag("hello", "world")
+            .build();
+        let res = client.count_with_tags("some.counter", 3).try_send();
+
+        assert_eq!("prefix.some.counter:3|c|#hello:world", res.unwrap().as_metric_str());
+    }
+
+    #[test]
     fn test_statsd_client_incr_with_tags() {
         let client = StatsdClient::from_sink("prefix", NopMetricSink);
         let res = client.incr_with_tags("some.counter").with_tag("foo", "bar").try_send();
@@ -1095,9 +1160,29 @@ mod tests {
     }
 
     #[test]
+    fn test_statsd_client_incr_with_default_tags() {
+        let client = StatsdClientBuilder::new("prefix", NopMetricSink)
+            .with_tag("foo", "bar")
+            .build();
+        let res = client.incr_with_tags("some.counter").try_send();
+
+        assert_eq!("prefix.some.counter:1|c|#foo:bar", res.unwrap().as_metric_str());
+    }
+
+    #[test]
     fn test_statsd_client_decr_with_tags() {
         let client = StatsdClient::from_sink("prefix", NopMetricSink);
         let res = client.decr_with_tags("some.counter").with_tag("foo", "bar").try_send();
+
+        assert_eq!("prefix.some.counter:-1|c|#foo:bar", res.unwrap().as_metric_str());
+    }
+
+    #[test]
+    fn test_statsd_client_decr_with_default_tags() {
+        let client = StatsdClientBuilder::new("prefix", NopMetricSink)
+            .with_tag("foo", "bar")
+            .build();
+        let res = client.decr_with_tags("some.counter").try_send();
 
         assert_eq!("prefix.some.counter:-1|c|#foo:bar", res.unwrap().as_metric_str());
     }
@@ -1115,6 +1200,16 @@ mod tests {
             "prefix.some.gauge:4|g|#bucket:A,file-server",
             res.unwrap().as_metric_str()
         );
+    }
+
+    #[test]
+    fn test_statsd_client_gauge_with_default_tags() {
+        let client = StatsdClientBuilder::new("prefix", NopMetricSink)
+            .with_tag("foo", "bar")
+            .build();
+        let res = client.gauge_with_tags("some.gauge", 4).try_send();
+
+        assert_eq!("prefix.some.gauge:4|g|#foo:bar", res.unwrap().as_metric_str());
     }
 
     #[test]
@@ -1172,7 +1267,17 @@ mod tests {
     }
 
     #[test]
-    fn test_statsd_client_time_multiple_durations_with_tags_() {
+    fn test_statsd_client_time_duration_with_default_tags() {
+        let client = StatsdClientBuilder::new("prefix", NopMetricSink)
+            .with_tag("foo", "bar")
+            .build();
+        let res = client.time("key", Duration::from_millis(157));
+
+        assert_eq!("prefix.key:157|ms|#foo:bar", res.unwrap().as_metric_str());
+    }
+
+    #[test]
+    fn test_statsd_client_time_multiple_durations_with_tags() {
         let client = StatsdClient::from_sink("prefix", NopMetricSink);
         let durations = vec![
             Duration::from_millis(157),
@@ -1232,6 +1337,16 @@ mod tests {
     }
 
     #[test]
+    fn test_statsd_client_meter_with_default_tags() {
+        let client = StatsdClientBuilder::new("prefix", NopMetricSink)
+            .with_tag("foo", "bar")
+            .build();
+        let res = client.meter_with_tags("some.meter", 64).try_send();
+
+        assert_eq!("prefix.some.meter:64|m|#foo:bar", res.unwrap().as_metric_str());
+    }
+
+    #[test]
     fn test_statsd_client_histogram_with_tags() {
         let client = StatsdClient::from_sink("prefix", NopMetricSink);
         let res = client
@@ -1244,6 +1359,16 @@ mod tests {
             "prefix.some.histo:27|h|#host:www03.example.com,rc1",
             res.unwrap().as_metric_str()
         );
+    }
+
+    #[test]
+    fn test_statsd_client_histogram_with_default_tags() {
+        let client = StatsdClientBuilder::new("prefix", NopMetricSink)
+            .with_tag("foo", "bar")
+            .build();
+        let res = client.histogram_with_tags("some.histo", 27).try_send();
+
+        assert_eq!("prefix.some.histo:27|h|#foo:bar", res.unwrap().as_metric_str());
     }
 
     #[test]
@@ -1310,6 +1435,16 @@ mod tests {
     }
 
     #[test]
+    fn test_statsd_client_histogram_duration_with_default_tags() {
+        let client = StatsdClientBuilder::new("prefix", NopMetricSink)
+            .with_tag("foo", "bar")
+            .build();
+        let res = client.histogram_with_tags("key", Duration::from_nanos(4096)).try_send();
+
+        assert_eq!("prefix.key:4096|h|#foo:bar", res.unwrap().as_metric_str());
+    }
+
+    #[test]
     fn test_statsd_client_histogram_duration_with_tags_with_overflow() {
         let client = StatsdClient::from_sink("prefix", NopMetricSink);
         let res = client
@@ -1357,6 +1492,16 @@ mod tests {
         let res = client.set_with_tags("some.set", 3).with_tag("foo", "bar").try_send();
 
         assert_eq!("myapp.some.set:3|s|#foo:bar", res.unwrap().as_metric_str());
+    }
+
+    #[test]
+    fn test_statsd_client_set_with_default_tags() {
+        let client = StatsdClientBuilder::new("prefix", NopMetricSink)
+            .with_tag("foo", "bar")
+            .build();
+        let res = client.set_with_tags("some.set", 3).try_send();
+
+        assert_eq!("prefix.some.set:3|s|#foo:bar", res.unwrap().as_metric_str());
     }
 
     #[test]
