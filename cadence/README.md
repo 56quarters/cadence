@@ -216,6 +216,42 @@ assert_eq!(
 );
 ```
 
+### Default Tags
+
+Default tags can be added to a `StatsdClient` when constructed using the builder.
+Default tags are added to every metric emitted by the `StatsdClient` without any
+extra work after building the client. Note that tags are an extension to the Statsd
+protocol and so may not be supported by all servers.
+
+See the [Datadog docs](https://docs.datadoghq.com/developers/dogstatsd/) for
+more information.
+
+```rust
+use cadence::prelude::*;
+use cadence::{Metric, StatsdClient, NopMetricSink};
+
+let client = StatsdClient::builder("my.prefix", NopMetricSink)
+    .with_tag("env", "prod")
+    .with_tag("app", "auth")
+    .build();
+
+let res = client.count_with_tags("my.counter", 29)
+    .with_tag("host", "web03.example.com")
+    .with_tag_value("beta-test")
+    .try_send();
+
+assert_eq!(
+    concat!(
+        "my.prefix.my.counter:29|c|#",
+        "env:prod,",
+        "app:auth,",
+        "host:web03.example.com,",
+        "beta-test"
+    ),
+    res.unwrap().as_metric_str()
+);
+```
+
 ### Value Packing
 
 Value packing allows multiple values to be sent as a single metric for histograms,
