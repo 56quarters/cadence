@@ -1,5 +1,11 @@
 # Changelog
 
+## [v0.29.0](https://github.com/56quarters/cadence/tree/0.29.0) - 2022-04-02
+* Add support for "default tags" that can be added to a `StatsdClient` when creating
+  it using the builder per [#172](https://github.com/56quarters/cadence/pull/172).
+  Default tags will be automatically added to all metrics emitted by the client.
+  Thanks to @look for this contribution.
+
 ## [v0.28.0](https://github.com/56quarters/cadence/tree/0.28.0) - 2022-01-28
 * **Breaking change** - Add support for [packed values](https://docs.datadoghq.com/developers/dogstatsd/datagram_shell/?tab=metrics#dogstatsd-protocol-v11)
   which allows multiple values to be sent as a single metric for histogram,

@@ -2,6 +2,10 @@
 
 Guides for migrating to different versions of Cadence are below.
 
+## Migrating to 0.29
+
+There are no backwards incompatible changes in this release.
+
 ## Migrating to 0.28
 
 In version `0.28` of Cadence, support was added for packed values.
