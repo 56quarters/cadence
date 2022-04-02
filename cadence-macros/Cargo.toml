@@ -9,7 +9,7 @@ repository = "https://github.com/56quarters/cadence"
 readme = "README.md"
 license = "Apache-2.0/MIT"
 keywords = ["statsd", "metrics"]
-edition = "2018"
+edition = "2021"
 autobenches = false
 
 [dependencies]

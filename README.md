@@ -3,7 +3,7 @@
 [![build status](https://circleci.com/gh/56quarters/cadence.svg?style=shield)](https://circleci.com/gh/56quarters/cadence)
 [![docs.rs](https://docs.rs/cadence/badge.svg)](https://docs.rs/cadence/)
 [![crates.io](https://img.shields.io/crates/v/cadence.svg)](https://crates.io/crates/cadence/)
-[![Rust 1.36+](https://img.shields.io/badge/rust-1.41+-lightgray.svg)](https://www.rust-lang.org)
+[![Rust 1.56+](https://img.shields.io/badge/rust-1.56+-lightgray.svg)](https://www.rust-lang.org)
 
 [Cadence Documentation](https://docs.rs/cadence/)
 
@@ -120,7 +120,7 @@ additional terms or conditions.
 
 ## Language Support
 
-Cadence (latest master) supports building with a range of `1.41+` versions.
+Cadence (latest master) supports building with a range of `1.56+` versions.
 
 ### Guaranteed to Build
 
@@ -142,18 +142,17 @@ advantage of a feature available in newer versions of Rust.
 
 ### Known to Work
 
+* Stable versions as far back as `1.41` are known to work with Cadence
+  `0.26.0` through `0.29.0`.
+
 * Stable versions as far back as `1.36` are known to work with Cadence
-  `0.21.0` through `0.25.0`. Building with this version (and any versions
-  older than `stable - 4`) is not supported and may break at any time.
+  `0.21.0` through `0.25.0`. 
 
 * Stable versions as far back as `1.34` are known to work with Cadence
-  `0.20.0`. Building with this version (and any versions older than
-  `stable - 4`) is not supported and may break at any time.
+  `0.20.0`.
 
 * Stable versions as far back as `1.32` are known to work with Cadence
-  `0.19.0`. Building with this version (and any versions older than
-  `stable - 4`) is not supported and may break at any time.
+  `0.19.0`.
 
 * Stable versions as far back as `1.31` are known to work with Cadence
-  `0.18.0`. Building with this version (and any versions older than
-  `stable - 4`) is not supported and may break at any time.
+  `0.18.0`.
