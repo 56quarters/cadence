@@ -962,6 +962,13 @@ impl StatsdClient {
     fn tags(&self) -> impl IntoIterator<Item = (Option<&str>, &str)> {
         self.tags.iter().map(|(k, v)| (k.as_deref(), v.as_str()))
     }
+
+    /// Flush the sink and consume the error
+    pub fn flush_sink(&self) {
+        if let Err(e) = self.sink.flush() {
+            (self.errors)(e.into());
+        }
+    }
 }
 
 impl Sealed for StatsdClient {}
