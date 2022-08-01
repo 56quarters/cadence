@@ -34,9 +34,9 @@ impl ToGaugeValue for UserHappiness {
 
 fn main() {
     let sink = NopMetricSink;
-    let metrics = StatsdClient::from_sink("example.prefix", sink);
+    let client = StatsdClient::from_sink("example.prefix", sink);
 
-    metrics.gauge("user.happiness", UserHappiness::VeryHappy).unwrap();
-    metrics.gauge("user.happiness", UserHappiness::KindaHappy).unwrap();
-    metrics.gauge("user.happiness", UserHappiness::Sad).unwrap();
+    client.gauge("user.happiness", UserHappiness::VeryHappy).unwrap();
+    client.gauge("user.happiness", UserHappiness::KindaHappy).unwrap();
+    client.gauge("user.happiness", UserHappiness::Sad).unwrap();
 }

@@ -9,7 +9,9 @@
 
 // This example shows how you might use Cadence to send DataDog-style tags
 // either with a method the returns the result of sending them, or with a
-// method the delegates any errors to a predefined error handler.
+// method the delegates any errors to a predefined error handler. It also
+// includes "default" tags which are automatically added to any metrics
+// sent.
 
 use cadence::prelude::*;
 use cadence::{MetricError, NopMetricSink, StatsdClient};
@@ -19,8 +21,10 @@ fn main() {
         eprintln!("Error sending metrics: {}", err);
     }
 
+    // Create a client with an error handler and default "region" tag
     let client = StatsdClient::builder("my.prefix", NopMetricSink)
         .with_error_handler(my_error_handler)
+        .with_tag("region", "us-west-2")
         .build();
 
     // In this case we are sending a counter metric with two tag key-value
@@ -29,7 +33,7 @@ fn main() {
     client
         .count_with_tags("requests.handled", 1)
         .with_tag("app", "search")
-        .with_tag("region", "us-west-2")
+        .with_tag("user", "1234")
         .send();
 
     // In this case we are sending the same counter metrics with two tags.
@@ -38,7 +42,7 @@ fn main() {
     let res = client
         .count_with_tags("requests.handled", 1)
         .with_tag("app", "search")
-        .with_tag("region", "us-west-2")
+        .with_tag("user", "1234")
         .try_send();
 
     println!("Result of metric send: {:?}", res);
