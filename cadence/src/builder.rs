@@ -84,7 +84,7 @@ where
 
 impl fmt::Display for MetricValue {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match &*self {
+        match self {
             MetricValue::Signed(v) => v.fmt(f),
             MetricValue::PackedSigned(v) => write_value(f, v),
             MetricValue::Unsigned(v) => v.fmt(f),
