@@ -499,6 +499,7 @@ mod tests {
         let worker_ref2 = worker.clone();
 
         #[allow(unreachable_code)]
+        #[allow(clippy::diverging_sub_expression)]
         let t1 = thread::spawn(move || {
             worker_ref1.submit(panic!("This thread is supposed to panic")).unwrap();
         });
