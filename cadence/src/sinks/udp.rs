@@ -109,7 +109,7 @@ impl UdpMetricSink {
 
 impl MetricSink for UdpMetricSink {
     fn emit(&self, metric: &str) -> io::Result<usize> {
-        self.socket.send_to(metric.as_bytes(), &self.addr)
+        self.socket.send_to(metric.as_bytes(), self.addr)
     }
 }
 
@@ -128,7 +128,7 @@ impl UdpWriteAdapter {
 
 impl Write for UdpWriteAdapter {
     fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
-        self.socket.send_to(buf, &self.addr)
+        self.socket.send_to(buf, self.addr)
     }
 
     fn flush(&mut self) -> io::Result<()> {

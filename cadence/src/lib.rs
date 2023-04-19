@@ -490,8 +490,6 @@ pub use self::client::{
     StatsdClientBuilder, Timed,
 };
 
-pub use self::compat::Compat;
-
 pub use self::sinks::{
     BufferedSpyMetricSink, BufferedUdpMetricSink, MetricSink, NopMetricSink, QueuingMetricSink, SpyMetricSink,
     UdpMetricSink,
@@ -503,7 +501,6 @@ pub use self::types::{
 
 mod builder;
 mod client;
-mod compat;
 pub mod ext;
 mod io;
 pub mod prelude;

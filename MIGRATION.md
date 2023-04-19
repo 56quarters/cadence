@@ -2,6 +2,17 @@
 
 Guides for migrating to different versions of Cadence are below.
 
+## Migrating to 1.0.0
+
+In version `1.0.0` of Cadence deprecated methods have been removed.
+
+In particular:
+* `StatsdClient::from_udp_host()` (deprecated since `0.19.0`) method has been removed. Instead,
+  callers should use `StatsdClient::from_sink()` or `StatsdClient::builder()`.
+* The `Compat` trait (deprecated since `0.26.0`), providing implementations of deprecated methods
+  for `StatsdClient` has been removed. Callers should use the replacements detailed in the `0.26`
+  migration notes.
+
 ## Migrating to 0.29
 
 There are no backwards incompatible changes in this release.
