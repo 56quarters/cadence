@@ -9,14 +9,12 @@
 // except according to those terms.
 
 use crate::builder::{MetricBuilder, MetricFormatter, MetricValue};
-use crate::compat::Compat;
 use crate::sealed::Sealed;
-use crate::sinks::{MetricSink, UdpMetricSink};
+use crate::sinks::MetricSink;
 use crate::types::{
     Counter, Distribution, ErrorKind, Gauge, Histogram, Meter, Metric, MetricError, MetricResult, Set, Timer,
 };
 use std::fmt;
-use std::net::{ToSocketAddrs, UdpSocket};
 use std::panic::RefUnwindSafe;
 use std::time::Duration;
 use std::u64;
@@ -524,7 +522,6 @@ pub trait MetricClient:
     + Distributed<Vec<u64>>
     + Distributed<Vec<f64>>
     + Setted<i64>
-    + Compat
 {
 }
 
@@ -865,44 +862,6 @@ impl StatsdClient {
         T: MetricSink + Sync + Send + RefUnwindSafe + 'static,
     {
         Self::builder(prefix, sink).build()
-    }
-
-    /// Create a new client instance that will use the given prefix to send
-    /// metrics to the given host over UDP using an appropriate sink.
-    ///
-    /// The created UDP socket will be put into non-blocking mode.
-    ///
-    /// Note that this client will discard errors encountered when
-    /// sending metrics via the `MetricBuilder::send()` method.
-    ///
-    /// # Example
-    ///
-    /// ```no_run
-    /// use cadence::{StatsdClient, UdpMetricSink};
-    ///
-    /// let prefix = "my.stats";
-    /// let host = ("metrics.example.com", 8125);
-    ///
-    /// let client = StatsdClient::from_udp_host(prefix, host);
-    /// ```
-    ///
-    /// # Failures
-    ///
-    /// This method may fail if:
-    ///
-    /// * It is unable to create a local UDP socket.
-    /// * It is unable to put the UDP socket into non-blocking mode.
-    /// * It is unable to resolve the hostname of the metric server.
-    /// * The host address is otherwise unable to be parsed.
-    #[deprecated(since = "0.19.0", note = "Superseded by ::from_sink() and ::builder()")]
-    pub fn from_udp_host<A>(prefix: &str, host: A) -> MetricResult<Self>
-    where
-        A: ToSocketAddrs,
-    {
-        let socket = UdpSocket::bind("0.0.0.0:0")?;
-        socket.set_nonblocking(true)?;
-        let sink = UdpMetricSink::from(host, socket)?;
-        Ok(StatsdClient::builder(prefix, sink).build())
     }
 
     /// Create a new builder with the provided prefix and metric sink.
