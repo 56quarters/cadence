@@ -9,15 +9,22 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
+mod byte_str;
+#[cfg(feature = "sample-rate")]
+mod sample_rate;
+mod sampler;
+
 use crate::client::{MetricBackend, StatsdClient};
 use crate::types::{Metric, MetricError, MetricResult};
-use crate::ErrorKind;
+#[cfg(feature = "sample-rate")]
+use sample_rate::SampleRate;
+use sampler::{Sampler, Sampling};
 use std::fmt::{self, Write};
 use std::marker::PhantomData;
 
 /// Type of metric that knows how to display itself
 #[derive(Debug, Clone, Copy)]
-enum MetricType {
+pub(crate) enum MetricType {
     Counter,
     Timer,
     Gauge,
@@ -105,7 +112,8 @@ pub(crate) struct MetricFormatter<'a> {
     tags: Vec<(Option<&'a str>, &'a str)>,
     base_size: usize,
     kv_size: usize,
-    sample_rate: SampleRate,
+    #[cfg(feature = "sample-rate")]
+    sample_rate: Option<SampleRate>,
 }
 
 impl<'a> MetricFormatter<'a> {
@@ -155,7 +163,8 @@ impl<'a> MetricFormatter<'a> {
             // allocate.
             kv_size: 0,
             base_size: prefix.len() + key.len() + 1 /* : */ + 10 * value_count /* value(s) */ + 1 /* | */ + 2, /* type */
-            sample_rate: SampleRate::default(),
+            #[cfg(feature = "sample-rate")]
+            sample_rate: None
         }
     }
 
@@ -169,14 +178,31 @@ impl<'a> MetricFormatter<'a> {
         self.kv_size += value.len();
     }
 
+    #[cfg(feature = "sample-rate")]
     fn with_sample_rate(&mut self, sample_rate: f32) {
+        if sample_rate == 1.0 {
+            return;
+        }
+
         match SampleRate::try_from(sample_rate) {
             Ok(sr) => {
-                self.sample_rate = sr;
-                self.kv_size += SampleRate::KV_SIZE;
+                self.sample_rate = Some(sr);
+                self.kv_size += sr.kv_size();
             }
             Err(e) => panic!("invalid sample rate for metric {}: {}", self.key, e),
         };
+    }
+
+    /// Returns the sampler to use for this metric, based on features.
+    #[cfg(feature = "sample-rate")]
+    fn sampler(&self) -> Option<Sampler> {
+        self.sample_rate
+            .map(|sample_rate| Sampler::new_with_rate(sample_rate.value()))
+    }
+
+    #[cfg(not(feature = "sample-rate"))]
+    fn sampler(&self) -> Option<Sampler> {
+        None
     }
 
     fn write_base_metric(&self, out: &mut String) {
@@ -199,10 +225,13 @@ impl<'a> MetricFormatter<'a> {
         }
     }
 
+    #[cfg(feature = "sample-rate")]
     fn write_sample_rate(&self, out: &mut String) {
-        if self.sample_rate.value < 1.0 {
-            out.push('|');
-            write!(out, "{}", self.sample_rate).unwrap()
+        if let Some(sample_rate) = self.sample_rate {
+            if sample_rate.is_applicable_to_metric(self.type_) {
+                out.push('|');
+                out.push_str(sample_rate.as_str())
+            }
         }
     }
 
@@ -220,6 +249,7 @@ impl<'a> MetricFormatter<'a> {
         let mut metric_string = String::with_capacity(size_hint);
         self.write_base_metric(&mut metric_string);
         self.write_tags(&mut metric_string);
+        #[cfg(feature = "sample-rate")]
         self.write_sample_rate(&mut metric_string);
         metric_string
     }
@@ -404,6 +434,7 @@ where
     ///     res.unwrap().as_metric_str()
     /// );
     /// ```
+    #[cfg(feature = "sample-rate")]
     pub fn with_sample_rate(mut self, sample_rate: f32) -> Self {
         if let BuilderRepr::Success(ref mut formatter, _) = self.repr {
             formatter.with_sample_rate(sample_rate);
@@ -454,7 +485,18 @@ where
             BuilderRepr::Error(err, _) => Err(err),
             BuilderRepr::Success(ref formatter, client) => {
                 let metric = T::from(formatter.format());
-                client.send_metric(&metric)?;
+
+                match formatter.sampler() {
+                    Some(sampler) => {
+                        if let Some(sampled_metric) = sampler.sample(&metric) {
+                            client.send_metric(sampled_metric)?
+                        }
+
+                        Ok(())
+                    }
+                    None => client.send_metric(&metric),
+                }?;
+
                 Ok(metric)
             }
         }
@@ -500,94 +542,9 @@ where
     }
 }
 
-#[derive(Debug, Clone, Copy)]
-struct SampleRate {
-    value: f32,
-    outbuf: [u8; Self::BUF_SIZE],
-    outbuf_len: u8,
-}
-
-impl fmt::Write for SampleRate {
-    fn write_str(&mut self, s: &str) -> fmt::Result {
-        let outlen = self.outbuf_len as usize;
-        let to_take = Self::BUF_SIZE - outlen;
-        let to_take = s.len().min(to_take);
-        let bytes = s.as_bytes().get(..to_take).unwrap();
-
-        assert!(outlen + bytes.len() <= Self::BUF_SIZE);
-
-        self.outbuf[self.outbuf_len.into()..outlen + bytes.len()].copy_from_slice(bytes);
-        self.outbuf_len += bytes.len() as u8;
-
-        Ok(())
-    }
-}
-impl SampleRate {
-    const BUF_SIZE: usize = 7;
-    const KV_SIZE: usize = 1 + Self::BUF_SIZE;
-
-    fn new(value: f32) -> Self {
-        let mut sr = Self {
-            value,
-            outbuf: Default::default(),
-            outbuf_len: Default::default(),
-        };
-
-        sr.write_float(value);
-        sr.trim();
-        sr
-    }
-
-    fn trim(&mut self) {
-        while self.outbuf[self.outbuf_len as usize - 1] == b'0' {
-            self.outbuf_len -= 1;
-
-            if self.outbuf_len == 2 {
-                break;
-            }
-        }
-    }
-
-    fn write_float(&mut self, value: f32) {
-        write!(self, "{:.6}", value).expect("failed to write sample rate");
-    }
-}
-
-impl Default for SampleRate {
-    fn default() -> Self {
-        let buf = [b'1', b'.', 0, 0, 0, 0, 0];
-
-        Self {
-            value: 1.0,
-            outbuf: buf,
-            outbuf_len: 2,
-        }
-    }
-}
-
-impl TryFrom<f32> for SampleRate {
-    type Error = MetricError;
-
-    fn try_from(rate: f32) -> Result<Self, Self::Error> {
-        if rate > 0.0 && rate <= 1.0 {
-            Ok(Self::new(rate))
-        } else {
-            let err = MetricError::from((ErrorKind::InvalidInput, "Sample rate must be between 0.0 and 1.0"));
-            Err(err)
-        }
-    }
-}
-
-impl fmt::Display for SampleRate {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let string = std::str::from_utf8(&self.outbuf[0..(self.outbuf_len as usize)]).expect("invalid utf8");
-        write!(f, "@{}", string)
-    }
-}
-
 #[cfg(test)]
 mod tests {
-    use super::{MetricBuilder, MetricFormatter, MetricValue, SampleRate};
+    use super::{MetricBuilder, MetricFormatter, MetricValue};
     use crate::client::StatsdClient;
     use crate::sinks::NopMetricSink;
     use crate::test::ErrorMetricSink;
@@ -842,17 +799,6 @@ mod tests {
     }
 
     #[test]
-    fn test_metric_builder_try_send_success() {
-        let fmt = MetricFormatter::counter("prefix.", "some.counter", MetricValue::Signed(11));
-        let client = StatsdClient::from_sink("prefix.", NopMetricSink);
-
-        let builder: MetricBuilder<'_, '_, Counter> = MetricBuilder::from_fmt(fmt, &client);
-        let res = builder.try_send();
-
-        assert!(res.is_ok(), "expected Ok result from try_send");
-    }
-
-    #[test]
     fn test_metric_builder_try_send_error() {
         let fmt = MetricFormatter::counter("prefix.", "some.counter", MetricValue::Signed(11));
         let client = StatsdClient::from_sink("prefix.", ErrorMetricSink::always());
@@ -861,36 +807,5 @@ mod tests {
         let res = builder.try_send();
 
         assert!(res.is_err(), "expected Err result from try_send");
-    }
-
-    #[test]
-    fn test_metric_formatter_counter_with_sample_rate() {
-        let mut fmt = MetricFormatter::counter("prefix.", "some.key", MetricValue::Signed(4));
-        fmt.with_sample_rate(0.5);
-
-        assert_eq!("prefix.some.key:4|c|@0.5", &fmt.format())
-    }
-
-    #[test]
-    fn test_metric_formatter_counter_with_sample_rate_rounding() {
-        let mut fmt = MetricFormatter::counter("prefix.", "some.key", MetricValue::Signed(4));
-        fmt.with_sample_rate(1.0 / 54.0);
-
-        assert_eq!("prefix.some.key:4|c|@0.01851", &fmt.format())
-    }
-
-    #[test]
-    fn test_sample_rate_kv_size() {
-        let sr = SampleRate::try_from(1.0 / 3.0).unwrap();
-
-        assert_eq!(SampleRate::KV_SIZE, sr.to_string().len());
-    }
-
-    #[test]
-    fn test_doesnt_write_default_sample_rate() {
-        let mut fmt = MetricFormatter::counter("prefix.", "some.key", MetricValue::Signed(4));
-        fmt.with_sample_rate(1.0);
-
-        assert_eq!("prefix.some.key:4|c", &fmt.format())
     }
 }
