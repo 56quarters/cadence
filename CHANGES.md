@@ -5,7 +5,7 @@
   [#181](https://github.com/56quarters/cadence/pull/181). These methods have been
   deprecated since `v0.26`. See [MIGRATION.md](MIGRATION.md) for more information.
 
-## [v0.29.1](https://github.com/56quarters/cadence/tree/0.29.1) - 2022-05-22
+## [v0.29.1](https://github.com/56quarters/cadence/tree/0.29.1) - 2023-05-22
 * Fix a bug where distribution metrics didn't include default tags per
   [#184](https://github.com/56quarters/cadence/pull/184).
   Thanks to @danielsig727 for this contribution.
