@@ -1063,7 +1063,8 @@ where
 {
     fn distribution_with_tags<'a>(&'a self, key: &'a str, value: T) -> MetricBuilder<'_, '_, Distribution> {
         match value.try_to_value() {
-            Ok(v) => MetricBuilder::from_fmt(MetricFormatter::distribution(&self.prefix, key, v), self),
+            Ok(v) => MetricBuilder::from_fmt(MetricFormatter::distribution(&self.prefix, key, v), self)
+                .with_tags(self.tags()),
             Err(e) => MetricBuilder::from_error(e, self),
         }
     }
@@ -1467,6 +1468,23 @@ mod tests {
 
         assert_eq!(
             "prefix.some.distr:27|d|#host:www03.example.com,rc1",
+            res.unwrap().as_metric_str()
+        );
+    }
+
+    #[test]
+    fn test_statsd_client_distribution_with_default_tags() {
+        let client = StatsdClientBuilder::new("prefix", NopMetricSink)
+            .with_tag("foo", "bar")
+            .build();
+        let res = client
+            .distribution_with_tags("some.distr", 27)
+            .with_tag("host", "www03.example.com")
+            .with_tag_value("rc1")
+            .try_send();
+
+        assert_eq!(
+            "prefix.some.distr:27|d|#foo:bar,host:www03.example.com,rc1",
             res.unwrap().as_metric_str()
         );
     }
