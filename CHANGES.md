@@ -1,6 +1,6 @@
 # Changelog
 
-## [v1.0.0](https://github.com/56quarters/cadence/tree/1.0.0) - unreleased
+## [v1.0.0](https://github.com/56quarters/cadence/tree/1.0.0) - 2023-12-02
 * Remove deprecated `StatsdClient::from_udp_host` method and `Compat` trait per
   [#181](https://github.com/56quarters/cadence/pull/181). These methods have been
   deprecated since `v0.26`. See [MIGRATION.md](MIGRATION.md) for more information.
