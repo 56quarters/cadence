@@ -14,5 +14,13 @@ autobenches = false
 
 [dependencies]
 crossbeam-channel = "0.5.1"
+rand = { version = "0.8.5", optional = true }
+
+[dev-dependencies]
+cadence = { path = ".", features = ["sample-rate"] }
+rand_chacha = "0.3.1"
+
+[features]
+sample-rate = ["rand"]
 
 

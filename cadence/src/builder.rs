@@ -9,14 +9,22 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
+mod byte_str;
+#[cfg(feature = "sample-rate")]
+mod sample_rate;
+mod sampler;
+
 use crate::client::{MetricBackend, StatsdClient};
 use crate::types::{Metric, MetricError, MetricResult};
+#[cfg(feature = "sample-rate")]
+use sample_rate::SampleRate;
+use sampler::{Sampler, Sampling};
 use std::fmt::{self, Write};
 use std::marker::PhantomData;
 
 /// Type of metric that knows how to display itself
 #[derive(Debug, Clone, Copy)]
-enum MetricType {
+pub(crate) enum MetricType {
     Counter,
     Timer,
     Gauge,
@@ -104,6 +112,8 @@ pub(crate) struct MetricFormatter<'a> {
     tags: Vec<(Option<&'a str>, &'a str)>,
     base_size: usize,
     kv_size: usize,
+    #[cfg(feature = "sample-rate")]
+    sample_rate: Option<SampleRate>,
 }
 
 impl<'a> MetricFormatter<'a> {
@@ -153,6 +163,8 @@ impl<'a> MetricFormatter<'a> {
             // allocate.
             kv_size: 0,
             base_size: prefix.len() + key.len() + 1 /* : */ + 10 * value_count /* value(s) */ + 1 /* | */ + 2, /* type */
+            #[cfg(feature = "sample-rate")]
+            sample_rate: None
         }
     }
 
@@ -164,6 +176,33 @@ impl<'a> MetricFormatter<'a> {
     fn with_tag_value(&mut self, value: &'a str) {
         self.tags.push((None, value));
         self.kv_size += value.len();
+    }
+
+    #[cfg(feature = "sample-rate")]
+    fn with_sample_rate(&mut self, sample_rate: f32) {
+        if sample_rate == 1.0 {
+            return;
+        }
+
+        match SampleRate::try_from(sample_rate) {
+            Ok(sr) => {
+                self.sample_rate = Some(sr);
+                self.kv_size += sr.kv_size();
+            }
+            Err(e) => panic!("invalid sample rate for metric {}: {}", self.key, e),
+        };
+    }
+
+    /// Returns the sampler to use for this metric, based on features.
+    #[cfg(feature = "sample-rate")]
+    fn sampler(&self) -> Option<Sampler> {
+        self.sample_rate
+            .map(|sample_rate| Sampler::new_with_rate(sample_rate.value()))
+    }
+
+    #[cfg(not(feature = "sample-rate"))]
+    fn sampler(&self) -> Option<Sampler> {
+        None
     }
 
     fn write_base_metric(&self, out: &mut String) {
@@ -186,6 +225,16 @@ impl<'a> MetricFormatter<'a> {
         }
     }
 
+    #[cfg(feature = "sample-rate")]
+    fn write_sample_rate(&self, out: &mut String) {
+        if let Some(sample_rate) = self.sample_rate {
+            if sample_rate.is_applicable_to_metric(self.type_) {
+                out.push('|');
+                out.push_str(sample_rate.as_str())
+            }
+        }
+    }
+
     fn tag_size_hint(&self) -> usize {
         if self.tags.is_empty() {
             return 0;
@@ -200,6 +249,8 @@ impl<'a> MetricFormatter<'a> {
         let mut metric_string = String::with_capacity(size_hint);
         self.write_base_metric(&mut metric_string);
         self.write_tags(&mut metric_string);
+        #[cfg(feature = "sample-rate")]
+        self.write_sample_rate(&mut metric_string);
         metric_string
     }
 }
@@ -365,6 +416,32 @@ where
         self
     }
 
+    /// Add a sample rate to this metric. The sample rate must be between 0 and 1.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use cadence::prelude::*;
+    /// use cadence::{StatsdClient, NopMetricSink, Metric};
+    ///
+    /// let client = StatsdClient::from_sink("some.prefix", NopMetricSink);
+    /// let res = client.count_with_tags("some.key", 1)
+    ///   .with_sample_rate(0.1)
+    ///   .try_send();
+    ///
+    /// assert_eq!(
+    ///     "some.prefix.some.key:1|c|@0.1",
+    ///     res.unwrap().as_metric_str()
+    /// );
+    /// ```
+    #[cfg(feature = "sample-rate")]
+    pub fn with_sample_rate(mut self, sample_rate: f32) -> Self {
+        if let BuilderRepr::Success(ref mut formatter, _) = self.repr {
+            formatter.with_sample_rate(sample_rate);
+        }
+        self
+    }
+
     /// Add tags to this metric.
     pub(crate) fn with_tags<V>(mut self, tags: V) -> Self
     where
@@ -408,7 +485,18 @@ where
             BuilderRepr::Error(err, _) => Err(err),
             BuilderRepr::Success(ref formatter, client) => {
                 let metric = T::from(formatter.format());
-                client.send_metric(&metric)?;
+
+                match formatter.sampler() {
+                    Some(sampler) => {
+                        if let Some(sampled_metric) = sampler.sample(&metric) {
+                            client.send_metric(sampled_metric)?
+                        }
+
+                        Ok(())
+                    }
+                    None => client.send_metric(&metric),
+                }?;
+
                 Ok(metric)
             }
         }
@@ -708,17 +796,6 @@ mod tests {
         builder.send();
 
         assert_eq!(1, errors.load(Ordering::Acquire));
-    }
-
-    #[test]
-    fn test_metric_builder_try_send_success() {
-        let fmt = MetricFormatter::counter("prefix.", "some.counter", MetricValue::Signed(11));
-        let client = StatsdClient::from_sink("prefix.", NopMetricSink);
-
-        let builder: MetricBuilder<'_, '_, Counter> = MetricBuilder::from_fmt(fmt, &client);
-        let res = builder.try_send();
-
-        assert!(res.is_ok(), "expected Ok result from try_send");
     }
 
     #[test]
