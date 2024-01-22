@@ -13,6 +13,6 @@ edition = "2021"
 autobenches = false
 
 [dependencies]
-crossbeam-channel = "0.5.1"
+crossbeam-channel = "0.5.11"
 
 
