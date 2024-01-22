@@ -1,5 +1,9 @@
 # Changelog
 
+## [v1.0.1](https://github.com/56quarters/cadence/tree/1.0.1) - unreleased
+* Update `crossbeam-channel` dependency to `0.5.11`.
+* Bump minimum supported Rust version to `1.60` from `1.56`.
+
 ## [v1.0.0](https://github.com/56quarters/cadence/tree/1.0.0) - 2023-12-02
 * Remove deprecated `StatsdClient::from_udp_host` method and `Compat` trait per
   [#181](https://github.com/56quarters/cadence/pull/181). These methods have been

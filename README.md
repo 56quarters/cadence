@@ -3,7 +3,7 @@
 [![build status](https://circleci.com/gh/56quarters/cadence.svg?style=shield)](https://circleci.com/gh/56quarters/cadence)
 [![docs.rs](https://docs.rs/cadence/badge.svg)](https://docs.rs/cadence/)
 [![crates.io](https://img.shields.io/crates/v/cadence.svg)](https://crates.io/crates/cadence/)
-[![Rust 1.56+](https://img.shields.io/badge/rust-1.56+-lightgray.svg)](https://www.rust-lang.org)
+[![Rust 1.60+](https://img.shields.io/badge/rust-1.60+-lightgray.svg)](https://www.rust-lang.org)
 
 [Cadence Documentation](https://docs.rs/cadence/)
 

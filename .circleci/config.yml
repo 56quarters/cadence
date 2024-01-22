@@ -12,11 +12,11 @@ workflows:
     - rust/test:
         matrix:
           parameters:
-            # Only test stable, beta, nightly, and 1.56 since we only have a limited
-            # amount of build credits each month. We test back to 1.56 since that's
-            # the first version that supports the 2021 edition.
+            # Only test stable, beta, nightly, and 1.60 since we only have a limited
+            # amount of build credits each month. We test back to 1.60 since that's
+            # our current MSRV.
             toolchain:
             - "stable"
             - "beta"
             - "nightly"
-            - "1.56.0"
+            - "1.60.0"
