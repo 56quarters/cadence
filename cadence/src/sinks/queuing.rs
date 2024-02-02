@@ -64,9 +64,16 @@ use std::thread;
 /// At the end of this code block, all metrics are guaranteed to be sent to
 /// the underlying wrapped metric sink before the thread used by the queuing
 /// sink is stopped.
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct QueuingMetricSink {
     worker: Arc<Worker>,
+    sink: Arc<dyn MetricSink + Send + Sync + RefUnwindSafe>,
+}
+
+impl fmt::Debug for QueuingMetricSink {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "QueuingMetricSink {{ {:?} }}", self.worker)
+    }
 }
 
 impl QueuingMetricSink {
@@ -148,12 +155,14 @@ impl QueuingMetricSink {
     where
         T: MetricSink + Sync + Send + RefUnwindSafe + 'static,
     {
+        let sink = Arc::new(sink);
+        let sink_c = sink.clone();
         let worker = Arc::new(Worker::new(capacity, move |v: String| {
-            let _r = sink.emit(&v);
+            let _r = sink_c.emit(&v);
         }));
         spawn_worker_in_thread(worker.clone());
 
-        QueuingMetricSink { worker }
+        QueuingMetricSink { worker, sink }
     }
 
     /// Return the number of times the wrapped sink or underlying worker thread
@@ -191,6 +200,10 @@ impl MetricSink for QueuingMetricSink {
             Err(TrySendError::Full(_)) => Err(io::Error::new(ErrorKind::Other, "channel full")),
             Ok(_) => Ok(metric.len()),
         }
+    }
+
+    fn flush(&self) -> Result<(), std::io::Error> {
+        self.sink.flush()
     }
 }
 
