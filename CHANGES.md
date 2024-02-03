@@ -1,9 +1,9 @@
 # Changelog
 
-## [v1.1.0](https://github.com/56quarters/cadence/tree/1.1.0) - unreleased
+## [v1.1.0](https://github.com/56quarters/cadence/tree/1.1.0) - 2024-02-03
 * Update `crossbeam-channel` dependency to `0.5.11`.
 * Bump minimum supported Rust version to `1.60` from `1.56`.
-* Add `MetricSink::flush()` implementation to `QueueingMetricSink` per
+* Add `MetricSink::flush()` implementation to `QueuingMetricSink` per
   [#191](https://github.com/56quarters/cadence/pull/191). Thanks to @mlowicki
   for this contribution.
 
