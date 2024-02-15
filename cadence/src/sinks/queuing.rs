@@ -11,11 +11,46 @@
 use crate::sinks::core::MetricSink;
 use crossbeam_channel::{self, Receiver, Sender, TrySendError};
 use std::fmt;
-use std::io::{self, ErrorKind};
+use std::io::{self, Error, ErrorKind};
 use std::panic::RefUnwindSafe;
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::Arc;
 use std::thread;
+
+pub struct QueuingMetricSinkBuilder<T>
+where
+    T: MetricSink + Sync + Send + RefUnwindSafe + 'static,
+{
+    sink: T,
+    error_handler: Option<Box<dyn Fn(Error) + Sync + Send + RefUnwindSafe + 'static>>,
+    capacity: Option<usize>,
+}
+
+impl<T: MetricSink + Sync + Send + RefUnwindSafe + 'static> QueuingMetricSinkBuilder<T> {
+    pub fn new(sink: T) -> Self
+    where
+        T: MetricSink + Sync + Send + RefUnwindSafe + 'static,
+    {
+        Self {
+            sink,
+            error_handler: None,
+            capacity: None,
+        }
+    }
+
+    pub fn with_error_handler<F>(mut self, error_handler: F) -> Self
+    where
+        F: Fn(Error) + Sync + Send + RefUnwindSafe + 'static,
+    {
+        self.error_handler = Some(Box::new(error_handler));
+        self
+    }
+
+    pub fn with_capacity(mut self, capacity: usize) -> Self {
+        self.capacity = Some(capacity);
+        self
+    }
+}
 
 /// Implementation of a `MetricSink` that wraps another implementation
 /// and uses it to emit metrics asynchronously, in another thread.
@@ -111,7 +146,7 @@ impl QueuingMetricSink {
     where
         T: MetricSink + Sync + Send + RefUnwindSafe + 'static,
     {
-        Self::with_optional_capacity(sink, None)
+        Self::new_inner(sink, None, None)
     }
 
     /// Construct a new `QueuingMetricSink` instance wrapping another sink
@@ -148,17 +183,31 @@ impl QueuingMetricSink {
     where
         T: MetricSink + Sync + Send + RefUnwindSafe + 'static,
     {
-        Self::with_optional_capacity(sink, Some(capacity))
+        Self::new_inner(sink, Some(capacity), None)
     }
 
-    fn with_optional_capacity<T>(sink: T, capacity: Option<usize>) -> Self
+    pub fn from_builder<S: MetricSink + Sync + Send + RefUnwindSafe + 'static>(
+        builder: QueuingMetricSinkBuilder<S>,
+    ) -> Self {
+        Self::new_inner(builder.sink, builder.capacity, builder.error_handler)
+    }
+
+    fn new_inner<T>(
+        sink: T,
+        capacity: Option<usize>,
+        error_handler: Option<Box<dyn Fn(Error) + Sync + Send + RefUnwindSafe + 'static>>,
+    ) -> Self
     where
         T: MetricSink + Sync + Send + RefUnwindSafe + 'static,
     {
         let sink = Arc::new(sink);
         let sink_c = sink.clone();
         let worker = Arc::new(Worker::new(capacity, move |v: String| {
-            let _r = sink_c.emit(&v);
+            if let Err(e) = sink_c.emit(&v) {
+                if let Some(error_handler) = &error_handler {
+                    (error_handler)(e);
+                }
+            }
         }));
         spawn_worker_in_thread(worker.clone());
 
