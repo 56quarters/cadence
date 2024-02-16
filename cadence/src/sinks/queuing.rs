@@ -17,27 +17,53 @@ use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::Arc;
 use std::thread;
 
-pub struct QueuingMetricSinkBuilder<T>
-where
-    T: MetricSink + Sync + Send + RefUnwindSafe + 'static,
-{
-    sink: T,
+/// Implementation of a builder pattern for `QueuingMetricSink`.
+///
+/// # Example
+///
+/// ```no_run
+/// use cadence::{MetricSink, QueuingMetricSinkBuilder, NopMetricSink};
+///
+/// let queuing = QueuingMetricSinkBuilder::new().with_error_handler(|e| {
+///     println!("Error while sending metrics: {:?}", e);
+/// }).build(NopMetricSink);
+/// queuing.emit("foo.counter:4|c");
+/// ```
+pub struct QueuingMetricSinkBuilder {
     error_handler: Option<Box<dyn Fn(Error) + Sync + Send + RefUnwindSafe + 'static>>,
     capacity: Option<usize>,
 }
 
-impl<T: MetricSink + Sync + Send + RefUnwindSafe + 'static> QueuingMetricSinkBuilder<T> {
-    pub fn new(sink: T) -> Self
-    where
-        T: MetricSink + Sync + Send + RefUnwindSafe + 'static,
-    {
+impl QueuingMetricSinkBuilder {
+    /// Construct new builder.
+    pub fn new() -> Self {
         Self {
-            sink,
             error_handler: None,
             capacity: None,
         }
     }
 
+    // Construct a new `QueuingMetricSink` instance wrapping another sink based on the builder configuration.
+    pub fn build<T>(self, sink: T) -> QueuingMetricSink
+    where
+        T: MetricSink + Sync + Send + RefUnwindSafe + 'static,
+    {
+        let sink = Arc::new(sink);
+        let sink_c = sink.clone();
+        let worker = Arc::new(Worker::new(self.capacity, move |v: String| {
+            if let Err(e) = sink_c.emit(&v) {
+                if let Some(error_handler) = &self.error_handler {
+                    (error_handler)(e);
+                }
+            }
+        }));
+
+        spawn_worker_in_thread(worker.clone());
+
+        QueuingMetricSink { worker, sink }
+    }
+
+    /// Set error handler triggered when the wrapped sink fails to emit a metric.
     pub fn with_error_handler<F>(mut self, error_handler: F) -> Self
     where
         F: Fn(Error) + Sync + Send + RefUnwindSafe + 'static,
@@ -46,6 +72,7 @@ impl<T: MetricSink + Sync + Send + RefUnwindSafe + 'static> QueuingMetricSinkBui
         self
     }
 
+    /// Set queue size.
     pub fn with_capacity(mut self, capacity: usize) -> Self {
         self.capacity = Some(capacity);
         self
@@ -112,6 +139,11 @@ impl fmt::Debug for QueuingMetricSink {
 }
 
 impl QueuingMetricSink {
+    /// Construct a new builder for `QueuingMetricSink`.
+    pub fn builder() -> QueuingMetricSinkBuilder {
+        QueuingMetricSinkBuilder::new()
+    }
+
     /// Construct a new `QueuingMetricSink` instance wrapping another sink
     /// implementation with an unbounded queue connecting them.
     ///
@@ -146,7 +178,7 @@ impl QueuingMetricSink {
     where
         T: MetricSink + Sync + Send + RefUnwindSafe + 'static,
     {
-        Self::new_inner(sink, None, None)
+        Self::builder().build(sink)
     }
 
     /// Construct a new `QueuingMetricSink` instance wrapping another sink
@@ -183,35 +215,7 @@ impl QueuingMetricSink {
     where
         T: MetricSink + Sync + Send + RefUnwindSafe + 'static,
     {
-        Self::new_inner(sink, Some(capacity), None)
-    }
-
-    pub fn from_builder<S: MetricSink + Sync + Send + RefUnwindSafe + 'static>(
-        builder: QueuingMetricSinkBuilder<S>,
-    ) -> Self {
-        Self::new_inner(builder.sink, builder.capacity, builder.error_handler)
-    }
-
-    fn new_inner<T>(
-        sink: T,
-        capacity: Option<usize>,
-        error_handler: Option<Box<dyn Fn(Error) + Sync + Send + RefUnwindSafe + 'static>>,
-    ) -> Self
-    where
-        T: MetricSink + Sync + Send + RefUnwindSafe + 'static,
-    {
-        let sink = Arc::new(sink);
-        let sink_c = sink.clone();
-        let worker = Arc::new(Worker::new(capacity, move |v: String| {
-            if let Err(e) = sink_c.emit(&v) {
-                if let Some(error_handler) = &error_handler {
-                    (error_handler)(e);
-                }
-            }
-        }));
-        spawn_worker_in_thread(worker.clone());
-
-        QueuingMetricSink { worker, sink }
+        Self::builder().with_capacity(capacity).build(sink)
     }
 
     /// Return the number of times the wrapped sink or underlying worker thread
