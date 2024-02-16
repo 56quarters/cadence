@@ -79,6 +79,12 @@ impl QueuingMetricSinkBuilder {
     }
 }
 
+impl Default for QueuingMetricSinkBuilder {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 /// Implementation of a `MetricSink` that wraps another implementation
 /// and uses it to emit metrics asynchronously, in another thread.
 ///
