@@ -491,8 +491,8 @@ pub use self::client::{
 };
 
 pub use self::sinks::{
-    BufferedSpyMetricSink, BufferedUdpMetricSink, MetricSink, NopMetricSink, QueuingMetricSink, SpyMetricSink,
-    UdpMetricSink,
+    BufferedSpyMetricSink, BufferedUdpMetricSink, MetricSink, NopMetricSink, QueuingMetricSink,
+    QueuingMetricSinkBuilder, SpyMetricSink, UdpMetricSink,
 };
 
 pub use self::types::{
