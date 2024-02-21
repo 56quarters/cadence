@@ -1,5 +1,10 @@
 # Changelog
 
+## [v1.2.0](https://github.com/56quarters/cadence/tree/1.2.0) - Unreleased
+* Add `QueuingMetricSinkBuilder` to allow an error handler to be set for
+  the wrapped `MetricSink` implementation per [#195](https://github.com/56quarters/cadence/pull/195).
+  Thanks to @mlowicki for this contribution.
+
 ## [v1.1.0](https://github.com/56quarters/cadence/tree/1.1.0) - 2024-02-03
 * Update `crossbeam-channel` dependency to `0.5.11`.
 * Bump minimum supported Rust version to `1.60` from `1.56`.
