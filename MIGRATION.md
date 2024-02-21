@@ -2,6 +2,14 @@
 
 Guides for migrating to different versions of Cadence are below.
 
+## Migrating to 1.2.0
+
+There are no backwards incompatible changes in this release.
+
+## Migrating to 1.1.0
+
+There are no backwards incompatible changes in this release.
+
 ## Migrating to 1.0.0
 
 In version `1.0.0` of Cadence deprecated methods have been removed.

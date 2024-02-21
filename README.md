@@ -120,7 +120,7 @@ additional terms or conditions.
 
 ## Language Support
 
-Cadence (latest master) supports building with a range of `1.56+` versions.
+Cadence (latest master) supports building with a range of `1.60+` versions.
 
 ### Guaranteed to Build
 
