@@ -1,6 +1,6 @@
 # Changelog
 
-## [v1.2.0](https://github.com/56quarters/cadence/tree/1.2.0) - Unreleased
+## [v1.2.0](https://github.com/56quarters/cadence/tree/1.2.0) - 2024-02-20
 * Add `QueuingMetricSinkBuilder` to allow an error handler to be set for
   the wrapped `MetricSink` implementation per [#195](https://github.com/56quarters/cadence/pull/195).
   Thanks to @mlowicki for this contribution.
