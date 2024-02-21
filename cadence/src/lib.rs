@@ -183,6 +183,36 @@
 //! metrics will use in your application. This is a tradeoff that users of
 //! Cadence must decide for themselves.
 //!
+
+//! It is also possible to supply an error handler for a `QueuingMetricSink` to
+//! be called whenever the wrapped sink cannot send metrics for whatever reason.
+
+//! ```rust,no_run
+//! use std::net::UdpSocket;
+//! use cadence::prelude::*;
+//! use cadence::{StatsdClient, QueuingMetricSink, BufferedUdpMetricSink,
+//!               DEFAULT_PORT};
+//!
+//! // Queue with a maximum capacity of 128K elements
+//! const QUEUE_SIZE: usize = 128 * 1024;
+//!
+//! let socket = UdpSocket::bind("0.0.0.0:0").unwrap();
+//! socket.set_nonblocking(true).unwrap();
+//!
+//! let host = ("metrics.example.com", DEFAULT_PORT);
+//! let udp_sink = BufferedUdpMetricSink::from(host, socket).unwrap();
+//! let queuing_sink = QueuingMetricSink::builder()
+//!     .with_capacity(QUEUE_SIZE)
+//!     .with_error_handler(|e| {
+//!         eprintln!("Error while sending metrics: {:?}", e);
+//!     })
+//!     .build(udp_sink);
+//! let client = StatsdClient::from_sink("my.prefix", queuing_sink);
+//!
+//! client.count("my.counter.thing", 29);
+//! client.time("my.service.call", 214);
+//! ```
+//!
 //! ### Use With Tags
 //!
 //! Adding tags to metrics is accomplished via the use of each of the `_with_tags`

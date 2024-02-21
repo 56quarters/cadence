@@ -11,7 +11,7 @@
 use crate::sinks::core::MetricSink;
 use crossbeam_channel::{self, Receiver, Sender, TrySendError};
 use std::fmt;
-use std::io::{self, Error, ErrorKind};
+use std::io::{self, ErrorKind};
 use std::panic::RefUnwindSafe;
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::Arc;
@@ -19,31 +19,41 @@ use std::thread;
 
 /// Implementation of a builder pattern for `QueuingMetricSink`.
 ///
+/// The builder can be used to set an error handler for the sink being
+/// wrapped by a `QueuingMetricSink` as well as setting the capacity of
+/// the `QueuingMetricSink`.
+///
 /// # Example
 ///
 /// ```no_run
 /// use cadence::{MetricSink, QueuingMetricSinkBuilder, NopMetricSink};
 ///
-/// let queuing = QueuingMetricSinkBuilder::new().with_error_handler(|e| {
-///     println!("Error while sending metrics: {:?}", e);
-/// }).build(NopMetricSink);
+/// let queue_size = 64 * 1024;
+/// let wrapped = NopMetricSink;
+///
+/// let queuing = QueuingMetricSinkBuilder::new()
+///     .with_capacity(queue_size)
+///     .with_error_handler(|e| {
+///         eprintln!("Error while sending metrics: {:?}", e);
+///     })
+///     .build(wrapped);
+///
 /// queuing.emit("foo.counter:4|c");
 /// ```
+#[derive(Default)]
 pub struct QueuingMetricSinkBuilder {
-    error_handler: Option<Box<dyn Fn(Error) + Sync + Send + RefUnwindSafe + 'static>>,
+    error_handler: Option<Box<dyn Fn(io::Error) + Sync + Send + RefUnwindSafe + 'static>>,
     capacity: Option<usize>,
 }
 
 impl QueuingMetricSinkBuilder {
-    /// Construct new builder.
+    /// Construct a new builder.
     pub fn new() -> Self {
-        Self {
-            error_handler: None,
-            capacity: None,
-        }
+        Self::default()
     }
 
-    // Construct a new `QueuingMetricSink` instance wrapping another sink based on the builder configuration.
+    /// Construct a new `QueuingMetricSink` instance wrapping another sink based on
+    /// the builder configuration.
     pub fn build<T>(self, sink: T) -> QueuingMetricSink
     where
         T: MetricSink + Sync + Send + RefUnwindSafe + 'static,
@@ -53,7 +63,7 @@ impl QueuingMetricSinkBuilder {
         let worker = Arc::new(Worker::new(self.capacity, move |v: String| {
             if let Err(e) = sink_c.emit(&v) {
                 if let Some(error_handler) = &self.error_handler {
-                    (error_handler)(e);
+                    error_handler(e);
                 }
             }
         }));
@@ -63,25 +73,24 @@ impl QueuingMetricSinkBuilder {
         QueuingMetricSink { worker, sink }
     }
 
-    /// Set error handler triggered when the wrapped sink fails to emit a metric.
+    /// Set error handler called when the wrapped sink fails to emit a metric.
+    ///
+    /// The error handler will be run in the same thread as the wrapped sink and
+    /// must not panic.
     pub fn with_error_handler<F>(mut self, error_handler: F) -> Self
     where
-        F: Fn(Error) + Sync + Send + RefUnwindSafe + 'static,
+        F: Fn(io::Error) + Sync + Send + RefUnwindSafe + 'static,
     {
         self.error_handler = Some(Box::new(error_handler));
         self
     }
 
-    /// Set queue size.
+    /// Set queue size used to send metrics to the wrapped sink.
+    ///
+    /// See `QueuingMetricSink::with_capacity` for more information.
     pub fn with_capacity(mut self, capacity: usize) -> Self {
         self.capacity = Some(capacity);
         self
-    }
-}
-
-impl Default for QueuingMetricSinkBuilder {
-    fn default() -> Self {
-        Self::new()
     }
 }
 
@@ -100,7 +109,7 @@ impl Default for QueuingMetricSinkBuilder {
 /// called).
 ///
 /// This sink may be created with either a bounded or unbounded queue
-/// connecting the sink to the thread performning network operations. When an
+/// connecting the sink to the thread performing network operations. When an
 /// unbounded queue is used, entries submitted to the sink will always be
 /// accepted and queued until they can be drained by the network operation
 /// thread. This means that if the network thread cannot drain entries off
