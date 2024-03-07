@@ -940,6 +940,7 @@ impl StatsdClient {
     ///
     /// ```
     /// use std::net::UdpSocket;
+    /// use cadence::prelude::*;
     /// use cadence::{StatsdClient, BufferedUdpMetricSink, DEFAULT_PORT};
     ///
     /// let prefix = "my.stats";
