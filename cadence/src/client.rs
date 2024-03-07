@@ -23,7 +23,7 @@ use std::u64;
 /// Conversion trait for valid values for counters
 ///
 /// This trait must be implemented for any types that are used as counter
-/// values (currently only `i64`). This trait is internal to how values are
+/// values (currently only `i64`, `i32`, `u64`, and `u32`). This trait is internal to how values are
 /// formatted as part of metrics but is exposed publicly for documentation
 /// purposes.
 ///
@@ -38,9 +38,21 @@ impl ToCounterValue for i64 {
     }
 }
 
+impl ToCounterValue for i32 {
+    fn try_to_value(self) -> MetricResult<MetricValue> {
+        Ok(MetricValue::Signed(self.into()))
+    }
+}
+
 impl ToCounterValue for u64 {
     fn try_to_value(self) -> MetricResult<MetricValue> {
         Ok(MetricValue::Unsigned(self))
+    }
+}
+
+impl ToCounterValue for u32 {
+    fn try_to_value(self) -> MetricResult<MetricValue> {
+        Ok(MetricValue::Unsigned(self.into()))
     }
 }
 
