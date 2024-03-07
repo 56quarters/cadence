@@ -15,6 +15,7 @@ use crate::types::{
     Counter, Distribution, ErrorKind, Gauge, Histogram, Meter, Metric, MetricError, MetricResult, Set, Timer,
 };
 use std::fmt;
+use std::io;
 use std::panic::RefUnwindSafe;
 use std::time::Duration;
 use std::u64;
@@ -34,6 +35,12 @@ pub trait ToCounterValue {
 impl ToCounterValue for i64 {
     fn try_to_value(self) -> MetricResult<MetricValue> {
         Ok(MetricValue::Signed(self))
+    }
+}
+
+impl ToCounterValue for u64 {
+    fn try_to_value(self) -> MetricResult<MetricValue> {
+        Ok(MetricValue::Unsigned(self))
     }
 }
 
@@ -920,6 +927,10 @@ impl StatsdClient {
 
     fn tags(&self) -> impl IntoIterator<Item = (Option<&str>, &str)> {
         self.tags.iter().map(|(k, v)| (k.as_deref(), v.as_str()))
+    }
+
+    fn flush(&self) -> io::Result<()> {
+        self.sink.flush()
     }
 }
 
