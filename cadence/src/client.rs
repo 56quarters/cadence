@@ -953,7 +953,7 @@ impl StatsdClient {
     /// client.count("time-sensitive.keyA", 1);
     /// client.count("time-sensitive.keyB", 2);
     /// client.count("time-sensitive.keyC", 3);
-    /// ...
+    /// // Any number of time-sensitive metrics ... //
     /// client.flush();
     /// ```
     pub fn flush(&self) -> io::Result<()> {
