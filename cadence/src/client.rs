@@ -1552,18 +1552,21 @@ mod tests {
         client.count("some.counter", 5).unwrap();
     }
 
+    #[test]
     fn test_statsd_client_as_counted_i32() {
         let client: Box<dyn Counted<i32>> = Box::new(StatsdClient::from_sink("prefix", NopMetricSink));
 
         client.count("some.counter", 10i32).unwrap();
     }
 
+    #[test]
     fn test_statsd_client_as_counted_u64() {
         let client: Box<dyn Counted<u64>> = Box::new(StatsdClient::from_sink("prefix", NopMetricSink));
 
         client.count("some.counter", 20u64).unwrap();
     }
 
+    #[test]
     fn test_statsd_client_as_counted_u32() {
         let client: Box<dyn Counted<u32>> = Box::new(StatsdClient::from_sink("prefix", NopMetricSink));
 
