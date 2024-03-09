@@ -22,7 +22,7 @@ use std::u64;
 /// Conversion trait for valid values for counters
 ///
 /// This trait must be implemented for any types that are used as counter
-/// values (currently only `i64`). This trait is internal to how values are
+/// values (currently `i64`, `i32`, `u64`, and `u32`). This trait is internal to how values are
 /// formatted as part of metrics but is exposed publicly for documentation
 /// purposes.
 ///
@@ -34,6 +34,23 @@ pub trait ToCounterValue {
 impl ToCounterValue for i64 {
     fn try_to_value(self) -> MetricResult<MetricValue> {
         Ok(MetricValue::Signed(self))
+    }
+}
+impl ToCounterValue for i32 {
+    fn try_to_value(self) -> MetricResult<MetricValue> {
+        Ok(MetricValue::Signed(self.into()))
+    }
+}
+
+impl ToCounterValue for u64 {
+    fn try_to_value(self) -> MetricResult<MetricValue> {
+        Ok(MetricValue::Unsigned(self))
+    }
+}
+
+impl ToCounterValue for u32 {
+    fn try_to_value(self) -> MetricResult<MetricValue> {
+        Ok(MetricValue::Unsigned(self.into()))
     }
 }
 
@@ -487,6 +504,9 @@ where
 ///     "prefix", NopMetricSink));
 ///
 /// client.count("some.counter", 1).unwrap();
+/// client.count("some.counter", 2i32).unwrap();
+/// client.count("some.counter", 4u64).unwrap();
+/// client.count("some.counter", 8u32).unwrap();
 /// client.time("some.timer", 42).unwrap();
 /// client.time("some.timer", Duration::from_millis(42)).unwrap();
 /// client.time("some.timer", vec![42]).unwrap();
@@ -503,6 +523,9 @@ where
 /// ```
 pub trait MetricClient:
     Counted<i64>
+    + Counted<i32>
+    + Counted<u64>
+    + Counted<u32>
     + CountedExt
     + Timed<u64>
     + Timed<Duration>
@@ -1523,10 +1546,31 @@ mod tests {
     // we hadn't, this wouldn't compile.
 
     #[test]
-    fn test_statsd_client_as_counted() {
+    fn test_statsd_client_as_counted_i64() {
         let client: Box<dyn Counted<i64>> = Box::new(StatsdClient::from_sink("prefix", NopMetricSink));
 
         client.count("some.counter", 5).unwrap();
+    }
+
+    #[test]
+    fn test_statsd_client_as_counted_i32() {
+        let client: Box<dyn Counted<i32>> = Box::new(StatsdClient::from_sink("prefix", NopMetricSink));
+
+        client.count("some.counter", 10i32).unwrap();
+    }
+
+    #[test]
+    fn test_statsd_client_as_counted_u64() {
+        let client: Box<dyn Counted<u64>> = Box::new(StatsdClient::from_sink("prefix", NopMetricSink));
+
+        client.count("some.counter", 20u64).unwrap();
+    }
+
+    #[test]
+    fn test_statsd_client_as_counted_u32() {
+        let client: Box<dyn Counted<u32>> = Box::new(StatsdClient::from_sink("prefix", NopMetricSink));
+
+        client.count("some.counter", 40u32).unwrap();
     }
 
     #[test]
@@ -1664,7 +1708,10 @@ mod tests {
             QueuingMetricSink::from(NopMetricSink),
         ));
 
-        client.count("some.counter", 3).unwrap();
+        client.count("some.counter", 3).unwrap(); // this defaults to i64
+        client.count("some.counter", 6i32).unwrap();
+        client.count("some.counter", 12u64).unwrap();
+        client.count("some.counter", 24u32).unwrap();
         client.time("some.timer", 198).unwrap();
         client.time("some.timer", Duration::from_millis(198)).unwrap();
         client.time("some.timer", vec![198]).unwrap();
