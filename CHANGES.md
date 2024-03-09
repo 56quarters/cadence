@@ -1,5 +1,10 @@
 # Changelog
 
+## [v1.3.0](https://github.com/56quarters/cadence/tree/1.3.0) - Unreleased
+* Add support for using `u64`, `i32`, and `u32` types as counters per
+  [#201](https://github.com/56quarters/cadence/pull/201). Thanks to @James-Bartman
+  for this contribution.
+
 ## [v1.2.0](https://github.com/56quarters/cadence/tree/1.2.0) - 2024-02-20
 * Add `QueuingMetricSinkBuilder` to allow an error handler to be set for
   the wrapped `MetricSink` implementation per [#195](https://github.com/56quarters/cadence/pull/195).

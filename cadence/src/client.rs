@@ -36,6 +36,7 @@ impl ToCounterValue for i64 {
         Ok(MetricValue::Signed(self))
     }
 }
+
 impl ToCounterValue for i32 {
     fn try_to_value(self) -> MetricResult<MetricValue> {
         Ok(MetricValue::Signed(self.into()))
@@ -118,6 +119,7 @@ impl ToGaugeValue for u64 {
         Ok(MetricValue::Unsigned(self))
     }
 }
+
 impl ToGaugeValue for f64 {
     fn try_to_value(self) -> MetricResult<MetricValue> {
         Ok(MetricValue::Float(self))
