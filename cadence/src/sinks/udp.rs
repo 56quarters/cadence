@@ -14,7 +14,7 @@ use std::net::{SocketAddr, ToSocketAddrs, UdpSocket};
 use std::sync::Mutex;
 
 use crate::io::MultiLineWriter;
-use crate::sinks::core::MetricSink;
+use crate::sinks::core::{MetricSink, SinkStats, WriterStats};
 use crate::types::{ErrorKind, MetricError, MetricResult};
 
 // Default size of the buffer for buffered metric sinks. This
@@ -118,17 +118,29 @@ impl MetricSink for UdpMetricSink {
 pub(crate) struct UdpWriteAdapter {
     addr: SocketAddr,
     socket: UdpSocket,
+    stats: WriterStats,
 }
 
 impl UdpWriteAdapter {
-    pub(crate) fn new(addr: SocketAddr, socket: UdpSocket) -> UdpWriteAdapter {
-        UdpWriteAdapter { addr, socket }
+    pub(crate) fn new(addr: SocketAddr, socket: UdpSocket, stats: WriterStats) -> UdpWriteAdapter {
+        UdpWriteAdapter { addr, socket, stats }
     }
 }
 
 impl Write for UdpWriteAdapter {
     fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
-        self.socket.send_to(buf, self.addr)
+        match self.socket.send_to(buf, self.addr) {
+            Ok(written) => {
+                self.stats.incr_bytes_sent(written as u64);
+                self.stats.incr_packets_sent();
+                Ok(written)
+            }
+            Err(e) => {
+                self.stats.incr_bytes_dropped(buf.len() as u64);
+                self.stats.incr_packets_dropped();
+                Err(e)
+            }
+        }
     }
 
     fn flush(&mut self) -> io::Result<()> {
@@ -161,6 +173,7 @@ impl Write for UdpWriteAdapter {
 #[derive(Debug)]
 pub struct BufferedUdpMetricSink {
     buffer: Mutex<MultiLineWriter<UdpWriteAdapter>>,
+    stats: WriterStats,
 }
 
 impl BufferedUdpMetricSink {
@@ -238,8 +251,13 @@ impl BufferedUdpMetricSink {
         A: ToSocketAddrs,
     {
         let addr = get_addr(sink_addr)?;
+        let stats = WriterStats::default();
         Ok(BufferedUdpMetricSink {
-            buffer: Mutex::new(MultiLineWriter::new(UdpWriteAdapter::new(addr, socket), cap)),
+            buffer: Mutex::new(MultiLineWriter::new(
+                UdpWriteAdapter::new(addr, socket, stats.clone()),
+                cap,
+            )),
+            stats,
         })
     }
 }
@@ -253,6 +271,10 @@ impl MetricSink for BufferedUdpMetricSink {
     fn flush(&self) -> io::Result<()> {
         let mut writer = self.buffer.lock().unwrap();
         writer.flush()
+    }
+
+    fn stats(&self) -> SinkStats {
+        (&self.stats).into()
     }
 }
 

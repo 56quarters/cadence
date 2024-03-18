@@ -16,7 +16,7 @@ use std::path::{Path, PathBuf};
 use std::sync::Mutex;
 
 use crate::io::MultiLineWriter;
-use crate::sinks::core::MetricSink;
+use crate::sinks::core::{MetricSink, SinkStats, WriterStats};
 
 // Default size of the buffer for buffered metric sinks. This
 // is a rather conservative value, picked for consistency with
@@ -95,23 +95,36 @@ impl MetricSink for UnixMetricSink {
 pub(crate) struct UnixWriteAdapter {
     path: PathBuf,
     socket: UnixDatagram,
+    stats: WriterStats,
 }
 
 impl UnixWriteAdapter {
-    fn new<P>(socket: UnixDatagram, path: P) -> UnixWriteAdapter
+    fn new<P>(socket: UnixDatagram, path: P, stats: WriterStats) -> UnixWriteAdapter
     where
         P: AsRef<Path>,
     {
         UnixWriteAdapter {
             path: path.as_ref().to_path_buf(),
             socket,
+            stats,
         }
     }
 }
 
 impl Write for UnixWriteAdapter {
     fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
-        self.socket.send_to(buf, &self.path)
+        match self.socket.send_to(buf, &self.path) {
+            Ok(written) => {
+                self.stats.incr_bytes_sent(written as u64);
+                self.stats.incr_packets_sent();
+                Ok(written)
+            }
+            Err(e) => {
+                self.stats.incr_bytes_dropped(buf.len() as u64);
+                self.stats.incr_packets_dropped();
+                Err(e)
+            }
+        }
     }
 
     fn flush(&mut self) -> io::Result<()> {
@@ -147,6 +160,7 @@ impl Write for UnixWriteAdapter {
 #[derive(Debug)]
 pub struct BufferedUnixMetricSink {
     buffer: Mutex<MultiLineWriter<UnixWriteAdapter>>,
+    stats: WriterStats,
 }
 
 impl BufferedUnixMetricSink {
@@ -202,8 +216,13 @@ impl BufferedUnixMetricSink {
     where
         P: AsRef<Path>,
     {
+        let stats = WriterStats::default();
         BufferedUnixMetricSink {
-            buffer: Mutex::new(MultiLineWriter::new(UnixWriteAdapter::new(socket, path), cap)),
+            buffer: Mutex::new(MultiLineWriter::new(
+                UnixWriteAdapter::new(socket, path, stats.clone()),
+                cap,
+            )),
+            stats,
         }
     }
 }
@@ -217,6 +236,10 @@ impl MetricSink for BufferedUnixMetricSink {
     fn flush(&self) -> io::Result<()> {
         let mut writer = self.buffer.lock().unwrap();
         writer.flush()
+    }
+
+    fn stats(&self) -> SinkStats {
+        (&self.stats).into()
     }
 }
 

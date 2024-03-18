@@ -522,7 +522,7 @@ pub use self::client::{
 
 pub use self::sinks::{
     BufferedSpyMetricSink, BufferedUdpMetricSink, MetricSink, NopMetricSink, QueuingMetricSink,
-    QueuingMetricSinkBuilder, SpyMetricSink, UdpMetricSink,
+    QueuingMetricSinkBuilder, SinkStats, SpyMetricSink, UdpMetricSink,
 };
 
 pub use self::types::{

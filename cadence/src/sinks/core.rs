@@ -8,7 +8,58 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-use std::io;
+use std::{
+    io,
+    sync::{
+        atomic::{AtomicU64, Ordering},
+        Arc,
+    },
+};
+
+#[derive(Debug, Default)]
+pub struct SinkStats {
+    pub bytes_sent: u64,
+    pub packets_sent: u64,
+    pub bytes_dropped: u64,
+    pub packets_dropped: u64,
+}
+
+#[derive(Debug, Clone, Default)]
+pub(crate) struct WriterStats {
+    bytes_sent: Arc<AtomicU64>,
+    packets_sent: Arc<AtomicU64>,
+    bytes_dropped: Arc<AtomicU64>,
+    packets_dropped: Arc<AtomicU64>,
+}
+
+impl WriterStats {
+    pub(crate) fn incr_bytes_sent(&self, n: u64) {
+        self.bytes_sent.fetch_add(n, Ordering::Relaxed);
+    }
+
+    pub(crate) fn incr_packets_sent(&self) {
+        self.packets_sent.fetch_add(1, Ordering::Relaxed);
+    }
+
+    pub(crate) fn incr_bytes_dropped(&self, n: u64) {
+        self.bytes_dropped.fetch_add(n, Ordering::Relaxed);
+    }
+
+    pub(crate) fn incr_packets_dropped(&self) {
+        self.packets_dropped.fetch_add(1, Ordering::Relaxed);
+    }
+}
+
+impl From<&WriterStats> for SinkStats {
+    fn from(stats: &WriterStats) -> Self {
+        SinkStats {
+            bytes_sent: stats.bytes_sent.load(Ordering::Relaxed),
+            packets_sent: stats.packets_sent.load(Ordering::Relaxed),
+            bytes_dropped: stats.bytes_dropped.load(Ordering::Relaxed),
+            packets_dropped: stats.packets_dropped.load(Ordering::Relaxed),
+        }
+    }
+}
 
 /// Trait for various backends that send Statsd metrics somewhere.
 ///
@@ -76,6 +127,10 @@ pub trait MetricSink {
     /// this method does nothing.
     fn flush(&self) -> io::Result<()> {
         Ok(())
+    }
+
+    fn stats(&self) -> SinkStats {
+        SinkStats::default()
     }
 }
 
