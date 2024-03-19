@@ -941,7 +941,7 @@ impl StatsdClient {
     pub fn flush(&self) -> MetricResult<()> {
         match self.sink.flush() {
             Ok(_) => Ok(()),
-            Err(_) => Err(MetricError::from((ErrorKind::IoError, "flush error")))
+            Err(_) => Err(MetricError::from((ErrorKind::IoError, "flush error"))),
         }
     }
 
