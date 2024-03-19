@@ -940,7 +940,7 @@ impl StatsdClient {
     /// client.flush();
     /// ```
     pub fn flush(&self) -> io::Result<()> {
-        self.sink.flush()
+        Ok(self.sink.flush()?)
     }
 
     // Create a new StatsdClient by consuming the builder
