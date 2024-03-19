@@ -15,7 +15,6 @@ use crate::types::{
     Counter, Distribution, ErrorKind, Gauge, Histogram, Meter, Metric, MetricError, MetricResult, Set, Timer,
 };
 use std::fmt;
-use std::io;
 use std::panic::RefUnwindSafe;
 use std::time::Duration;
 use std::u64;
@@ -939,8 +938,11 @@ impl StatsdClient {
     /// // Any number of time-sensitive metrics ... //
     /// client.flush();
     /// ```
-    pub fn flush(&self) -> io::Result<()> {
-        Ok(self.sink.flush()?)
+    pub fn flush(&self) -> MetricResult<()> {
+        match self.sink.flush() {
+            Ok(_) => Ok(()),
+            Err(_) => Err(MetricError::from((ErrorKind::IoError, "flush error")))
+        }
     }
 
     // Create a new StatsdClient by consuming the builder
