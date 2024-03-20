@@ -16,7 +16,7 @@ use std::path::{Path, PathBuf};
 use std::sync::Mutex;
 
 use crate::io::MultiLineWriter;
-use crate::sinks::core::{MetricSink, SinkStats, WriterStats};
+use crate::sinks::core::{MetricSink, SinkStats, SocketStats};
 
 // Default size of the buffer for buffered metric sinks. This
 // is a rather conservative value, picked for consistency with
@@ -41,6 +41,7 @@ const DEFAULT_BUFFER_SIZE: usize = 512;
 pub struct UnixMetricSink {
     socket: UnixDatagram,
     path: PathBuf,
+    stats: SocketStats,
 }
 
 impl UnixMetricSink {
@@ -77,16 +78,25 @@ impl UnixMetricSink {
     where
         P: AsRef<Path>,
     {
+        let stats = SocketStats::default();
         UnixMetricSink {
             path: path.as_ref().to_path_buf(),
             socket,
+            stats,
         }
     }
 }
 
 impl MetricSink for UnixMetricSink {
     fn emit(&self, metric: &str) -> io::Result<usize> {
-        self.socket.send_to(metric.as_bytes(), self.path.as_path())
+        self.stats.update(
+            self.socket.send_to(metric.as_bytes(), self.path.as_path()),
+            metric.len(),
+        )
+    }
+
+    fn stats(&self) -> SinkStats {
+        (&self.stats).into()
     }
 }
 
@@ -95,11 +105,11 @@ impl MetricSink for UnixMetricSink {
 pub(crate) struct UnixWriteAdapter {
     path: PathBuf,
     socket: UnixDatagram,
-    stats: WriterStats,
+    stats: SocketStats,
 }
 
 impl UnixWriteAdapter {
-    fn new<P>(socket: UnixDatagram, path: P, stats: WriterStats) -> UnixWriteAdapter
+    fn new<P>(socket: UnixDatagram, path: P, stats: SocketStats) -> UnixWriteAdapter
     where
         P: AsRef<Path>,
     {
@@ -113,18 +123,7 @@ impl UnixWriteAdapter {
 
 impl Write for UnixWriteAdapter {
     fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
-        match self.socket.send_to(buf, &self.path) {
-            Ok(written) => {
-                self.stats.incr_bytes_sent(written as u64);
-                self.stats.incr_packets_sent();
-                Ok(written)
-            }
-            Err(e) => {
-                self.stats.incr_bytes_dropped(buf.len() as u64);
-                self.stats.incr_packets_dropped();
-                Err(e)
-            }
-        }
+        self.stats.update(self.socket.send_to(buf, &self.path), buf.len())
     }
 
     fn flush(&mut self) -> io::Result<()> {
@@ -160,7 +159,7 @@ impl Write for UnixWriteAdapter {
 #[derive(Debug)]
 pub struct BufferedUnixMetricSink {
     buffer: Mutex<MultiLineWriter<UnixWriteAdapter>>,
-    stats: WriterStats,
+    stats: SocketStats,
 }
 
 impl BufferedUnixMetricSink {
@@ -216,7 +215,7 @@ impl BufferedUnixMetricSink {
     where
         P: AsRef<Path>,
     {
-        let stats = WriterStats::default();
+        let stats = SocketStats::default();
         BufferedUnixMetricSink {
             buffer: Mutex::new(MultiLineWriter::new(
                 UnixWriteAdapter::new(socket, path, stats.clone()),
