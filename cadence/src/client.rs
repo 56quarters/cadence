@@ -933,6 +933,40 @@ impl StatsdClient {
         StatsdClientBuilder::new(prefix, sink)
     }
 
+    /// Flush the underlying metric sink.
+    ///
+    /// This is helpful for when you'd like to buffer metrics
+    /// but still want strong control over when to emit them.
+    /// For example, you are using a BufferedUdpMetricSink and
+    /// have just emitted some time-sensitive metrics, but you
+    /// aren't sure if the buffer is full or not. Thus, you can
+    /// use `flush` to force the sink to flush your metrics now.
+    ///
+    /// # Buffered UDP Socket Example
+    ///
+    /// ```
+    /// use std::net::UdpSocket;
+    /// use cadence::prelude::*;
+    /// use cadence::{StatsdClient, BufferedUdpMetricSink, DEFAULT_PORT};
+    ///
+    /// let prefix = "my.stats";
+    /// let host = ("127.0.0.1", DEFAULT_PORT);
+    ///
+    /// let socket = UdpSocket::bind("0.0.0.0:0").unwrap();
+    ///
+    /// let sink = BufferedUdpMetricSink::from(host, socket).unwrap();
+    /// let client = StatsdClient::from_sink(prefix, sink);
+    ///
+    /// client.count("time-sensitive.keyA", 1);
+    /// client.count("time-sensitive.keyB", 2);
+    /// client.count("time-sensitive.keyC", 3);
+    /// // Any number of time-sensitive metrics ... //
+    /// client.flush();
+    /// ```
+    pub fn flush(&self) -> MetricResult<()> {
+        Ok(self.sink.flush()?)
+    }
+
     // Create a new StatsdClient by consuming the builder
     fn from_builder(builder: StatsdClientBuilder) -> Self {
         StatsdClient {
