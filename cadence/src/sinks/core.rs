@@ -12,7 +12,7 @@ use std::io;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
 
-#[derive(Debug, Default)]
+#[derive(Clone, Debug, Default)]
 pub struct SinkStats {
     pub bytes_sent: u64,
     pub packets_sent: u64,
