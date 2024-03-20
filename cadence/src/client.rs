@@ -939,10 +939,7 @@ impl StatsdClient {
     /// client.flush();
     /// ```
     pub fn flush(&self) -> MetricResult<()> {
-        match self.sink.flush() {
-            Ok(_) => Ok(()),
-            Err(error) => Err(MetricError::from(error)),
-        }
+        Ok(self.sink.flush()?)
     }
 
     // Create a new StatsdClient by consuming the builder
