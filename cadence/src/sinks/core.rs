@@ -140,6 +140,10 @@ pub trait MetricSink {
         Ok(())
     }
 
+    /// Return I/O telemetry like bytes / packets sent or dropped.
+    ///
+    /// Note that not all sinks implement this method and the default implementation
+    /// returns zeros.
     fn stats(&self) -> SinkStats {
         SinkStats::default()
     }
