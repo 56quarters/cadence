@@ -9,6 +9,68 @@
 // except according to those terms.
 
 use std::io;
+use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::Arc;
+
+#[derive(Clone, Debug, Default)]
+pub struct SinkStats {
+    pub bytes_sent: u64,
+    pub packets_sent: u64,
+    pub bytes_dropped: u64,
+    pub packets_dropped: u64,
+}
+
+#[derive(Debug, Clone, Default)]
+pub(crate) struct SocketStats {
+    bytes_sent: Arc<AtomicU64>,
+    packets_sent: Arc<AtomicU64>,
+    bytes_dropped: Arc<AtomicU64>,
+    packets_dropped: Arc<AtomicU64>,
+}
+
+impl SocketStats {
+    pub(crate) fn incr_bytes_sent(&self, n: u64) {
+        self.bytes_sent.fetch_add(n, Ordering::Relaxed);
+    }
+
+    pub(crate) fn incr_packets_sent(&self) {
+        self.packets_sent.fetch_add(1, Ordering::Relaxed);
+    }
+
+    pub(crate) fn incr_bytes_dropped(&self, n: u64) {
+        self.bytes_dropped.fetch_add(n, Ordering::Relaxed);
+    }
+
+    pub(crate) fn incr_packets_dropped(&self) {
+        self.packets_dropped.fetch_add(1, Ordering::Relaxed);
+    }
+
+    pub(crate) fn update(&self, res: io::Result<usize>, len: usize) -> io::Result<usize> {
+        match res {
+            Ok(written) => {
+                self.incr_bytes_sent(written as u64);
+                self.incr_packets_sent();
+                Ok(written)
+            }
+            Err(e) => {
+                self.incr_bytes_dropped(len as u64);
+                self.incr_packets_dropped();
+                Err(e)
+            }
+        }
+    }
+}
+
+impl From<&SocketStats> for SinkStats {
+    fn from(stats: &SocketStats) -> Self {
+        SinkStats {
+            bytes_sent: stats.bytes_sent.load(Ordering::Relaxed),
+            packets_sent: stats.packets_sent.load(Ordering::Relaxed),
+            bytes_dropped: stats.bytes_dropped.load(Ordering::Relaxed),
+            packets_dropped: stats.packets_dropped.load(Ordering::Relaxed),
+        }
+    }
+}
 
 /// Trait for various backends that send Statsd metrics somewhere.
 ///
@@ -76,6 +138,14 @@ pub trait MetricSink {
     /// this method does nothing.
     fn flush(&self) -> io::Result<()> {
         Ok(())
+    }
+
+    /// Return I/O telemetry like bytes / packets sent or dropped.
+    ///
+    /// Note that not all sinks implement this method and the default implementation
+    /// returns zeros.
+    fn stats(&self) -> SinkStats {
+        SinkStats::default()
     }
 }
 

@@ -8,7 +8,7 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-use crate::sinks::core::MetricSink;
+use crate::sinks::core::{MetricSink, SinkStats};
 use crossbeam_channel::{self, Receiver, Sender, TrySendError};
 use std::fmt;
 use std::io::{self, ErrorKind};
@@ -272,6 +272,10 @@ impl MetricSink for QueuingMetricSink {
 
     fn flush(&self) -> Result<(), std::io::Error> {
         self.sink.flush()
+    }
+
+    fn stats(&self) -> SinkStats {
+        self.sink.stats()
     }
 }
 
