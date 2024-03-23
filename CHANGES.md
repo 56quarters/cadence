@@ -1,9 +1,16 @@
 # Changelog
 
-## [v1.3.0](https://github.com/56quarters/cadence/tree/1.3.0) - Unreleased
+## [v1.3.0](https://github.com/56quarters/cadence/tree/1.3.0) - 2024-03-23
 * Add support for using `u64`, `i32`, and `u32` types as counters per
   [#201](https://github.com/56quarters/cadence/pull/201). Thanks to @James-Bartman
   for this contribution.
+* Add `MetricSink::stats()` method to the `MetricSink` interface to allow
+  sinks to expose low-level network telemetry per [#203](https://github.com/56quarters/cadence/pull/203).
+  Thanks to @mlowicki for this contribution.
+* Add `StatsdClient::flush()` method to the client to allow time-sensitive
+  metrics to be flushed sooner than they otherwise might be per
+  [#200](https://github.com/56quarters/cadence/pull/200). Thanks to @James-Bartman
+  for this contribution;
 
 ## [v1.2.0](https://github.com/56quarters/cadence/tree/1.2.0) - 2024-02-20
 * Add `QueuingMetricSinkBuilder` to allow an error handler to be set for

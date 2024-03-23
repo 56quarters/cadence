@@ -709,7 +709,7 @@ mod tests {
         }
 
         let queueing = QueuingMetricSink::with_capacity(BlockingMetricSink, 1);
-        let results = vec![
+        let results = [
             queueing.emit("foo.counter:1|c"),
             queueing.emit("foo.counter:2|c"),
             queueing.emit("foo.counter:3|c"),
