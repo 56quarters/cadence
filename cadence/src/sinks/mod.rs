@@ -8,7 +8,7 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-mod core;
+pub mod core;
 mod queuing;
 mod spy;
 mod udp;

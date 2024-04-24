@@ -33,3 +33,5 @@ pub use crate::client::{
     MetricBackend, ToCounterValue, ToDistributionValue, ToGaugeValue, ToHistogramValue, ToMeterValue, ToSetValue,
     ToTimerValue,
 };
+pub use crate::io::MultiLineWriter;
+pub use crate::sinks::core::SocketStats;
