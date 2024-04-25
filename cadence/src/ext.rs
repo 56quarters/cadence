@@ -34,4 +34,4 @@ pub use crate::client::{
     ToTimerValue,
 };
 pub use crate::io::MultiLineWriter;
-pub use crate::sinks::core::SocketStats;
+pub use crate::sinks::SocketStats;

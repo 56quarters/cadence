@@ -8,12 +8,12 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-pub mod core;
+mod core;
 mod queuing;
 mod spy;
 mod udp;
 
-pub use crate::sinks::core::{MetricSink, NopMetricSink, SinkStats};
+pub use crate::sinks::core::{MetricSink, NopMetricSink, SinkStats, SocketStats};
 pub use crate::sinks::queuing::{QueuingMetricSink, QueuingMetricSinkBuilder};
 pub use crate::sinks::spy::{BufferedSpyMetricSink, SpyMetricSink};
 pub use crate::sinks::udp::{BufferedUdpMetricSink, UdpMetricSink};
