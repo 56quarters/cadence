@@ -24,7 +24,7 @@ struct WriterMetrics {
 /// writes the complete input in a single call to the underlying
 /// writer.
 #[derive(Debug)]
-pub(crate) struct MultiLineWriter<T>
+pub struct MultiLineWriter<T>
 where
     T: Write,
 {
@@ -41,13 +41,13 @@ where
 {
     /// Create a new buffered `MultiLineWriter` instance that suffixes
     /// each write with a newline character ('\n').
-    pub(crate) fn new(inner: T, cap: usize) -> MultiLineWriter<T> {
+    pub fn new(inner: T, cap: usize) -> MultiLineWriter<T> {
         Self::with_ending(inner, cap, "\n")
     }
 
     /// Create a new buffered `MultiLineWriter` instance that suffixes
     /// each write with the given line ending.
-    pub(crate) fn with_ending(inner: T, cap: usize, end: &str) -> MultiLineWriter<T> {
+    pub fn with_ending(inner: T, cap: usize, end: &str) -> MultiLineWriter<T> {
         MultiLineWriter {
             written: 0,
             capacity: cap,

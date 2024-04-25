@@ -21,7 +21,7 @@ pub struct SinkStats {
 }
 
 #[derive(Debug, Clone, Default)]
-pub(crate) struct SocketStats {
+pub struct SocketStats {
     bytes_sent: Arc<AtomicU64>,
     packets_sent: Arc<AtomicU64>,
     bytes_dropped: Arc<AtomicU64>,
@@ -29,23 +29,23 @@ pub(crate) struct SocketStats {
 }
 
 impl SocketStats {
-    pub(crate) fn incr_bytes_sent(&self, n: u64) {
+    pub fn incr_bytes_sent(&self, n: u64) {
         self.bytes_sent.fetch_add(n, Ordering::Relaxed);
     }
 
-    pub(crate) fn incr_packets_sent(&self) {
+    pub fn incr_packets_sent(&self) {
         self.packets_sent.fetch_add(1, Ordering::Relaxed);
     }
 
-    pub(crate) fn incr_bytes_dropped(&self, n: u64) {
+    pub fn incr_bytes_dropped(&self, n: u64) {
         self.bytes_dropped.fetch_add(n, Ordering::Relaxed);
     }
 
-    pub(crate) fn incr_packets_dropped(&self) {
+    pub fn incr_packets_dropped(&self) {
         self.packets_dropped.fetch_add(1, Ordering::Relaxed);
     }
 
-    pub(crate) fn update(&self, res: io::Result<usize>, len: usize) -> io::Result<usize> {
+    pub fn update(&self, res: io::Result<usize>, len: usize) -> io::Result<usize> {
         match res {
             Ok(written) => {
                 self.incr_bytes_sent(written as u64);
