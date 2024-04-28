@@ -62,10 +62,12 @@ impl<T> SingletonHolder<T> {
     }
 
     /// Set the value if it has not already been set, otherwise this is a no-op
-    #[allow(deprecated)]
     pub fn set(&self, val: T) {
-        // compare_and_swap is deprecated in 1.50 but we target back to 1.36
-        if UNSET != self.state.compare_and_swap(UNSET, LOADING, Ordering::SeqCst) {
+        if self
+            .state
+            .compare_exchange(UNSET, LOADING, Ordering::SeqCst, Ordering::SeqCst)
+            .is_err()
+        {
             return;
         }
 
