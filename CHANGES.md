@@ -1,5 +1,11 @@
 # Changelog
 
+## [v1.4.0](https://github.com/56quarters/cadence/tree/1.4.0) - 2024-04-28
+* Make the previously internal `MultiLineWriter` and `SocketStats` structs
+  available from the `cadence::ext` module per [#206](https://github.com/56quarters/cadence/pull/206). 
+  These can be useful when creating custom `MetricSink` implementations.
+  Thanks to @mlowicki for this contribution.
+
 ## [v1.3.0](https://github.com/56quarters/cadence/tree/1.3.0) - 2024-03-23
 * Add support for using `u64`, `i32`, and `u32` types as counters per
   [#201](https://github.com/56quarters/cadence/pull/201). Thanks to @James-Bartman

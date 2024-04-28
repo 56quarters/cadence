@@ -12,6 +12,7 @@ use std::io;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
 
+/// I/O telemetry for a `MetricSink` implementation.
 #[derive(Clone, Debug, Default)]
 pub struct SinkStats {
     pub bytes_sent: u64,
@@ -20,6 +21,36 @@ pub struct SinkStats {
     pub packets_dropped: u64,
 }
 
+/// Thread-safe collection of stats updated by network sinks.
+///
+/// This struct is meant to be updated internally by `MetricSink` implementations
+/// and converted to an instance of `SinkStats` for consumption by external callers.
+///
+/// # Example
+///
+/// ```
+/// use std::net::{SocketAddr, UdpSocket};
+/// use cadence::ext::SocketStats;
+/// use cadence::{MetricSink, SinkStats};
+///
+/// pub struct MyCustomSink {
+///     addr: SocketAddr,
+///     socket: UdpSocket,
+///     stats: SocketStats,
+/// }
+///
+/// impl MetricSink for MyCustomSink {
+///     fn emit(&self, metric: &str) -> std::io::Result<usize> {
+///         let res = self.socket.send_to(metric.as_bytes(), &self.addr);
+///         self.stats.update(res, metric.len())
+///     }
+///
+///     fn stats(&self) -> SinkStats {
+///        (&self.stats).into()
+///     }
+/// }
+///
+/// ```
 #[derive(Debug, Clone, Default)]
 pub struct SocketStats {
     bytes_sent: Arc<AtomicU64>,
