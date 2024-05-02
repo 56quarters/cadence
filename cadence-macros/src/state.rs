@@ -29,7 +29,7 @@ static HOLDER: SingletonHolder<StatsdClient> = SingletonHolder::new();
 /// this crate but it is not part of the public API and may change at any
 /// time.
 #[doc(hidden)]
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct SingletonHolder<T> {
     value: UnsafeCell<Option<Arc<T>>>,
     state: AtomicUsize,
@@ -65,7 +65,7 @@ impl<T> SingletonHolder<T> {
     pub fn set(&self, val: T) {
         if self
             .state
-            .compare_exchange(UNSET, LOADING, Ordering::SeqCst, Ordering::SeqCst)
+            .compare_exchange(UNSET, LOADING, Ordering::AcqRel, Ordering::Relaxed)
             .is_err()
         {
             return;
