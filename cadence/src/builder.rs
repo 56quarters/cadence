@@ -102,6 +102,11 @@ pub(crate) struct MetricFormatter<'a> {
     val: MetricValue,
     type_: MetricType,
     tags: Vec<(Option<&'a str>, &'a str)>,
+    // Datadog extensions:
+    // https://docs.datadoghq.com/developers/dogstatsd/datagram_shell/?tab=metrics#the-dogstatsd-protocol
+    timestamp: Option<u64>,
+    sampling_rate: Option<f64>,
+    container_id: Option<&'a str>,
     base_size: usize,
     kv_size: usize,
 }
@@ -153,6 +158,9 @@ impl<'a> MetricFormatter<'a> {
             // allocate.
             kv_size: 0,
             base_size: prefix.len() + key.len() + 1 /* : */ + 10 * value_count /* value(s) */ + 1 /* | */ + 2, /* type */
+            timestamp: None,
+            sampling_rate: None,
+            container_id: None,
         }
     }
 
@@ -166,8 +174,27 @@ impl<'a> MetricFormatter<'a> {
         self.kv_size += value.len();
     }
 
+    fn with_timestamp(&mut self, timestamp: u64) {
+        self.timestamp = Some(timestamp);
+    }
+
+    fn with_container_id(&mut self, container_id: &'a str) {
+        self.container_id = Some(container_id);
+    }
+
+    fn with_sampling_rate(&mut self, rate: f64) {
+        self.sampling_rate = Some(rate);
+    }
+
     fn write_base_metric(&self, out: &mut String) {
         let _ = write!(out, "{}{}:{}|{}", self.prefix, self.key, self.val, self.type_);
+    }
+
+    fn write_sampling_rate(&self, out: &mut String) {
+        if let Some(rate) = self.sampling_rate {
+            // See https://github.com/DataDog/datadog-go/blob/v5.5.0/statsd/format.go#L28
+            let _ = write!(out, "|@{}", rate);
+        }
     }
 
     fn write_tags(&self, out: &mut String) {
@@ -186,6 +213,20 @@ impl<'a> MetricFormatter<'a> {
         }
     }
 
+    fn write_timestamp(&self, out: &mut String) {
+        if let Some(timestamp) = self.timestamp {
+            // See https://github.com/DataDog/datadog-go/blob/v5.5.0/statsd/format.go#L276
+            let _ = write!(out, "|T{}", timestamp);
+        }
+    }
+
+    fn write_container_id(&self, out: &mut String) {
+        if let Some(container_id) = self.container_id {
+            // See https://github.com/DataDog/datadog-go/blob/v5.5.0/statsd/format.go#L268
+            let _ = write!(out, "|c:{}", container_id);
+        }
+    }
+
     fn tag_size_hint(&self) -> usize {
         if self.tags.is_empty() {
             return 0;
@@ -195,11 +236,42 @@ impl<'a> MetricFormatter<'a> {
         Self::TAG_PREFIX.len() + self.kv_size + self.tags.len() - 1
     }
 
+    fn timestamp_size_hint(&self) -> usize {
+        if let Some(_timestamp) = self.timestamp {
+            /* |T */ 2 + /* timestamp */ 10
+        } else {
+            0
+        }
+    }
+
+    fn sampling_rate_size_hint(&self) -> usize {
+        if let Some(_rate) = self.sampling_rate {
+            /* |@ */ 2 + /* rate */ 10
+        } else {
+            0
+        }
+    }
+
+    fn container_id_size_hint(&self) -> usize {
+        if let Some(container_id) = self.container_id {
+            /* |c */ 2 + container_id.len()
+        } else {
+            0
+        }
+    }
+
+    fn size_hint(&self) -> usize {
+        self.base_size + self.sampling_rate_size_hint() + self.tag_size_hint() + self.timestamp_size_hint() + self.container_id_size_hint()
+    }
+
     pub(crate) fn format(&self) -> String {
-        let size_hint = self.base_size + self.tag_size_hint();
+        let size_hint = self.size_hint();
         let mut metric_string = String::with_capacity(size_hint);
         self.write_base_metric(&mut metric_string);
+        self.write_sampling_rate(&mut metric_string);
         self.write_tags(&mut metric_string);
+        self.write_container_id(&mut metric_string);
+        self.write_timestamp(&mut metric_string);
         metric_string
     }
 }
@@ -382,6 +454,73 @@ where
         self
     }
 
+    /// Add a container_id to this metric.
+    pub fn with_container_id(mut self, container_id: &'m str) -> Self {
+        if let BuilderRepr::Success(ref mut formatter, _) = self.repr {
+            formatter.with_container_id(container_id);
+        }
+        self
+    }
+
+    pub (crate) fn with_container_id_opt(mut self, container_id: Option<&'m str>) -> Self {
+        if let BuilderRepr::Success(ref mut formatter, _) = self.repr {
+            if let Some(container_id) = container_id {
+                formatter.with_container_id(container_id);
+            }
+        }
+        self
+    }
+
+    /// Add a timestamp to this metric.
+    /// # Example
+    ///
+    /// ```
+    /// use cadence::prelude::*;
+    /// use cadence::{StatsdClient, NopMetricSink, Metric};
+    /// use std::time::{SystemTime, UNIX_EPOCH};
+    ///
+    /// let client = StatsdClient::from_sink("some.prefix", NopMetricSink);
+    /// let timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs();
+    /// let res = client.count_with_tags("some.key", 1)
+    ///   .with_timestamp(timestamp)
+    ///   .try_send();
+    ///
+    /// assert_eq!(
+    ///   "some.prefix.some.key:1|c|t:timestamp",
+    ///  res.unwrap().as_metric_str()
+    /// );
+    /// ```
+    pub fn with_timestamp(mut self, timestamp: u64) -> Self {
+        if let BuilderRepr::Success(ref mut formatter, _) = self.repr {
+            formatter.with_timestamp(timestamp);
+        }
+
+        self
+    }
+
+    /// Add a sampling rate to this metric.
+    /// # Example
+    /// ```
+    /// use cadence::prelude::*;
+    /// use cadence::{StatsdClient, NopMetricSink, Metric};
+    ///
+    /// let client = StatsdClient::from_sink("some.prefix", NopMetricSink)
+    /// let res = client.distribution_with_tags("some.key", 1)
+    ///  .with_sampling_rate(0.5)
+    ///  .try_send();
+    ///
+    /// assert_eq!(
+    ///  "some.prefix.some.key:1|c|@0.50000000",
+    ///  res.unwrap().as_metric_str()
+    /// );
+    pub fn with_sampling_rate(mut self, rate: f64) -> Self {
+        if let BuilderRepr::Success(ref mut formatter, _) = self.repr {
+            formatter.with_sampling_rate(rate);
+        }
+
+        self
+    }
+
     /// Send a metric using the client that created this builder.
     ///
     /// Note that the builder is consumed by this method and thus `.try_send()`
@@ -485,6 +624,26 @@ mod tests {
         fmt.with_tag("user", "123");
 
         assert_eq!(19, fmt.tag_size_hint());
+    }
+
+    #[test]
+    fn test_metric_formatter_container_id() {
+        let mut fmt = MetricFormatter::counter("prefix.", "some.key", MetricValue::Signed(1));
+        fmt.with_container_id("1234");
+
+        let expected = "prefix.some.key:1|c|c:1234";
+        assert_eq!(expected, &fmt.format());
+        assert_eq!(35, fmt.size_hint());
+    }
+
+    #[test]
+    fn test_metric_formatter_timestamp() {
+        let mut fmt = MetricFormatter::counter("prefix.", "some.key", MetricValue::Signed(1));
+        fmt.with_timestamp(1234567890);
+
+        let expected = "prefix.some.key:1|c|T1234567890";
+        assert_eq!(expected, &fmt.format());
+        assert_eq!(41, fmt.size_hint());
     }
 
     #[test]
@@ -625,6 +784,26 @@ mod tests {
         );
 
         assert_eq!("prefix.latency.milliseconds:44:45:46|d", &fmt.format());
+    }
+
+    #[test]
+    fn test_metric_formatter_sampling_rate() {
+        let mut fmt = MetricFormatter::distribution("prefix.", "some.key", MetricValue::PackedUnsigned(vec![44, 45, 46]));
+        fmt.with_sampling_rate(0.5);
+
+        let expected = "prefix.some.key:44:45:46|d|@0.5";
+        assert_eq!(expected, &fmt.format());
+        assert_eq!(41, fmt.size_hint());
+    }
+
+    #[test]
+    fn test_metric_formatter_sampling_rate_small() {
+        let mut fmt = MetricFormatter::distribution("prefix.", "some.key", MetricValue::PackedUnsigned(vec![44, 45, 46]));
+        fmt.with_sampling_rate(0.000000000000000000001);
+
+        let expected = "prefix.some.key:44:45:46|d|@0.000000000000000000001";
+        assert_eq!(expected, &fmt.format());
+        assert_eq!(41, fmt.size_hint());
     }
 
     #[test]
