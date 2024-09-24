@@ -17,7 +17,6 @@ use crate::types::{
 use std::fmt;
 use std::panic::RefUnwindSafe;
 use std::time::Duration;
-use std::u64;
 
 /// Conversion trait for valid values for counters
 ///
@@ -1120,7 +1119,6 @@ mod tests {
     use std::sync::atomic::{AtomicUsize, Ordering};
     use std::sync::Arc;
     use std::time::Duration;
-    use std::u64;
 
     #[test]
     fn test_statsd_client_empty_prefix() {
