@@ -493,7 +493,7 @@ where
     ///   .try_send();
     ///
     /// assert_eq!(
-    ///   "some.prefix.some.key:1|c|t:timestamp",
+    ///   "some.prefix.some.key:1|c|T".to_string() + &timestamp.to_string(),
     ///  res.unwrap().as_metric_str()
     /// );
     /// ```
@@ -511,13 +511,13 @@ where
     /// use cadence::prelude::*;
     /// use cadence::{StatsdClient, NopMetricSink, Metric};
     ///
-    /// let client = StatsdClient::from_sink("some.prefix", NopMetricSink)
+    /// let client = StatsdClient::from_sink("some.prefix", NopMetricSink);
     /// let res = client.distribution_with_tags("some.key", 1)
     ///  .with_sampling_rate(0.5)
     ///  .try_send();
     ///
     /// assert_eq!(
-    ///  "some.prefix.some.key:1|c|@0.50000000",
+    ///  "some.prefix.some.key:1|d|@0.5",
     ///  res.unwrap().as_metric_str()
     /// );
     pub fn with_sampling_rate(mut self, rate: f64) -> Self {
