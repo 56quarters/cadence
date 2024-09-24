@@ -238,7 +238,8 @@ impl<'a> MetricFormatter<'a> {
 
     fn timestamp_size_hint(&self) -> usize {
         if let Some(_timestamp) = self.timestamp {
-            /* |T */ 2 + /* timestamp */ 10
+            /* |T */
+            2 + /* timestamp */ 10
         } else {
             0
         }
@@ -246,7 +247,8 @@ impl<'a> MetricFormatter<'a> {
 
     fn sampling_rate_size_hint(&self) -> usize {
         if let Some(_rate) = self.sampling_rate {
-            /* |@ */ 2 + /* rate */ 10
+            /* |@ */
+            2 + /* rate */ 10
         } else {
             0
         }
@@ -254,14 +256,19 @@ impl<'a> MetricFormatter<'a> {
 
     fn container_id_size_hint(&self) -> usize {
         if let Some(container_id) = self.container_id {
-            /* |c */ 2 + container_id.len()
+            /* |c */
+            2 + container_id.len()
         } else {
             0
         }
     }
 
     fn size_hint(&self) -> usize {
-        self.base_size + self.sampling_rate_size_hint() + self.tag_size_hint() + self.timestamp_size_hint() + self.container_id_size_hint()
+        self.base_size
+            + self.sampling_rate_size_hint()
+            + self.tag_size_hint()
+            + self.timestamp_size_hint()
+            + self.container_id_size_hint()
     }
 
     pub(crate) fn format(&self) -> String {
@@ -462,7 +469,7 @@ where
         self
     }
 
-    pub (crate) fn with_container_id_opt(mut self, container_id: Option<&'m str>) -> Self {
+    pub(crate) fn with_container_id_opt(mut self, container_id: Option<&'m str>) -> Self {
         if let BuilderRepr::Success(ref mut formatter, _) = self.repr {
             if let Some(container_id) = container_id {
                 formatter.with_container_id(container_id);
@@ -788,7 +795,8 @@ mod tests {
 
     #[test]
     fn test_metric_formatter_sampling_rate() {
-        let mut fmt = MetricFormatter::distribution("prefix.", "some.key", MetricValue::PackedUnsigned(vec![44, 45, 46]));
+        let mut fmt =
+            MetricFormatter::distribution("prefix.", "some.key", MetricValue::PackedUnsigned(vec![44, 45, 46]));
         fmt.with_sampling_rate(0.5);
 
         let expected = "prefix.some.key:44:45:46|d|@0.5";
@@ -798,7 +806,8 @@ mod tests {
 
     #[test]
     fn test_metric_formatter_sampling_rate_small() {
-        let mut fmt = MetricFormatter::distribution("prefix.", "some.key", MetricValue::PackedUnsigned(vec![44, 45, 46]));
+        let mut fmt =
+            MetricFormatter::distribution("prefix.", "some.key", MetricValue::PackedUnsigned(vec![44, 45, 46]));
         fmt.with_sampling_rate(0.000000000000000000001);
 
         let expected = "prefix.some.key:44:45:46|d|@0.000000000000000000001";

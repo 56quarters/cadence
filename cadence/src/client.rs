@@ -676,7 +676,7 @@ pub struct StatsdClientBuilder {
     sink: Box<dyn MetricSink + Sync + Send + RefUnwindSafe>,
     errors: Box<dyn Fn(MetricError) + Sync + Send + RefUnwindSafe>,
     tags: Vec<(Option<String>, String)>,
-    container_id: Option<String>
+    container_id: Option<String>,
 }
 
 impl StatsdClientBuilder {
@@ -1026,11 +1026,9 @@ where
 {
     fn count_with_tags<'a>(&'a self, key: &'a str, value: T) -> MetricBuilder<'_, '_, Counter> {
         match value.try_to_value() {
-            Ok(v) => {
-                MetricBuilder::from_fmt(MetricFormatter::counter(&self.prefix, key, v), self)
-                    .with_tags(self.tags())
-                    .with_container_id_opt(self.container_id.as_deref())
-            }
+            Ok(v) => MetricBuilder::from_fmt(MetricFormatter::counter(&self.prefix, key, v), self)
+                .with_tags(self.tags())
+                .with_container_id_opt(self.container_id.as_deref()),
             Err(e) => MetricBuilder::from_error(e, self),
         }
     }
@@ -1086,11 +1084,9 @@ where
 {
     fn histogram_with_tags<'a>(&'a self, key: &'a str, value: T) -> MetricBuilder<'_, '_, Histogram> {
         match value.try_to_value() {
-            Ok(v) => {
-                MetricBuilder::from_fmt(MetricFormatter::histogram(&self.prefix, key, v), self)
-                    .with_tags(self.tags())
-                    .with_container_id_opt(self.container_id.as_deref())
-            }
+            Ok(v) => MetricBuilder::from_fmt(MetricFormatter::histogram(&self.prefix, key, v), self)
+                .with_tags(self.tags())
+                .with_container_id_opt(self.container_id.as_deref()),
             Err(e) => MetricBuilder::from_error(e, self),
         }
     }
@@ -1268,7 +1264,10 @@ mod tests {
     #[test]
     fn test_statsd_client_gauge_with_timestamp() {
         let client = StatsdClient::from_sink("prefix", NopMetricSink);
-        let res = client.gauge_with_tags("some.gauge", 4).with_timestamp(1234567890).try_send();
+        let res = client
+            .gauge_with_tags("some.gauge", 4)
+            .with_timestamp(1234567890)
+            .try_send();
 
         assert_eq!("prefix.some.gauge:4|g|T1234567890", res.unwrap().as_metric_str());
     }
@@ -1567,11 +1566,13 @@ mod tests {
     #[test]
     fn test_statsd_client_distribution_with_sampling_rate() {
         let client = StatsdClient::from_sink("prefix", NopMetricSink);
-        let res = client.distribution_with_tags("some.distr", 4).with_sampling_rate(0.5).try_send();
+        let res = client
+            .distribution_with_tags("some.distr", 4)
+            .with_sampling_rate(0.5)
+            .try_send();
 
         assert_eq!("prefix.some.distr:4|d|@0.5", res.unwrap().as_metric_str());
     }
-
 
     #[test]
     fn test_statsd_client_set_with_tags() {

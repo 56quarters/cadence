@@ -36,9 +36,7 @@ fn main() {
 
     // In this case we are sending the same counter metrics without any explicit container
     // id, meaning that the client's container id will be used.
-    let res = client
-        .count_with_tags("counter.2", 1)
-        .try_send();
+    let res = client.count_with_tags("counter.2", 1).try_send();
 
     println!("Result of metric send: {:?}", res);
 }
