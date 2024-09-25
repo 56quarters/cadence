@@ -248,7 +248,7 @@ impl<'a> MetricFormatter<'a> {
     fn sampling_rate_size_hint(&self) -> usize {
         if let Some(_rate) = self.sampling_rate {
             /* |@ */
-            2 + /* rate */ 10
+            2 + /* rate */ 17 /* MAX_SIG_DIGITS */
         } else {
             0
         }
@@ -506,6 +506,12 @@ where
     }
 
     /// Add a sampling rate to this metric.
+    ///
+    /// The sampling rate is a float between 0 and 1 that determines the rate at which
+    /// the metric is sampled. For example, a sampling rate of 0.5 would mean that the
+    /// metric is sent 50% of the time. The sampling has to be done by the caller, cadence
+    /// will simply forward it to the backend.
+    ///
     /// # Example
     /// ```
     /// use cadence::prelude::*;
