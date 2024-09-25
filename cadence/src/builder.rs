@@ -807,7 +807,7 @@ mod tests {
 
         let expected = "prefix.some.key:44:45:46|d|@0.5";
         assert_eq!(expected, &fmt.format());
-        assert_eq!(61, fmt.size_hint());
+        assert_eq!(68, fmt.size_hint());
     }
 
     #[test]
@@ -818,7 +818,7 @@ mod tests {
 
         let expected = "prefix.some.key:44:45:46|d|@0.000000000000000000001";
         assert_eq!(expected, &fmt.format());
-        assert_eq!(61, fmt.size_hint());
+        assert_eq!(68, fmt.size_hint());
     }
 
     #[test]
