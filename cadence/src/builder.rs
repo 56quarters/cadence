@@ -478,7 +478,7 @@ where
         self
     }
 
-    /// Add a timestamp to this metric.
+    /// Add a UNIX timestamp in seconds to this metric.
     /// # Example
     ///
     /// ```
