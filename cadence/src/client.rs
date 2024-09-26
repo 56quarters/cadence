@@ -736,7 +736,10 @@ impl StatsdClientBuilder {
 
     /// Add a default container ID to every metric published by the built
     /// [StatsdClient].
-    pub fn with_container_id(mut self, container_id: &str) -> Self {
+    pub fn with_container_id<K>(mut self, container_id: K) -> Self
+    where
+        K: ToString,
+    {
         self.container_id = Some(container_id.to_string());
         self
     }
