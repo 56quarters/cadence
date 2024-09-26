@@ -18,7 +18,7 @@ Cadence is a fast and flexible way to emit Statsd metrics from your application.
 * [Support](https://docs.rs/cadence/) for emitting counters, timers, histograms, distributions,
   gauges, meters, and sets to Statsd over UDP (or optionally Unix sockets).
 * Support for alternate backends via the `MetricSink` trait.
-* Support for [Datadog](https://docs.datadoghq.com/developers/dogstatsd/) style metrics tags.
+* Support for [Datadog](https://docs.datadoghq.com/developers/dogstatsd/) style metrics tags and extensions.
 * [Macros](https://docs.rs/cadence-macros/) to simplify common calls to emit metrics
 * A simple yet flexible API for sending metrics.
 
