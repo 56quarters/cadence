@@ -263,6 +263,9 @@ impl QueuingMetricSink {
 
 impl MetricSink for QueuingMetricSink {
     fn emit(&self, metric: &str) -> io::Result<usize> {
+        // Required while MSRV is 1.60
+        // std::io::Error::other stabilized in 1.74
+        #[allow(unknown_lints, clippy::io_other_error)]
         match self.worker.submit(metric.to_string()) {
             Err(TrySendError::Disconnected(_)) => Err(io::Error::new(ErrorKind::Other, "channel disconnected")),
             Err(TrySendError::Full(_)) => Err(io::Error::new(ErrorKind::Other, "channel full")),
@@ -338,11 +341,7 @@ impl WorkerStats {
         let submitted = self.submitted.load(Ordering::Acquire);
         let drained = self.drained.load(Ordering::Acquire);
 
-        if submitted > drained {
-            submitted - drained
-        } else {
-            0
-        }
+        submitted.saturating_sub(drained)
     }
 }
 
