@@ -8,7 +8,7 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-use std::io;
+use std::io::{self, WriterPanicked};
 use std::io::{BufWriter, Write};
 use std::str;
 
@@ -57,9 +57,31 @@ where
         }
     }
 
-    #[allow(dead_code)]
-    fn get_ref(&self) -> &T {
+    /// Gets a reference to the underlying writer.
+    pub fn get_ref(&self) -> &T {
         self.inner.get_ref()
+    }
+
+    /// Gets a mutable reference to the underlying writer.
+    ///
+    /// It is inadvisable to directly write to the underlying writer.
+    pub fn get_mut(&mut self) -> &mut T {
+        self.inner.get_mut()
+    }
+
+    /// Replace the underlying writer.
+    ///
+    /// Returns the parts of the buffered original writer.
+    /// See [`std::io::BufWriter::into_parts`].
+    pub fn replace_writer(&mut self, writer: T) -> (T, Result<Vec<u8>, WriterPanicked>) {
+        // Create a new buffered writer with the same capacity
+        let buf_writer = BufWriter::with_capacity(self.capacity, writer);
+        // Replace the inner writer
+        let orig = std::mem::replace(&mut self.inner, buf_writer);
+        // Reset state
+        self.written = 0;
+
+        orig.into_parts()
     }
 
     #[allow(dead_code)]
@@ -128,8 +150,56 @@ where
 mod tests {
     use super::MultiLineWriter;
 
-    use std::io::Write;
-    use std::str;
+    use std::io::{self, Write};
+    use std::{cmp, panic, str};
+
+    /// A mock writer that panics after writing a specified number of bytes.
+    /// Used for testing panic recovery in buffered writers.
+    #[derive(Debug)]
+    struct PanickingWriter {
+        buffer: Vec<u8>,
+        panic_after_bytes: usize,
+    }
+
+    impl PanickingWriter {
+        fn new(panic_after_bytes: usize) -> Self {
+            Self {
+                buffer: Vec::new(),
+                panic_after_bytes,
+            }
+        }
+
+        fn buffer(&self) -> &[u8] {
+            &self.buffer
+        }
+    }
+
+    impl Write for PanickingWriter {
+        fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
+            let bytes_until_panic = self.panic_after_bytes.saturating_sub(self.buffer.len());
+            let bytes_to_write = cmp::min(buf.len(), bytes_until_panic);
+
+            self.buffer.extend_from_slice(&buf[..bytes_to_write]);
+
+            // panic if we did not write the full buffer
+            if buf.len() > bytes_to_write {
+                panic!("PanickingWriter triggered a panic");
+            }
+
+            Ok(bytes_to_write)
+        }
+
+        fn flush(&mut self) -> io::Result<()> {
+            Ok(())
+        }
+    }
+
+    fn with_newline(data: &[u8]) -> Vec<u8> {
+        let mut buf = Vec::new();
+        buf.extend_from_slice(data);
+        buf.push(b'\n');
+        buf
+    }
 
     #[test]
     fn test_write_needs_flush() {
@@ -273,5 +343,99 @@ mod tests {
         assert_eq!(1, metrics.inner_write); // direct write count (large metric)
         assert_eq!(1, metrics.buf_write); // buffered write count (small metric)
         assert_eq!(1, metrics.flushed); // flush count (before large write)
+    }
+
+    #[test]
+    fn test_replace_writer() {
+        let cap = 32;
+        let first_data = b"first data";
+        assert!(first_data.len() < cap);
+
+        // Setup: Create a MultiLineWriter with a Vec<u8> as the inner writer and write first data chunk
+        let mut buffered = MultiLineWriter::new(Vec::new(), cap);
+        buffered.write_all(first_data).unwrap();
+        // force a flush to ensure inner writer is reached
+        buffered.flush().unwrap();
+
+        // write second chunk of data
+        let second_data = b"second data";
+        assert!(second_data.len() < cap);
+        buffered.write_all(second_data).unwrap();
+
+        // Create a new Vec<u8> to replace the existing one
+        let (original_writer, buffer_result) = buffered.replace_writer(Vec::new());
+        let original_buffer = buffer_result.expect("BufWriter not in panicked state");
+
+        // Verify buffer states
+        assert_eq!(with_newline(first_data), original_writer);
+        assert_eq!(with_newline(second_data), original_buffer);
+
+        // Verify internal state was reset
+        assert_eq!(buffered.written, 0);
+
+        // Write to the new buffer and verify it works
+        let third_data = b"third data";
+        buffered.write_all(third_data).unwrap();
+        buffered.flush().unwrap();
+
+        // Verify that the new writer received the data
+        assert_eq!(with_newline(third_data).as_slice(), buffered.get_ref());
+    }
+
+    #[test]
+    fn test_replace_writer_with_writer_panicked() {
+        // Define the panic position - after 5 bytes written
+        let panic_position = 5;
+        let cap = 32;
+
+        // first chunk at boundary of panic_position
+        let first_write = b"12345";
+        assert!(first_write.len() == panic_position);
+
+        // second chunk where first + second > panic_position but < cap
+        // This will trigger a panic during a flush not a write
+        let second_write = b"abcd";
+        let total_write_len = first_write.len() + second_write.len();
+        assert!(total_write_len > panic_position);
+        assert!(total_write_len < cap);
+
+        // Create a writer that will panic after writing the specified number of bytes
+        let writer = PanickingWriter::new(panic_position);
+
+        // Create our MultiLineWriter with the panicking writer
+        let mut buffered = MultiLineWriter::new(writer, cap);
+
+        // writing both chunks are buffered and succeed
+        buffered.write_all(first_write).unwrap();
+        buffered.write_all(second_write).unwrap();
+
+        // The flush should fail with a panic
+        let result = panic::catch_unwind(panic::AssertUnwindSafe(|| buffered.flush()));
+        assert!(result.is_err());
+
+        // Now replace the writer
+        let new_writer = PanickingWriter::new(usize::MAX);
+        let (original_writer, buffer_result) = buffered.replace_writer(new_writer);
+
+        // We should recover a WriterPanicked error
+        let err = buffer_result.expect_err("WriterPanicked");
+        assert_eq!(
+            [with_newline(first_write), with_newline(second_write)].concat(),
+            err.into_inner()
+        );
+
+        // The original writer should contain the bytes written before the panic
+        assert_eq!(original_writer.buffer(), first_write);
+
+        // Verify internal state was reset
+        assert_eq!(buffered.written, 0);
+
+        // Verify we can still use the new writer
+        let new_data = b"new data";
+        buffered.write_all(new_data).unwrap();
+        buffered.flush().unwrap();
+
+        // Verify the new writer received the data
+        assert_eq!(with_newline(new_data).as_slice(), buffered.get_ref().buffer());
     }
 }
