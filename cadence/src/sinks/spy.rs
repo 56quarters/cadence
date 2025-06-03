@@ -143,6 +143,9 @@ fn new_channel(cap: Option<usize>) -> (Sender<Vec<u8>>, Receiver<Vec<u8>>) {
 }
 
 fn send_metric(sender: &Sender<Vec<u8>>, metric: &[u8]) -> io::Result<usize> {
+    // Required while MSRV is 1.60
+    // std::io::Error::other stabilized in 1.74
+    #[allow(unknown_lints, clippy::io_other_error)]
     match sender.try_send(metric.to_vec()) {
         Err(TrySendError::Disconnected(_)) => Err(io::Error::new(ErrorKind::Other, "channel disconnected")),
         Err(TrySendError::Full(_)) => Err(io::Error::new(ErrorKind::Other, "channel full")),

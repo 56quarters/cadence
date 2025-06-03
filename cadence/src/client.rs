@@ -282,7 +282,7 @@ where
 
     /// Increment or decrement the counter by the given amount and return
     /// a `MetricBuilder` that can be used to add tags to the metric.
-    fn count_with_tags<'a>(&'a self, key: &'a str, count: T) -> MetricBuilder<'_, '_, Counter>;
+    fn count_with_tags<'a>(&'a self, key: &'a str, count: T) -> MetricBuilder<'a, 'a, Counter>;
 }
 
 /// Trait for convenience methods for counters
@@ -297,7 +297,7 @@ pub trait CountedExt: Counted<i64> {
 
     /// Increment the counter by 1 and return a `MetricBuilder` that can
     /// be used to add tags to the metric.
-    fn incr_with_tags<'a>(&'a self, key: &'a str) -> MetricBuilder<'_, '_, Counter> {
+    fn incr_with_tags<'a>(&'a self, key: &'a str) -> MetricBuilder<'a, 'a, Counter> {
         self.count_with_tags(key, 1)
     }
 
@@ -308,7 +308,7 @@ pub trait CountedExt: Counted<i64> {
 
     /// Decrement the counter by 1 and return a `MetricBuilder` that can
     /// be used to add tags to the metric.
-    fn decr_with_tags<'a>(&'a self, key: &'a str) -> MetricBuilder<'_, '_, Counter> {
+    fn decr_with_tags<'a>(&'a self, key: &'a str) -> MetricBuilder<'a, 'a, Counter> {
         self.count_with_tags(key, -1)
     }
 }
@@ -340,7 +340,7 @@ where
 
     /// Record a timing in milliseconds with the given key and return a
     /// `MetricBuilder` that can be used to add tags to the metric.
-    fn time_with_tags<'a>(&'a self, key: &'a str, time: T) -> MetricBuilder<'_, '_, Timer>;
+    fn time_with_tags<'a>(&'a self, key: &'a str, time: T) -> MetricBuilder<'a, 'a, Timer>;
 }
 
 /// Trait for recording gauge values.
@@ -369,7 +369,7 @@ where
 
     /// Record a gauge value with the given key and return a `MetricBuilder`
     /// that can be used to add tags to the metric.
-    fn gauge_with_tags<'a>(&'a self, key: &'a str, value: T) -> MetricBuilder<'_, '_, Gauge>;
+    fn gauge_with_tags<'a>(&'a self, key: &'a str, value: T) -> MetricBuilder<'a, 'a, Gauge>;
 }
 
 /// Trait for recording meter values.
@@ -399,7 +399,7 @@ where
 
     /// Record a meter value with the given key and return a `MetricBuilder`
     /// that can be used to add tags to the metric.
-    fn meter_with_tags<'a>(&'a self, key: &'a str, value: T) -> MetricBuilder<'_, '_, Meter>;
+    fn meter_with_tags<'a>(&'a self, key: &'a str, value: T) -> MetricBuilder<'a, 'a, Meter>;
 }
 
 /// Trait for recording histogram values.
@@ -433,7 +433,7 @@ where
 
     /// Record a single histogram value with the given key and return a
     /// `MetricBuilder` that can be used to add tags to the metric.
-    fn histogram_with_tags<'a>(&'a self, key: &'a str, value: T) -> MetricBuilder<'_, '_, Histogram>;
+    fn histogram_with_tags<'a>(&'a self, key: &'a str, value: T) -> MetricBuilder<'a, 'a, Histogram>;
 }
 
 /// Trait for recording distribution values.
@@ -463,7 +463,7 @@ where
 
     /// Record a single distribution value with the given key and return a
     /// `MetricBuilder` that can be used to add tags to the metric.
-    fn distribution_with_tags<'a>(&'a self, key: &'a str, value: T) -> MetricBuilder<'_, '_, Distribution>;
+    fn distribution_with_tags<'a>(&'a self, key: &'a str, value: T) -> MetricBuilder<'a, 'a, Distribution>;
 }
 
 /// Trait for recording set values.
@@ -487,7 +487,7 @@ where
 
     /// Record a single set value with the given key and return a
     /// `MetricBuilder` that can be used to add tags to the metric.
-    fn set_with_tags<'a>(&'a self, key: &'a str, value: T) -> MetricBuilder<'_, '_, Set>;
+    fn set_with_tags<'a>(&'a self, key: &'a str, value: T) -> MetricBuilder<'a, 'a, Set>;
 }
 
 /// Trait that encompasses all other traits for sending metrics.
@@ -1026,7 +1026,7 @@ impl<T> Counted<T> for StatsdClient
 where
     T: ToCounterValue,
 {
-    fn count_with_tags<'a>(&'a self, key: &'a str, value: T) -> MetricBuilder<'_, '_, Counter> {
+    fn count_with_tags<'a>(&'a self, key: &'a str, value: T) -> MetricBuilder<'a, 'a, Counter> {
         match value.try_to_value() {
             Ok(v) => MetricBuilder::from_fmt(MetricFormatter::counter(&self.prefix, key, v), self)
                 .with_tags(self.tags())
@@ -1042,7 +1042,7 @@ impl<T> Timed<T> for StatsdClient
 where
     T: ToTimerValue,
 {
-    fn time_with_tags<'a>(&'a self, key: &'a str, time: T) -> MetricBuilder<'_, '_, Timer> {
+    fn time_with_tags<'a>(&'a self, key: &'a str, time: T) -> MetricBuilder<'a, 'a, Timer> {
         match time.try_to_value() {
             Ok(v) => MetricBuilder::from_fmt(MetricFormatter::timer(&self.prefix, key, v), self)
                 .with_tags(self.tags())
@@ -1056,7 +1056,7 @@ impl<T> Gauged<T> for StatsdClient
 where
     T: ToGaugeValue,
 {
-    fn gauge_with_tags<'a>(&'a self, key: &'a str, value: T) -> MetricBuilder<'_, '_, Gauge> {
+    fn gauge_with_tags<'a>(&'a self, key: &'a str, value: T) -> MetricBuilder<'a, 'a, Gauge> {
         match value.try_to_value() {
             Ok(v) => MetricBuilder::from_fmt(MetricFormatter::gauge(&self.prefix, key, v), self)
                 .with_tags(self.tags())
@@ -1070,7 +1070,7 @@ impl<T> Metered<T> for StatsdClient
 where
     T: ToMeterValue,
 {
-    fn meter_with_tags<'a>(&'a self, key: &'a str, value: T) -> MetricBuilder<'_, '_, Meter> {
+    fn meter_with_tags<'a>(&'a self, key: &'a str, value: T) -> MetricBuilder<'a, 'a, Meter> {
         match value.try_to_value() {
             Ok(v) => MetricBuilder::from_fmt(MetricFormatter::meter(&self.prefix, key, v), self)
                 .with_tags(self.tags())
@@ -1084,7 +1084,7 @@ impl<T> Histogrammed<T> for StatsdClient
 where
     T: ToHistogramValue,
 {
-    fn histogram_with_tags<'a>(&'a self, key: &'a str, value: T) -> MetricBuilder<'_, '_, Histogram> {
+    fn histogram_with_tags<'a>(&'a self, key: &'a str, value: T) -> MetricBuilder<'a, 'a, Histogram> {
         match value.try_to_value() {
             Ok(v) => MetricBuilder::from_fmt(MetricFormatter::histogram(&self.prefix, key, v), self)
                 .with_tags(self.tags())
@@ -1098,7 +1098,7 @@ impl<T> Distributed<T> for StatsdClient
 where
     T: ToDistributionValue,
 {
-    fn distribution_with_tags<'a>(&'a self, key: &'a str, value: T) -> MetricBuilder<'_, '_, Distribution> {
+    fn distribution_with_tags<'a>(&'a self, key: &'a str, value: T) -> MetricBuilder<'a, 'a, Distribution> {
         match value.try_to_value() {
             Ok(v) => MetricBuilder::from_fmt(MetricFormatter::distribution(&self.prefix, key, v), self)
                 .with_tags(self.tags())
@@ -1112,7 +1112,7 @@ impl<T> Setted<T> for StatsdClient
 where
     T: ToSetValue,
 {
-    fn set_with_tags<'a>(&'a self, key: &'a str, value: T) -> MetricBuilder<'_, '_, Set> {
+    fn set_with_tags<'a>(&'a self, key: &'a str, value: T) -> MetricBuilder<'a, 'a, Set> {
         match value.try_to_value() {
             Ok(v) => MetricBuilder::from_fmt(MetricFormatter::set(&self.prefix, key, v), self)
                 .with_tags(self.tags())
