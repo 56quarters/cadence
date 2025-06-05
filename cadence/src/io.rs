@@ -77,6 +77,10 @@ where
         let required = buf.len() + self.line_ending.len();
 
         if required > self.capacity {
+            // if buffer non-empty, flush to preserve ordering.
+            if self.written > 0 {
+                self.flush()?;
+            }
             self.metrics.inner_write += 1;
             // If the user has given us a value bigger than our buffer
             // to write, bypass the buffer and write directly to the Write
@@ -231,5 +235,43 @@ mod tests {
 
         assert_eq!(10, buf.len());
         assert_eq!("something\n", str::from_utf8(&buf).unwrap());
+    }
+
+    #[test]
+    fn test_multiline_writer_ordering_behavior() {
+        // Create a buffer with capacity = 20 bytes
+        let buffer_capacity = 20;
+        let writer = Vec::new();
+        let mut buffered = MultiLineWriter::new(writer, buffer_capacity);
+
+        // Small string that fits in buffer
+        let small_metric = "small:1234|c";
+        assert!(small_metric.len() + buffered.line_ending.len() <= buffer_capacity);
+
+        // Large string that exceeds buffer capacity
+        let large_metric = "this_is_a_very_long_metric_name:9876|c";
+        assert!(large_metric.len() > buffer_capacity);
+
+        // Write the small metric (should be buffered with newline)
+        buffered.write_all(small_metric.as_bytes()).unwrap();
+
+        // Nothing should be written yet (still in buffer)
+        assert_eq!(0, buffered.get_ref().len());
+
+        // Write the large metric (should bypass buffer with no newline)
+        buffered.write_all(large_metric.as_bytes()).unwrap();
+
+        // The large metric should be written immediately
+        // The small metric should be flushed before writing the large one
+        let result = str::from_utf8(buffered.get_ref()).unwrap();
+
+        // Check that small metric has a newline but large metric doesn't
+        assert_eq!(format!("{}\n{}", small_metric, large_metric), result);
+
+        // Confirm metrics handling in buffered writer
+        let metrics = buffered.get_metrics();
+        assert_eq!(1, metrics.inner_write); // direct write count (large metric)
+        assert_eq!(1, metrics.buf_write); // buffered write count (small metric)
+        assert_eq!(1, metrics.flushed); // flush count (before large write)
     }
 }
