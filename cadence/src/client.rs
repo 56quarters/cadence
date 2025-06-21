@@ -1132,11 +1132,11 @@ fn nop_error_handler(_err: MetricError) {
 #[cfg(test)]
 mod tests {
     use super::{
-        Counted, CountedExt, Distributed, Gauged, Histogrammed, Metered, MetricClient, Setted, StatsdClient, Timed,
+        Counted, CountedExt, Distributed, Gauged, Histogrammed, Metered, MetricClient, Setted, StatsdClient,
+        StatsdClientBuilder, Timed,
     };
     use crate::sinks::{MetricSink, NopMetricSink, QueuingMetricSink, SpyMetricSink};
     use crate::types::{ErrorKind, Metric, MetricError};
-    use crate::StatsdClientBuilder;
     use std::io;
     use std::panic::RefUnwindSafe;
     use std::sync::atomic::{AtomicUsize, Ordering};
