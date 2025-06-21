@@ -1,6 +1,15 @@
 # Changelog
 
 
+## [v1.6.0](https://github.com/56quarters/cadence/tree/1.6.0) - 2025-06-21
+* Fix an issue with `MultiLineWriter` where buffering could cause metrics to
+  be emitted out of order per [#218](https://github.com/56quarters/cadence/pull/218).
+  Thanks to @dwhjames for this fix.
+* Add a `replace_writer` method to `MultiLineWriter` to allow broken writers to
+  be replaced (such as connection oriented writers like TCP streams)
+  per [#215](https://github.com/56quarters/cadence/pull/215).
+  Thanks to @dwhjames for this contribution.
+
 ## [v1.5.0](https://github.com/56quarters/cadence/tree/1.5.0) - 2024-09-26
 * Add support for Datadog Statsd extensions sample rates, container IDs, and
   explicit timestamps per [#211](https://github.com/56quarters/cadence/pull/211).
