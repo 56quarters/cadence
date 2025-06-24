@@ -12,6 +12,8 @@ use std::io;
 use std::io::Write;
 use std::net::{SocketAddr, ToSocketAddrs, UdpSocket};
 use std::sync::Mutex;
+use std::time::{Duration, Instant};
+use std::vec::IntoIter;
 
 use crate::io::MultiLineWriter;
 use crate::sinks::core::{MetricSink, SinkStats, SocketStats};
@@ -165,10 +167,23 @@ impl Write for UdpWriteAdapter {
 /// that do not emit metrics frequently or at a high volume. For these low-
 /// throughput use cases, it may make more sense to use the `UdpMetricSink`
 /// since it sends metrics immediately with no buffering.
-#[derive(Debug)]
 pub struct BufferedUdpMetricSink {
     buffer: Mutex<MultiLineWriter<UdpWriteAdapter>>,
     stats: SocketStats,
+    sink_addr: Option<Box<dyn ToSocketAddrs<Iter = IntoIter<SocketAddr>> + Send + Sync + std::panic::RefUnwindSafe>>,
+    reconnect_interval: Option<Duration>,
+    last_connect: Mutex<(Instant, SocketAddr)>,
+}
+
+impl ::std::fmt::Debug for BufferedUdpMetricSink {
+    fn fmt(&self, __arg_0: &mut ::std::fmt::Formatter<'_>) -> ::std::fmt::Result {
+        let mut builder = __arg_0.debug_struct("Person");
+        let _ = builder.field("buffer", &self.buffer);
+        let _ = builder.field("stats", &self.stats);
+        let _ = builder.field("reconnect_interval", &self.reconnect_interval);
+        let _ = builder.field("last_connect", &self.last_connect);
+        builder.finish()
+    }
 }
 
 impl BufferedUdpMetricSink {
@@ -206,7 +221,7 @@ impl BufferedUdpMetricSink {
     where
         A: ToSocketAddrs,
     {
-        Self::with_capacity(sink_addr, socket, DEFAULT_BUFFER_SIZE)
+        BufferedUdpMetricSinkBuilder::new_resolved(sink_addr, socket)?.build()
     }
 
     /// Construct a new `BufferedUdpMetricSink` instance with a custom
@@ -245,27 +260,180 @@ impl BufferedUdpMetricSink {
     where
         A: ToSocketAddrs,
     {
-        let addr = get_addr(sink_addr)?;
-        Ok(BufferedUdpMetricSink {
-            buffer: Mutex::new(MultiLineWriter::new(UdpWriteAdapter::new(addr, socket), cap)),
-            stats: SocketStats::default(),
-        })
+        BufferedUdpMetricSinkBuilder::new_resolved(sink_addr, socket)?
+            .capacity(cap)
+            .build()
+    }
+
+    /// Creates a `BufferedUdpMetricSinkBuilder` to configure a `BufferedUdpMetricSink`.
+    ///
+    /// The BufferedUdpMetricSinkBuilder may need to take ownership of the `sink_addr`
+    /// in order to support reconnects, so `sink_addr` will need to have a static
+    /// lifetime. `BufferedUdpMetricSink::from` and `BufferedUdpMetricSink::with_capacity`
+    /// does not have this limitation.
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// use std::net::UdpSocket;
+    /// use cadence::{BufferedUdpMetricSink, DEFAULT_PORT};
+    ///
+    /// let socket = UdpSocket::bind("0.0.0.0:0").unwrap();
+    /// let host = ("metrics.example.com", DEFAULT_PORT);
+    /// let sink = BufferedUdpMetricSink::builder(host, socket)
+    ///     .reconnect_interval(std::time::Duration::from_secs(30))
+    ///     .build();
+    /// ```
+    ///
+    /// # Failures
+    ///
+    /// This method may fail if:
+    ///
+    /// * It is unable to resolve the hostname of the metric server.
+    /// * The host address is otherwise unable to be parsed
+    pub fn builder<A>(sink_addr: A, socket: UdpSocket) -> BufferedUdpMetricSinkBuilder
+    where
+        A: ToSocketAddrs<Iter = IntoIter<SocketAddr>> + Send + Sync + std::panic::RefUnwindSafe + 'static,
+    {
+        BufferedUdpMetricSinkBuilder::new(sink_addr, socket)
+    }
+
+    fn try_reconnect(&self) -> io::Result<()> {
+        if let Some(reconnect_interval) = self.reconnect_interval {
+            if let Some(sink_addr) = self.sink_addr.as_deref() {
+                let mut last_connect = self.last_connect.lock().unwrap();
+                if last_connect.0.elapsed() > reconnect_interval {
+                    if let Ok(addr) = get_addr(sink_addr) {
+                        if addr != last_connect.1 {
+                            let mut writer = self.buffer.lock().unwrap();
+                            let socket = writer.get_ref().socket.try_clone()?;
+                            let new_writer_adapter = UdpWriteAdapter::new(addr, socket);
+                            let (_old_write_adapter, buffer) = writer.replace_writer(new_writer_adapter);
+                            if let Ok(buffer) = buffer {
+                                writer.write_all(&buffer)?;
+                            }
+                            last_connect.1 = addr
+                        }
+                        last_connect.0 = Instant::now();
+                    }
+                }
+            }
+        }
+        Ok(())
     }
 }
 
 impl MetricSink for BufferedUdpMetricSink {
     fn emit(&self, metric: &str) -> io::Result<usize> {
+        self.try_reconnect()?;
         let mut writer = self.buffer.lock().unwrap();
         writer.write(metric.as_bytes())
     }
 
     fn flush(&self) -> io::Result<()> {
+        self.try_reconnect()?;
         let mut writer = self.buffer.lock().unwrap();
         writer.flush()
     }
 
     fn stats(&self) -> SinkStats {
         (&self.stats).into()
+    }
+}
+
+/// A `ClientBuilder` can be used to create a `Client` with custom configuration.
+#[must_use]
+pub struct BufferedUdpMetricSinkBuilder {
+    socket: UdpSocket,
+    addr: Option<SocketAddr>,
+    addresses: Option<Box<dyn ToSocketAddrs<Iter = IntoIter<SocketAddr>> + Send + Sync + std::panic::RefUnwindSafe>>,
+    capacity: usize,
+    reconnect_interval: Option<Duration>,
+}
+
+impl BufferedUdpMetricSinkBuilder {
+    fn new<A>(sink_addr: A, socket: UdpSocket) -> BufferedUdpMetricSinkBuilder
+    where
+        A: ToSocketAddrs<Iter = IntoIter<SocketAddr>> + Send + Sync + std::panic::RefUnwindSafe + 'static,
+    {
+        let addresses = Box::new(sink_addr);
+        Self {
+            socket,
+            addr: None,
+            addresses: Some(addresses),
+            capacity: DEFAULT_BUFFER_SIZE,
+            reconnect_interval: None,
+        }
+    }
+
+    fn new_resolved<A>(sink_addr: A, socket: UdpSocket) -> MetricResult<BufferedUdpMetricSinkBuilder>
+    where
+        A: ToSocketAddrs,
+    {
+        let sink_addr = get_addr(sink_addr)?;
+        Ok(Self {
+            socket,
+            addr: Some(sink_addr),
+            addresses: None,
+            capacity: DEFAULT_BUFFER_SIZE,
+            reconnect_interval: None,
+        })
+    }
+
+    /// Sets a custom buffer size for the `BufferedUdpMetricSink`
+    ///
+    /// The address should be the address of the remote metric server to
+    /// emit metrics to over UDP. The socket should already be bound to a
+    /// local address with any desired configuration applied (blocking vs
+    /// non-blocking, timeouts, etc.).
+    ///
+    /// Writes to this sink are automatically suffixed  with a Unix newline
+    /// ('\n') by the sink and stored in a buffer until the buffer is full
+    /// or this sink is destroyed, at which point the buffer will be flushed.
+    ///
+    /// For guidance on sizing your buffer see the
+    /// [Statsd docs](https://github.com/etsy/statsd/blob/master/docs/metric_types.md#multi-metric-packets).
+    pub fn capacity(self, cap: usize) -> Self {
+        Self { capacity: cap, ..self }
+    }
+
+    /// Sets a reconnect interval for the `BufferedUdpMetricSink`
+    ///
+    /// When set, before any writes on the underlying stream, it will attempt
+    /// to reconnect to the statsd host while re-resolving any DNS hostnames.
+    /// This is useful for dynamic environments where the statsd instance
+    /// may be relocated.
+    pub fn reconnect_interval(self, interval: Duration) -> Self {
+        Self {
+            reconnect_interval: Some(interval),
+            ..self
+        }
+    }
+
+    /// Returns a `BufferedUdpMetricSink` that uses this `BufferedUdpMetricSinkBuilder` configuration.
+    ///
+    /// # Failures
+    ///
+    /// This method may fail if:
+    ///
+    /// * It is unable to resolve the hostname of the metric server.
+    /// * The host address is otherwise unable to be parsed
+    pub fn build(self) -> MetricResult<BufferedUdpMetricSink> {
+        let addr = match (self.addr, self.addresses.as_ref()) {
+            (Some(addr), _) => get_addr(addr)?,
+            (_, Some(addresses)) => get_addr(addresses.as_ref())?,
+            _ => unreachable!(),
+        };
+        Ok(BufferedUdpMetricSink {
+            buffer: Mutex::new(MultiLineWriter::new(
+                UdpWriteAdapter::new(addr, self.socket),
+                self.capacity,
+            )),
+            stats: SocketStats::default(),
+            sink_addr: self.addresses,
+            reconnect_interval: self.reconnect_interval,
+            last_connect: Mutex::new((Instant::now(), addr)),
+        })
     }
 }
 

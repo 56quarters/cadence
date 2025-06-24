@@ -61,5 +61,5 @@ fn test_statsd_client_histogram() {
 #[test]
 fn test_statsd_client_nop_sink_single_threaded() {
     let client = new_nop_client("cadence");
-    run_arc_threaded_test(client, 1, 1);
+    run_arc_threaded_test(client, 1, 1, None);
 }

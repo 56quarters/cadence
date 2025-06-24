@@ -8,7 +8,12 @@ use std::sync::Arc;
 use std::thread;
 use std::time::Duration;
 
-pub fn run_arc_threaded_test(client: StatsdClient, num_threads: u64, iterations: u64) {
+pub fn run_arc_threaded_test(
+    client: StatsdClient,
+    num_threads: u64,
+    iterations: u64,
+    iteration_interval: Option<Duration>,
+) {
     let shared_client = Arc::new(client);
 
     let threads: Vec<_> = (0..num_threads)
@@ -31,7 +36,7 @@ pub fn run_arc_threaded_test(client: StatsdClient, num_threads: u64, iterations:
                     local_client.distribution("some.distribution", i).unwrap();
                     local_client.distribution("some.distribution", i as f64).unwrap();
                     local_client.set("some.set", i as i64).unwrap();
-                    thread::sleep(Duration::from_millis(1));
+                    thread::sleep(iteration_interval.unwrap_or(Duration::from_millis(1)));
                 }
             })
         })

@@ -17,11 +17,11 @@ fn new_buffered_spy_client(prefix: &str) -> (Receiver<Vec<u8>>, StatsdClient) {
 #[test]
 fn test_statsd_client_spy_sink_single_threaded() {
     let (_rx, client) = new_spy_client("cadence");
-    run_arc_threaded_test(client, 1, 1);
+    run_arc_threaded_test(client, 1, 1, None);
 }
 
 #[test]
 fn test_statsd_client_buffered_spy_sink_single_threaded() {
     let (_rx, client) = new_buffered_spy_client("cadence");
-    run_arc_threaded_test(client, 1, 1);
+    run_arc_threaded_test(client, 1, 1, None);
 }

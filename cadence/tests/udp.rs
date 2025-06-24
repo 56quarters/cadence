@@ -1,5 +1,6 @@
 use cadence::{BufferedUdpMetricSink, QueuingMetricSink, StatsdClient, UdpMetricSink, DEFAULT_PORT};
 use std::net::UdpSocket;
+use std::time::Duration;
 use utils::run_arc_threaded_test;
 
 mod utils;
@@ -18,6 +19,15 @@ fn new_buffered_udp_client(prefix: &str) -> StatsdClient {
     StatsdClient::from_sink(prefix, sink)
 }
 
+fn new_buffered_udp_reconnect_client(prefix: &str) -> StatsdClient {
+    let socket = UdpSocket::bind("0.0.0.0:0").unwrap();
+    let sink = BufferedUdpMetricSink::builder(TARGET_HOST, socket)
+        .reconnect_interval(Duration::from_millis(10))
+        .build()
+        .unwrap();
+    StatsdClient::from_sink(prefix, sink)
+}
+
 fn new_queuing_buffered_udp_client(prefix: &str) -> StatsdClient {
     let socket = UdpSocket::bind("0.0.0.0:0").unwrap();
     let buffered = BufferedUdpMetricSink::from(TARGET_HOST, socket).unwrap();
@@ -28,17 +38,23 @@ fn new_queuing_buffered_udp_client(prefix: &str) -> StatsdClient {
 #[test]
 fn test_statsd_client_udp_sink_single_threaded() {
     let client = new_udp_client("cadence");
-    run_arc_threaded_test(client, 1, 1);
+    run_arc_threaded_test(client, 1, 1, None);
 }
 
 #[test]
 fn test_statsd_client_buffered_udp_sink_single_threaded() {
     let client = new_buffered_udp_client("cadence");
-    run_arc_threaded_test(client, 1, 1);
+    run_arc_threaded_test(client, 1, 1, None);
 }
 
 #[test]
 fn test_statsd_client_queuing_buffered_udp_sink_single_threaded() {
     let client = new_queuing_buffered_udp_client("cadence");
-    run_arc_threaded_test(client, 1, 1);
+    run_arc_threaded_test(client, 1, 1, None);
+}
+
+#[test]
+fn test_statsd_client_buffered_udp_sink_reconnect_single_threaded() {
+    let client = new_buffered_udp_reconnect_client("cadence");
+    run_arc_threaded_test(client, 1, 5, Some(Duration::from_millis(5)));
 }
