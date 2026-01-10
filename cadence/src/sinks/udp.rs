@@ -322,4 +322,26 @@ mod tests {
         assert_eq!(8, sink.emit("foo:54|c").unwrap());
         assert!(sink.flush().is_ok());
     }
+
+    #[test]
+    fn test_buffered_udp_metric_sink_stats() {
+        let socket = UdpSocket::bind("0.0.0.0:0").unwrap();
+        let sink = BufferedUdpMetricSink::with_capacity("127.0.0.1:8125", socket, 16).unwrap();
+
+        sink.emit("foo:54|c").unwrap();
+        sink.emit("foo:67|c").unwrap();
+        sink.flush().unwrap();
+
+        let stats = sink.stats();
+        assert!(
+            stats.bytes_sent > 0,
+            "Expected bytes_sent > 0, got {}",
+            stats.bytes_sent
+        );
+        assert!(
+            stats.packets_sent > 0,
+            "Expected packets_sent > 0, got {}",
+            stats.packets_sent
+        );
+    }
 }
