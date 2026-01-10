@@ -125,17 +125,18 @@ impl MetricSink for UdpMetricSink {
 pub(crate) struct UdpWriteAdapter {
     addr: SocketAddr,
     socket: UdpSocket,
+    stats: SocketStats,
 }
 
 impl UdpWriteAdapter {
-    pub(crate) fn new(addr: SocketAddr, socket: UdpSocket) -> UdpWriteAdapter {
-        UdpWriteAdapter { addr, socket }
+    pub(crate) fn new(addr: SocketAddr, socket: UdpSocket, stats: SocketStats) -> UdpWriteAdapter {
+        UdpWriteAdapter { addr, socket, stats }
     }
 }
 
 impl Write for UdpWriteAdapter {
     fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
-        self.socket.send_to(buf, self.addr)
+        self.stats.update(self.socket.send_to(buf, self.addr), buf.len())
     }
 
     fn flush(&mut self) -> io::Result<()> {
@@ -246,9 +247,13 @@ impl BufferedUdpMetricSink {
         A: ToSocketAddrs,
     {
         let addr = get_addr(sink_addr)?;
+        let stats = SocketStats::default();
         Ok(BufferedUdpMetricSink {
-            buffer: Mutex::new(MultiLineWriter::new(UdpWriteAdapter::new(addr, socket), cap)),
-            stats: SocketStats::default(),
+            buffer: Mutex::new(MultiLineWriter::new(
+                UdpWriteAdapter::new(addr, socket, stats.clone()),
+                cap,
+            )),
+            stats,
         })
     }
 }
