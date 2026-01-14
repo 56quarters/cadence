@@ -397,23 +397,23 @@ mod tests {
     }
 
     #[test]
-    fn test_metric_error_description_io_error() {
+    fn test_metric_error_display_io_error() {
         let io_err = io::Error::new(io::ErrorKind::PermissionDenied, "Permission!");
         let our_err = MetricError::from(io_err);
-        assert_eq!("Permission!", our_err.description());
+        assert_eq!("Permission!", our_err.to_string());
     }
 
     #[test]
-    fn test_metric_error_description_other() {
+    fn test_metric_error_display_other() {
         let our_err = MetricError::from((ErrorKind::InvalidInput, "Something!"));
-        assert_eq!("Something!", our_err.description());
+        assert_eq!("Something!", our_err.to_string());
     }
 
     #[test]
     fn test_metric_error_cause_io_error() {
         let io_err = io::Error::new(io::ErrorKind::TimedOut, "Timeout!");
         let our_err = MetricError::from(io_err);
-        assert_eq!("Timeout!", our_err.source().unwrap().description());
+        assert_eq!("Timeout!", our_err.source().unwrap().to_string());
     }
 
     #[test]

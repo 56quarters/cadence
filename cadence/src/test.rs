@@ -235,6 +235,8 @@ impl Every {
         }
     }
 
+    // is_multiple_of was added in Rust 1.87, but we want to target older versions.
+    #[allow(clippy::manual_is_multiple_of)]
     fn allow(&self) -> bool {
         self.counter.fetch_add(1, Ordering::SeqCst) % self.modulo == 0
     }
