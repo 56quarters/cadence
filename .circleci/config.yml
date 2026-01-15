@@ -12,11 +12,8 @@ workflows:
     - rust/test:
         matrix:
           parameters:
-            # Only test stable, beta, nightly, and 1.60 since we only have a limited
-            # amount of build credits each month. We test back to 1.60 since that's
-            # our current MSRV.
             toolchain:
             - "stable"
             - "beta"
             - "nightly"
-            - "1.60.0"
+            - "1.70.0"
