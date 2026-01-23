@@ -125,17 +125,18 @@ impl MetricSink for UdpMetricSink {
 pub(crate) struct UdpWriteAdapter {
     addr: SocketAddr,
     socket: UdpSocket,
+    stats: SocketStats,
 }
 
 impl UdpWriteAdapter {
-    pub(crate) fn new(addr: SocketAddr, socket: UdpSocket) -> UdpWriteAdapter {
-        UdpWriteAdapter { addr, socket }
+    pub(crate) fn new(addr: SocketAddr, socket: UdpSocket, stats: SocketStats) -> UdpWriteAdapter {
+        UdpWriteAdapter { addr, socket, stats }
     }
 }
 
 impl Write for UdpWriteAdapter {
     fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
-        self.socket.send_to(buf, self.addr)
+        self.stats.update(self.socket.send_to(buf, self.addr), buf.len())
     }
 
     fn flush(&mut self) -> io::Result<()> {
@@ -246,9 +247,13 @@ impl BufferedUdpMetricSink {
         A: ToSocketAddrs,
     {
         let addr = get_addr(sink_addr)?;
+        let stats = SocketStats::default();
         Ok(BufferedUdpMetricSink {
-            buffer: Mutex::new(MultiLineWriter::new(UdpWriteAdapter::new(addr, socket), cap)),
-            stats: SocketStats::default(),
+            buffer: Mutex::new(MultiLineWriter::new(
+                UdpWriteAdapter::new(addr, socket, stats.clone()),
+                cap,
+            )),
+            stats,
         })
     }
 }
@@ -321,5 +326,27 @@ mod tests {
 
         assert_eq!(8, sink.emit("foo:54|c").unwrap());
         assert!(sink.flush().is_ok());
+    }
+
+    #[test]
+    fn test_buffered_udp_metric_sink_stats() {
+        let socket = UdpSocket::bind("0.0.0.0:0").unwrap();
+        let sink = BufferedUdpMetricSink::with_capacity("127.0.0.1:8125", socket, 16).unwrap();
+
+        sink.emit("foo:54|c").unwrap();
+        sink.emit("foo:67|c").unwrap();
+        sink.flush().unwrap();
+
+        let stats = sink.stats();
+        assert!(
+            stats.bytes_sent > 0,
+            "Expected bytes_sent > 0, got {}",
+            stats.bytes_sent
+        );
+        assert!(
+            stats.packets_sent > 0,
+            "Expected packets_sent > 0, got {}",
+            stats.packets_sent
+        );
     }
 }
