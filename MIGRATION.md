@@ -2,6 +2,10 @@
 
 Guides for migrating to different versions of Cadence are below.
 
+## Migrating to 1.7.0
+
+There are no backwards incompatible changes in this release.
+
 ## Migrating to 1.6.0
 
 There are no backwards incompatible changes in this release.
