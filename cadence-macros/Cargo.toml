@@ -11,6 +11,7 @@ license = "Apache-2.0/MIT"
 keywords = ["statsd", "metrics"]
 edition = "2021"
 autobenches = false
+rust-version = "1.70"
 
 [dependencies]
 cadence = { path = "../cadence", version = "1.7" }
