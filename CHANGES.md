@@ -1,5 +1,12 @@
 # Changelog
 
+## [v1.7.0](https://github.com/56quarters/cadence/tree/1.7.0) - 2026-02-08
+
+* Fix an issue with `BufferedUdpMetricSink` stats not being updated per
+  [#227](https://github.com/56quarters/cadence/pull/227). Thanks to @danielnorberg
+  for this contribution.
+* Update the minimum supported Rust version to 1.70 (from 1.60) since 1.60 is
+  unreliable in CI.
 
 ## [v1.6.0](https://github.com/56quarters/cadence/tree/1.6.0) - 2025-06-21
 * Fix an issue with `MultiLineWriter` where buffering could cause metrics to
