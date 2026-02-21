@@ -536,6 +536,7 @@ pub mod ext;
 mod io;
 pub mod prelude;
 mod sinks;
+mod sync;
 mod types;
 
 // Utilities for running integration tests with Unix datagram sockets.

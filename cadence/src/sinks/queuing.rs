@@ -9,13 +9,13 @@
 // except according to those terms.
 
 use crate::sinks::core::{MetricSink, SinkStats};
+use crate::sync::ExecuteStats;
 use crossbeam_channel::{self, Receiver, Sender, TrySendError};
 use std::fmt;
 use std::io::{self, ErrorKind};
 use std::panic::RefUnwindSafe;
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::Arc;
-use std::thread;
 
 /// Implementation of a builder pattern for `QueuingMetricSink`.
 ///
@@ -60,6 +60,7 @@ impl QueuingMetricSinkBuilder {
     {
         let sink = Arc::new(sink);
         let sink_c = sink.clone();
+
         let worker = Arc::new(Worker::new(self.capacity, move |v: String| {
             if let Err(e) = sink_c.emit(&v) {
                 if let Some(error_handler) = &self.error_handler {
@@ -68,9 +69,10 @@ impl QueuingMetricSinkBuilder {
             }
         }));
 
-        spawn_worker_in_thread(worker.clone());
+        let worker_c = worker.clone();
+        let executor = crate::sync::execute(move || worker_c.run());
 
-        QueuingMetricSink { worker, sink }
+        QueuingMetricSink { worker, executor, sink }
     }
 
     /// Set error handler called when the wrapped sink fails to emit a metric.
@@ -144,6 +146,7 @@ impl QueuingMetricSinkBuilder {
 #[derive(Clone)]
 pub struct QueuingMetricSink {
     worker: Arc<Worker>,
+    executor: Arc<ExecuteStats>,
     sink: Arc<dyn MetricSink + Send + Sync + RefUnwindSafe>,
 }
 
@@ -237,7 +240,7 @@ impl QueuingMetricSink {
     /// has panicked and needed to be restarted. In typical use this should always
     /// be `0` but may be `> 0` for buggy `MetricSink` implementations.
     pub fn panics(&self) -> u64 {
-        self.worker.stats.panics()
+        self.executor.panics()
     }
 
     /// Return the number of currently queued metrics. Note that due to the way
@@ -297,99 +300,34 @@ impl Drop for QueuingMetricSink {
 /// These statistics are only used for unit testing to verify that our
 /// sentinel can handle thread panics and restart the thread the worker
 /// is running in.
-#[derive(Debug)]
+#[derive(Debug, Default)]
 struct WorkerStats {
-    panics: AtomicU64,
     submitted: AtomicU64,
     drained: AtomicU64,
 }
 
 impl WorkerStats {
-    fn new() -> WorkerStats {
-        WorkerStats {
-            panics: AtomicU64::new(0),
-            submitted: AtomicU64::new(0),
-            drained: AtomicU64::new(0),
-        }
-    }
-
-    fn incr_panic(&self) {
-        self.panics.fetch_add(1, Ordering::Release);
-    }
-
-    fn panics(&self) -> u64 {
-        self.panics.load(Ordering::Acquire)
-    }
-
     fn incr_submitted(&self) {
-        self.submitted.fetch_add(1, Ordering::Release);
+        self.submitted.fetch_add(1, Ordering::Relaxed);
     }
 
     fn submitted(&self) -> u64 {
-        self.submitted.load(Ordering::Acquire)
+        self.submitted.load(Ordering::Relaxed)
     }
 
     fn incr_drained(&self) {
-        self.drained.fetch_add(1, Ordering::Release);
+        self.drained.fetch_add(1, Ordering::Relaxed);
     }
 
     fn drained(&self) -> u64 {
-        self.drained.load(Ordering::Acquire)
+        self.drained.load(Ordering::Relaxed)
     }
 
     fn queued(&self) -> u64 {
-        let submitted = self.submitted.load(Ordering::Acquire);
-        let drained = self.drained.load(Ordering::Acquire);
+        let submitted = self.submitted.load(Ordering::Relaxed);
+        let drained = self.drained.load(Ordering::Relaxed);
 
         submitted.saturating_sub(drained)
-    }
-}
-
-/// Create a thread and run the worker in it to completion
-///
-/// This function uses a `Sentinel` struct to make sure that any panics from
-/// running the worker result in another thread being spawned to start running
-/// the worker again.
-fn spawn_worker_in_thread(worker: Arc<Worker>) -> thread::JoinHandle<()> {
-    thread::spawn(move || {
-        let mut sentinel = Sentinel::new(&worker);
-        worker.run();
-        sentinel.cancel();
-    })
-}
-
-/// Struct for ensuring a worker runs to completion correctly, without
-/// panicking.
-///
-/// The sentinel will spawn a new thread to continue running the worker
-/// in its destructor unless the `.cancel()` method is called after the
-/// worker completes (which won't happen if the worker panics).
-#[derive(Debug)]
-struct Sentinel<'a> {
-    worker: &'a Arc<Worker>,
-    active: bool,
-}
-
-impl<'a> Sentinel<'a> {
-    fn new(worker: &'a Arc<Worker>) -> Sentinel<'a> {
-        Sentinel { worker, active: true }
-    }
-
-    fn cancel(&mut self) {
-        self.active = false;
-    }
-}
-
-impl<'a> Drop for Sentinel<'a> {
-    fn drop(&mut self) {
-        if self.active {
-            // This sentinel didn't have its `.cancel()`method called so
-            // the thread must have panicked. Increment a counter indicating
-            // that this was a panic and spawn a new thread with an Arc of
-            // the worker.
-            self.worker.stats.incr_panic();
-            spawn_worker_in_thread(self.worker.clone());
-        }
     }
 }
 
@@ -433,7 +371,7 @@ impl Worker {
             sender: tx,
             receiver: rx,
             stopped: AtomicBool::new(false),
-            stats: WorkerStats::new(),
+            stats: WorkerStats::default(),
         }
     }
 
@@ -483,7 +421,7 @@ impl Worker {
         self.stop();
 
         while !self.stopped.load(Ordering::Acquire) {
-            thread::yield_now();
+            std::thread::yield_now();
         }
     }
 
