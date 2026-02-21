@@ -105,6 +105,44 @@
 //! buffer fills. In this case, it may make sense to use the `UdpMetricSink`
 //! since it does not do any buffering.
 //!
+//! ### Re-resolving UDP Sinks
+//!
+//! When using UDP sinks by default, the address of the server you are
+//! sending metrics to is resolved a single time when the UDP sink is
+//! created. If you anticipate the IP address of the server you are sending
+//! metrics to will change, you can configure UDP sinks to periodically
+//! re-resolve the IP address of the metrics server. This can be done using
+//! their respective builders. You may also supply a function that is
+//! called when the re-resolution of the metrics server IP address fails.
+//!
+//! ```rust,no_run
+//! use std::net::UdpSocket;
+//! use std::time::Duration;
+//! use cadence::prelude::*;
+//! use cadence::{StatsdClient, BufferedUdpMetricSink, DEFAULT_PORT};
+//!
+//! let socket = UdpSocket::bind("0.0.0.0:0").unwrap();
+//! let host = ("metrics.example.com", DEFAULT_PORT);
+//!
+//! let sink = BufferedUdpMetricSink::builder()
+//!     .with_capacity(1024)
+//!     .with_resolver_period(Duration::from_secs(5))
+//!     .with_resolver_error_handler(|e| {
+//!         eprintln!("error: failed to resolve host: {}", e);
+//!     })
+//!     .build(host, socket)
+//!     .unwrap();
+//! let client = StatsdClient::from_sink("my.prefix", sink);
+//!
+//! client.count("my.counter.thing", 29);
+//! client.time("my.service.call", 214);
+//!
+//! ```
+//!
+//! If enabled, periodic address resolution is done in a separate thread
+//! created by the sink when the sink is created. The thread is stopped
+//! when the sink is dropped.
+//!
 //! ### Queuing Asynchronous Metric Sink
 //!
 //! To make sure emitting metrics doesn't interfere with the performance
@@ -522,8 +560,8 @@ pub use self::client::{
 };
 
 pub use self::sinks::{
-    BufferedSpyMetricSink, BufferedUdpMetricSink, MetricSink, NopMetricSink, QueuingMetricSink,
-    QueuingMetricSinkBuilder, SinkStats, SpyMetricSink, UdpMetricSink,
+    BufferedSpyMetricSink, BufferedUdpMetricSink, BufferedUdpMetricSinkBuilder, MetricSink, NopMetricSink,
+    QueuingMetricSink, QueuingMetricSinkBuilder, SinkStats, SpyMetricSink, UdpMetricSink, UdpMetricSinkBuilder,
 };
 
 pub use self::types::{
