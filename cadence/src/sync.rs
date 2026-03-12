@@ -15,7 +15,7 @@ use std::thread;
 
 /// Statistics about the job being run by the `execute` method.
 #[derive(Debug, Default)]
-pub struct ExecuteStats {
+pub(crate) struct ExecuteStats {
     panics: AtomicU64,
 }
 
@@ -34,7 +34,7 @@ impl ExecuteStats {
 ///
 /// Since a new thread is created for each task executed, this should only be used for
 /// long-running tasks.
-pub fn execute<F>(f: F) -> Arc<ExecuteStats>
+pub(crate) fn execute<F>(f: F) -> Arc<ExecuteStats>
 where
     F: Fn() + Send + Sync + RefUnwindSafe + 'static,
 {
