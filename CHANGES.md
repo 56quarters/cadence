@@ -1,5 +1,12 @@
 # Changelog
 
+## [v1.8.0](https://github.com/56quarters/cadence/tree/1.8.0) - 2026-04-11
+
+* Allow UDP sinks (`UdpMetricSink`, `BufferedUdpMetricSink`) to be configured
+  to periodically re-resolve the hostname of the server that metrics are being
+  sent to. Examples of this can be found in documentation for each sink,
+  the `README`, or `examples` directory.
+
 ## [v1.7.0](https://github.com/56quarters/cadence/tree/1.7.0) - 2026-02-08
 
 * Fix an issue with `BufferedUdpMetricSink` stats not being updated per

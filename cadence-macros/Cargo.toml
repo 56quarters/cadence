@@ -1,6 +1,6 @@
 [package]
 name = "cadence-macros"
-version = "1.7.0"
+version = "1.8.0"
 authors = ["Nick Pillitteri"]
 description = "Macros for Cadence, an extensible Statsd client for Rust"
 homepage = "https://github.com/56quarters/cadence"
@@ -14,7 +14,7 @@ autobenches = false
 rust-version = "1.70"
 
 [dependencies]
-cadence = { path = "../cadence", version = "1.7" }
+cadence = { path = "../cadence", version = "1.8" }
 
 [dev-dependencies]
 crossbeam-channel = "0.5.1"
