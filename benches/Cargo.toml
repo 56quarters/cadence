@@ -1,0 +1,21 @@
+[workspace]
+
+[package]
+name = "benches"
+version = "0.0.0"
+authors = ["Nick Pillitteri"]
+description = "An extensible Statsd client for Rust"
+homepage = "https://github.com/56quarters/cadence"
+documentation = "https://docs.rs/cadence/"
+repository = "https://github.com/56quarters/cadence"
+publish = false
+edition = "2024"
+
+[dependencies]
+cadence = { path = "../cadence" }
+criterion = "0.5.1"
+
+[[bench]]
+name = "all"
+path = "all.rs"
+harness = false
