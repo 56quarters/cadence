@@ -11,6 +11,7 @@
 
 use crate::client::{MetricBackend, StatsdClient};
 use crate::types::{Metric, MetricError, MetricResult};
+use std::borrow::Cow;
 use std::fmt::{self, Write};
 use std::marker::PhantomData;
 
@@ -79,7 +80,27 @@ where
         value.fmt(f)?;
     }
 
-    fmt::Result::Ok(())
+    Ok(())
+}
+
+fn sanitize_prefix_key_tag<'a>(s: &'a str) -> Cow<'a, str> {
+    let matcher = |c| c == '\r' || c == '\n' || c == '|' || c == ':';
+
+    if !s.contains(matcher) {
+        Cow::Borrowed(s)
+    } else {
+        Cow::Owned(s.replace(matcher, "_"))
+    }
+}
+
+fn sanitize_tag_value_cid<'a>(s: &'a str) -> Cow<'a, str> {
+    let matcher = |c| c == '\r' || c == '\n' || c == '|' || c == ',';
+
+    if !s.contains(matcher) {
+        Cow::Borrowed(s)
+    } else {
+        Cow::Owned(s.replace(matcher, "_"))
+    }
 }
 
 impl fmt::Display for MetricValue {
@@ -97,16 +118,16 @@ impl fmt::Display for MetricValue {
 
 #[derive(Debug, Clone)]
 pub(crate) struct MetricFormatter<'a> {
-    prefix: &'a str,
-    key: &'a str,
+    prefix: Cow<'a, str>,
+    key: Cow<'a, str>,
     val: MetricValue,
     type_: MetricType,
-    tags: Vec<(Option<&'a str>, &'a str)>,
+    tags: Vec<(Option<Cow<'a, str>>, Cow<'a, str>)>,
     // Datadog extensions:
     // https://docs.datadoghq.com/developers/dogstatsd/datagram_shell/?tab=metrics#the-dogstatsd-protocol
     timestamp: Option<u64>,
     sampling_rate: Option<f64>,
-    container_id: Option<&'a str>,
+    container_id: Option<Cow<'a, str>>,
     base_size: usize,
     kv_size: usize,
 }
@@ -146,8 +167,8 @@ impl<'a> MetricFormatter<'a> {
     fn from_val(prefix: &'a str, key: &'a str, val: MetricValue, type_: MetricType) -> Self {
         let value_count = val.count();
         MetricFormatter {
-            prefix,
-            key,
+            prefix: sanitize_prefix_key_tag(prefix),
+            key: sanitize_prefix_key_tag(key),
             type_,
             val,
             tags: Vec::new(),
@@ -158,6 +179,7 @@ impl<'a> MetricFormatter<'a> {
             // allocate.
             kv_size: 0,
             base_size: prefix.len() + key.len() + 1 /* : */ + 10 * value_count /* value(s) */ + 1 /* | */ + 2, /* type */
+
             timestamp: None,
             sampling_rate: None,
             container_id: None,
@@ -165,12 +187,13 @@ impl<'a> MetricFormatter<'a> {
     }
 
     fn with_tag(&mut self, key: &'a str, value: &'a str) {
-        self.tags.push((Some(key), value));
+        self.tags
+            .push((Some(sanitize_prefix_key_tag(key)), sanitize_tag_value_cid(value)));
         self.kv_size += key.len() + 1 /* : */ + value.len();
     }
 
     fn with_tag_value(&mut self, value: &'a str) {
-        self.tags.push((None, value));
+        self.tags.push((None, sanitize_tag_value_cid(value)));
         self.kv_size += value.len();
     }
 
@@ -179,7 +202,7 @@ impl<'a> MetricFormatter<'a> {
     }
 
     fn with_container_id(&mut self, container_id: &'a str) {
-        self.container_id = Some(container_id);
+        self.container_id = Some(sanitize_tag_value_cid(container_id));
     }
 
     fn with_sampling_rate(&mut self, rate: f64) {
@@ -187,7 +210,11 @@ impl<'a> MetricFormatter<'a> {
     }
 
     fn write_base_metric(&self, out: &mut String) {
-        let _ = write!(out, "{}{}:{}|{}", self.prefix, self.key, self.val, self.type_);
+        // We don't need any formatting for the prefix or metric name and
+        // formatting is slower than just appending a string.
+        out.push_str(&self.prefix);
+        out.push_str(&self.key);
+        let _ = write!(out, ":{}|{}", self.val, self.type_);
     }
 
     fn write_sampling_rate(&self, out: &mut String) {
@@ -200,7 +227,7 @@ impl<'a> MetricFormatter<'a> {
     fn write_tags(&self, out: &mut String) {
         if !self.tags.is_empty() {
             out.push_str(Self::TAG_PREFIX);
-            for (i, &(key, value)) in self.tags.iter().enumerate() {
+            for (i, (key, value)) in self.tags.iter().enumerate() {
                 if i > 0 {
                     out.push(',');
                 }
@@ -221,7 +248,7 @@ impl<'a> MetricFormatter<'a> {
     }
 
     fn write_container_id(&self, out: &mut String) {
-        if let Some(container_id) = self.container_id {
+        if let Some(container_id) = &self.container_id {
             // See https://github.com/DataDog/datadog-go/blob/v5.5.0/statsd/format.go#L268
             let _ = write!(out, "|c:{}", container_id);
         }
@@ -255,7 +282,7 @@ impl<'a> MetricFormatter<'a> {
     }
 
     fn container_id_size_hint(&self) -> usize {
-        if let Some(container_id) = self.container_id {
+        if let Some(container_id) = &self.container_id {
             /* |c */
             2 + container_id.len()
         } else {
@@ -800,28 +827,6 @@ mod tests {
     }
 
     #[test]
-    fn test_metric_formatter_sampling_rate() {
-        let mut fmt =
-            MetricFormatter::distribution("prefix.", "some.key", MetricValue::PackedUnsigned(vec![44, 45, 46]));
-        fmt.with_sampling_rate(0.5);
-
-        let expected = "prefix.some.key:44:45:46|d|@0.5";
-        assert_eq!(expected, &fmt.format());
-        assert_eq!(68, fmt.size_hint());
-    }
-
-    #[test]
-    fn test_metric_formatter_sampling_rate_small() {
-        let mut fmt =
-            MetricFormatter::distribution("prefix.", "some.key", MetricValue::PackedUnsigned(vec![44, 45, 46]));
-        fmt.with_sampling_rate(0.000000000000000000001);
-
-        let expected = "prefix.some.key:44:45:46|d|@0.000000000000000000001";
-        assert_eq!(expected, &fmt.format());
-        assert_eq!(68, fmt.size_hint());
-    }
-
-    #[test]
     fn test_metric_formatter_distribution_with_tags() {
         let mut fmt = MetricFormatter::distribution("prefix.", "latency.milliseconds", MetricValue::Unsigned(44));
         fmt.with_tag("user-type", "authenticated");
@@ -870,6 +875,66 @@ mod tests {
             ),
             &fmt.format()
         );
+    }
+
+    #[test]
+    fn test_metric_formatter_sanitize_prefix() {
+        let fmt = MetricFormatter::counter("\r\nprefix.", "users", MetricValue::Signed(44));
+        assert_eq!("__prefix.users:44|c", &fmt.format());
+    }
+
+    #[test]
+    fn test_metric_formatter_sanitize_key() {
+        let fmt = MetricFormatter::counter("prefix.", "users||", MetricValue::Signed(44));
+        assert_eq!("prefix.users__:44|c", &fmt.format());
+    }
+
+    #[test]
+    fn test_metric_formatter_sanitize_tag() {
+        let mut fmt = MetricFormatter::counter("prefix.", "users", MetricValue::Unsigned(22));
+        fmt.with_tag("some:", "thing\r\n");
+        fmt.with_tag("another", ":thing,");
+
+        assert_eq!("prefix.users:22|c|#some_:thing__,another::thing_", fmt.format());
+    }
+
+    #[test]
+    fn test_metric_formatter_sanitize_tag_value() {
+        let mut fmt = MetricFormatter::counter("prefix.", "users", MetricValue::Unsigned(22));
+        fmt.with_tag_value("beta\r\n");
+        fmt.with_tag_value("authenticated,");
+
+        assert_eq!("prefix.users:22|c|#beta__,authenticated_", fmt.format());
+    }
+
+    #[test]
+    fn test_metric_formatter_sanitize_container_id() {
+        let mut fmt = MetricFormatter::counter("prefix.", "users", MetricValue::Unsigned(22));
+        fmt.with_container_id("something\r\n");
+
+        assert_eq!("prefix.users:22|c|c:something__", fmt.format());
+    }
+
+    #[test]
+    fn test_metric_formatter_sampling_rate() {
+        let mut fmt =
+            MetricFormatter::distribution("prefix.", "some.key", MetricValue::PackedUnsigned(vec![44, 45, 46]));
+        fmt.with_sampling_rate(0.5);
+
+        let expected = "prefix.some.key:44:45:46|d|@0.5";
+        assert_eq!(expected, &fmt.format());
+        assert_eq!(68, fmt.size_hint());
+    }
+
+    #[test]
+    fn test_metric_formatter_sampling_rate_small() {
+        let mut fmt =
+            MetricFormatter::distribution("prefix.", "some.key", MetricValue::PackedUnsigned(vec![44, 45, 46]));
+        fmt.with_sampling_rate(0.000000000000000000001);
+
+        let expected = "prefix.some.key:44:45:46|d|@0.000000000000000000001";
+        assert_eq!(expected, &fmt.format());
+        assert_eq!(68, fmt.size_hint());
     }
 
     #[test]
